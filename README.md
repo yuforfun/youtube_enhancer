@@ -20,8 +20,22 @@
 
 #### **步驟一：下載檔案
 
-1. 前往 [**Release 頁面**](https://github.com/yuforfun/youtube_enhancer/releases) 下載最新的 `YouTube_Subtitle_Backend_vX.X.X.exe`、`config.json.example`、`YouTube_Subtitle_Extension_vX.X.X.zip` 三個檔案以及兩張圖片(server_icon)。
-2.  將檔案下載到一個你找得到的地方，例如桌面。
+1. 前往 [**Release 頁面**](https://github.com/yuforfun/youtube_enhancer/tree/master/release_files) 下載最新的 `YouTube_Subtitle_Backend_vX.X.X.exe`、`config.json.example`、`YouTube_Subtitle_Extension_vX.X.X.zip` 三個檔案以及兩張圖片(server_icon)。
+
+    方法一：下載單個檔案
+    - 在 GitHub 專案頁面上，找到你想下載的檔案。
+    - 點擊檔案名稱進入檔案內容頁面。
+    - 在右上角會看到一個「Raw」或「Download」按鈕。
+    - 點擊右鍵選擇「另存連結為...」或直接點擊按鈕，就可以將檔案下載到你的電腦中。
+
+    方法二：下載整個[專案壓縮檔](https://github.com/yuforfun/youtube_enhancer/tree/master)
+    - 如果你想下載整個專案，包含所有程式碼和資料夾結構，可以下載一個完整的 .zip 壓縮檔。
+    - 在 GitHub 專案的首頁，找到右上方的綠色按鈕，上面通常寫著「Code」。
+    - 點擊這個按鈕。
+    - 在下拉式選單中，選擇「Download ZIP」。
+    - 這樣，GitHub 就會自動將整個專案打包成一個 .zip 壓縮檔，你下載後解壓縮就可以使用了。
+
+2.  將release_files的檔案放到一個你找得到的地方，例如桌面。
 
 
 #### **步驟二：設定 Gemini API Key**
