@@ -1,0 +1,74 @@
+/* 【核心修改】讓容器預設不攔截滑鼠事件，讓點擊可以“穿透” */
+#enhancer-subtitle-container {
+    position: absolute;
+    bottom: 2%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 22px;
+    font-family: "YouTube Noto", Roboto, "Arial Unicode Ms", Arial, Helvetica, Verdana, "PT Sans Caption", sans-serif;
+    text-shadow: 2px 2px 3px #000, -2px -2px 3px #000, 2px -2px 3px #000, -2px 2px 3px #000;
+    text-align: center;
+    width: 80%;
+    pointer-events: none; /* <--- 關鍵修改點：從 auto 改為 none */
+    z-index: 2147483647;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.enhancer-line {
+    background-color: rgba(8, 8, 8, 0.75);
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 4px;
+    white-space: pre-wrap;
+    /* 這個 pointer-events: none; 現在可以繼承自父級，但保留也無妨 */
+}
+
+/* 【核心修改】只讓重試連結可以被點擊 */
+.enhancer-retry-link {
+    font-weight: bold;
+    color: #ffadad;
+    text-decoration: underline;
+    cursor: pointer;
+    pointer-events: auto; /* <--- 關鍵修改點：明確設定為 auto，覆蓋父級的 none */
+}
+
+.enhancer-retry-link:hover {
+    color: #ff7575;
+}
+
+
+.enhancer-ja-line {
+    opacity: 0.85;
+    font-size: 0.85em;
+}
+
+.enhancer-zh-line {
+    font-weight: bold;
+}
+
+#enhancer-toast {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 2147483647;
+    font-size: 16px;
+    font-family: sans-serif;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    pointer-events: none;
+}
+
+#enhancer-toast.show {
+    opacity: 1;
+    visibility: visible;
+}
