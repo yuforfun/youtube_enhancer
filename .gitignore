@@ -1,5 +1,27 @@
 # 將包含金鑰的檔案排除在版本控制外
 config.json
 
-# 也可以將其他不必要的檔案排除，例如 Python 快取
+
+# 絕對不要上傳您的 API 金鑰！
+# 忽略個人測試金鑰檔案
+api_keys_test.txt
+
+# 也要忽略包含真實金鑰的原始檔案 (以防萬一)
+# 如果您確定 api_keys.txt 只會存放範本
+
+
+# 忽略所有在 release_files 資料夾中的內容
+/release_files/
+
+# 忽略 Python 的快取檔案
 __pycache__/
+*.pyc
+
+# 忽略 Conda/Venv 環境資料夾 (如果未來有的話)
+/envs/
+/venv/
+/.venv/
+
+# 忽略敏感資訊檔
+.env
+*.env
