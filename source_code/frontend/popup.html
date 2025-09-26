@@ -2,55 +2,74 @@
 <html>
 <head>
     <title>YT 字幕增強器</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="popup.css">
     <meta charset="UTF-8">
 </head>
 <body>
-
-    <div class="header">
+    <header class="header">
         <h1>YT 字幕增強器</h1>
-        <span class="version-badge">v1.0.0</span>
+        <span class="version-badge">v1.3.0</span>
+    </header>
+
+    <div class="card">
+        <button id="toggleButton">讀取中...</button>
+        <div id="status" class="status-text">未知</div>
     </div>
 
     <div class="card">
-        <div class="card-title">顯示設定</div>
+        <h2 class="card-title">外觀設定</h2>
         <div class="setting-row">
             <label for="fontSizeSlider">字體大小</label>
-            <input type="range" id="fontSizeSlider" min="14" max="40" step="1" value="22">
-            <span id="fontSizeValue">22px</span>
-        </div>
-        <div class="setting-row">
-            <label for="fontFamilySelect">字幕字體</label>
-            <select id="fontFamilySelect">
-                <option value='"YouTube Noto", Roboto, "Arial Unicode Ms", Arial, Helvetica, Verdana, "PT Sans Caption", sans-serif'>YouTube 預設</option>
-                <option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option>
-                <option value="Noto Serif TC, serif">思源宋體 (推薦/網路)</option>
-                <option value="Microsoft JhengHei, sans-serif">微軟正黑體 (Windows 預設)</option>
-                <option value="KaiTi, serif">標楷體 (需本機安裝且名稱匹配)</option>
-            </select>
+            <input type="range" id="fontSizeSlider" min="14" max="40" step="1">
+            <span id="fontSizeValue" class="value-display">22px</span>
         </div>
         <div class="setting-row">
             <label>顯示模式</label>
             <div class="checkbox-group">
-                <input type="checkbox" id="showOriginal" checked>
-                <label for="showOriginal">原文</label>
-                <input type="checkbox" id="showTranslated" checked>
-                <label for="showTranslated">翻譯</label>
+                <input type="checkbox" id="showOriginal" checked><label for="showOriginal">原文</label>
+                <input type="checkbox" id="showTranslated" checked><label for="showTranslated">翻譯</label>
             </div>
         </div>
     </div>
+    
+    <div class="card accordion collapsed">
+        <div class="card-title accordion-header">
+            <span>進階選項</span>
+            <span class="accordion-icon">►</span>
+        </div>
+        <div class="accordion-content">
+            <h3 class="card-subtitle">已選用 (由上至下依序嘗試)</h3>
+            <ul id="selected-models" class="model-list"></ul>
 
-    <div class="card">
-        <button id="toggleButton">讀取中...</button>
-        <div id="status">未知</div>
-    </div>
+            <div class="model-controls">
+                <button id="add-model" title="新增選取">&#9660; (新增)</button>
+                <button id="remove-model" title="移除選取">&#9650; (移除)</button>
+            </div>
 
-    <div class="card">
-        <button id="clearCacheButton" class="secondary">清除所有暫存</button>
+            <h3 class="card-subtitle">可用模型</h3>
+            <ul id="available-models" class="model-list"></ul>
+            
+            <hr class="divider">
+            
+            <h3 class="card-subtitle">字幕字體</h3>
+            <div class="setting-row">
+                <label for="fontFamilySelect">字體選擇</label>
+                <select id="fontFamilySelect">
+                    <optgroup label="通用"><option value="YouTube Noto, Roboto, sans-serif">YouTube 預設</option><option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option></optgroup>
+                    <optgroup label="Windows"><option value="Microsoft JhengHei, sans-serif">微軟正黑體 (預設)</option></optgroup>
+                    <optgroup label="macOS"><option value="PingFang TC, sans-serif">蘋方-TC (預設)</option><option value="Heiti TC, sans-serif">黑體-繁</option></optgroup>
+                    <optgroup label="其他"><option value="custom">其他 (自訂)...</option></optgroup>
+                </select>
+            </div>
+            <div class="setting-row hidden" id="customFontRow">
+                <label for="fontFamilyInput">自訂名稱</label>
+                <input type="text" id="fontFamilyInput" placeholder="例如: Noto Serif TC">
+            </div>
+            
+            <hr class="divider">
+            
+            <button id="clearCacheButton" class="button-secondary">清除所有暫存</button>
+        </div>
     </div>
     
     <script src="popup.js"></script>

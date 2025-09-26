@@ -12,9 +12,11 @@
  * translation flow, DOM manipulation, and communication with other parts
  * of the extension.
  */
-
+/**
+ * @file content.js
+ * @version 1.3.0
+ */
 (() => {
-    // 防止重複注入
     if (window.ytEnhancer) {
         window.ytEnhancer.destroy();
     }
@@ -24,130 +26,102 @@
 
     class YouTubeSubtitleEnhancer {
         constructor() {
-            // ... (constructor 內容不變)
-			console.log("YT 字幕增強器 v13.2-super-debug");
+            console.log("YT 字幕增強器 v1.3.2 已注入 (增強偵錯訊息)");
             this.isEnabled = false;
             this.isProcessing = false;
             this.settings = {};
             this.videoElement = null;
             this.subtitleContainer = null;
             this.translatedTrack = null;
+            this.rawPayload = null;
+            this.translationQueue = [];
             this.currentSubtitleIndex = -1;
             this.toastTimeout = null;
             this.abortController = null;
-            this.initRetryCount = 0; // 【新增】用於重試的計數器
-
+            this.initRetryCount = 0;
+            //--- 綁定 this ---
             this.handleWindowMessage = this.handleWindowMessage.bind(this);
             this.handleTimeUpdate = this.handleTimeUpdate.bind(this);
             this.handleStateChange = this.handleStateChange.bind(this);
             this.handleSettingsChange = this.handleSettingsChange.bind(this);
+            this.handleRetryClick = this.handleRetryClick.bind(this);
             this.run = this.run.bind(this);
         }
 
         async initialize() {
-            // ... (initialize 內容不變)
-            const settingsResponse = await this.sendMessageToBackground({ action: 'getSettings' });
-            this.settings = settingsResponse?.data || {};
             const statusResponse = await this.sendMessageToBackground({ action: 'checkStatus' });
             this.isEnabled = statusResponse?.isEnabled || false;
+            const settingsResponse = await this.sendMessageToBackground({ action: 'getSettings' });
+            this.settings = settingsResponse?.data || {};
 
             window.addEventListener('message', this.handleWindowMessage);
             chrome.runtime.onMessage.addListener(this.handleStateChange);
             chrome.runtime.onMessage.addListener(this.handleSettingsChange);
             document.addEventListener('yt-navigate-finish', () => setTimeout(this.run, 500));
-            
             this.run();
         }
 
         run() {
-            this.initRetryCount = 0; // 每次執行 run 都重置計數器
+            this.initRetryCount = 0;
             if (this.isEnabled && window.location.pathname.startsWith('/watch')) {
                 this.start();
             } else {
                 this.stop();
             }
         }
-        
-        // 【核心修改】start 函式
-		async start() {
-			this.stop();
 
-			this.videoElement = document.querySelector('video');
-			const playerContainer = document.getElementById('movie_player');
-
-			if (!this.videoElement || !playerContainer) {
-				if (this.initRetryCount < 10) {
-					this.initRetryCount++;
-					console.warn(`[Enhancer] 未找到播放器元素，將在 1 秒後重試 (${this.initRetryCount}/10)...`);
-					setTimeout(() => this.start(), 1000);
-				} else {
-					console.error("[Enhancer] 多次重試後仍未找到播放器，腳本終止。");
-				}
-				return;
-			}
-			
-			console.log("[Enhancer] 成功找到播放器元素，開始執行主要邏輯。");
-
-			this.createSubtitleContainer(playerContainer);
-			this.applySettings();
-
-			const videoId = this.getVideoId();
-			console.log(`[Enhancer] 嘗試獲取 Video ID，結果為:`, videoId);
-
-			if (!videoId) {
-				console.error("[Enhancer] 錯誤：無法從當前 URL 中獲取 Video ID。腳本終止。");
-				return;
-			}
-
-			const cacheKey = `ytEnhancerCache_${videoId}`;
-
-			// 【新增偵錯日誌】
-			console.log(`[Enhancer] 準備向 background 發送 getCache 請求，key 為: ${cacheKey}`);
-			
-			const cachedData = await this.getCache(cacheKey);
-
-			// 【新增偵錯日誌】
-			console.log(`[Enhancer] 已收到 background 的 getCache 回應，資料為:`, cachedData);
-
-			if (cachedData && cachedData.translatedTrack) {
-				this.translatedTrack = cachedData.translatedTrack;
-				const needsResume = this.translatedTrack.some(sub => this.isTranslationIncomplete(sub));
-				
-				if (needsResume && cachedData.rawPayload) {
-					console.log('[Enhancer] 偵測到不完整暫存，將啟動自動重試。');
-					this.showToast("偵測到未完成的翻譯，正在自動重試...", 4000);
-					setTimeout(() => this.parseAndTranslate(cachedData.rawPayload), 100);
-					return;
-				}
-
-				if (!needsResume) {
-					this.showToast("翻譯完成 (來自暫存)");
-				}
-				
-				this.beginDisplay();
-				return;
-			}
-
-			this.showToast("攔截器已部署，請手動開啟CC字幕以觸發...");
-			this.injectInterceptor();
-		}
+        async start() {
+            this.stop();
+            this.videoElement = document.querySelector('video');
+            const playerContainer = document.getElementById('movie_player');
+            if (!this.videoElement || !playerContainer) {
+                if (this.initRetryCount < 10) {
+                    this.initRetryCount++;
+                    setTimeout(() => this.start(), 1000);
+                }
+                return;
+            }
+            this.createSubtitleContainer(playerContainer);
+            this.applySettings();
+            const videoId = this.getVideoId();
+            if (!videoId) return;
+            const cacheKey = `ytEnhancerCache_${videoId}`;
+            const cachedData = await this.getCache(cacheKey);
+            if (cachedData && cachedData.translatedTrack) {
+                this.translatedTrack = cachedData.translatedTrack;
+                this.rawPayload = cachedData.rawPayload;
+                const needsResume = this.translatedTrack.some(sub => this.isTranslationIncomplete(sub));
+                if (needsResume && this.rawPayload) {
+                    this.showToast("偵測到未完成的翻譯，正在自動繼續...", 4000);
+                    setTimeout(() => this.parseAndTranslate(this.rawPayload, true), 100);
+                    return;
+                }
+                if (!needsResume) {
+                    this.showToast("翻譯完成 (來自暫存)");
+                }
+                this.beginDisplay();
+                return;
+            }
+            this.showToast("攔截器已部署，等待字幕觸發...");
+            this.injectInterceptor();
+        }
 
         stop() {
-            if (this.abortController) {
-                this.abortController.abort();
-            }
+            if (this.abortController) { this.abortController.abort(); }
+            this.translationQueue = [];
             if (this.videoElement) this.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
-            if (this.subtitleContainer) this.subtitleContainer.remove();
-            
+            if (this.subtitleContainer) {
+                this.subtitleContainer.removeEventListener('click', this.handleRetryClick);
+                this.subtitleContainer.remove();
+                this.subtitleContainer = null;
+            }
             const toast = document.getElementById('enhancer-toast');
-            if(toast) toast.classList.remove('show');
-            
+            if (toast) toast.classList.remove('show');
             const originalContainer = document.querySelector('.ytp-caption-window-container');
             if (originalContainer) originalContainer.style.display = '';
-            
             this.videoElement = null;
-            this.subtitleContainer = null;
             this.translatedTrack = null;
+            this.rawPayload = null;
             this.currentSubtitleIndex = -1;
             this.isProcessing = false;
         }
@@ -155,28 +129,190 @@
         destroy() {
             this.stop();
             window.removeEventListener('message', this.handleWindowMessage);
-            console.log("YT 字幕增強器實例已銷毀。");
         }
 
         handleWindowMessage(event) {
             if (event.source !== window || !event.data || event.data.type !== 'FROM_YT_ENHANCER_INTERCEPTOR') return;
-            if (this.isProcessing) return;
-
+            if (this.isProcessing || this.translationQueue.length > 0) return;
             if (event.data.status === 'SUCCESS') {
-                this.isProcessing = true;
                 this.parseAndTranslate(event.data.payload);
             } else {
-                this.showToast(`[錯誤] ${event.data.reason || '未知錯誤'}`);
+                this.showToast(`攔截器錯誤: ${event.data.reason || '未知錯誤'}`, 6000);
+            }
+        }
+
+        async parseAndTranslate(payload, isResume = false) {
+            this.rawPayload = payload;
+            try {
+                const settingsResponse = await this.sendMessageToBackground({ action: 'getSettings' });
+                this.settings = settingsResponse?.data || {};
+
+                this.showToast(`成功攔截字幕，正在準備翻譯任務...`);
+                let originalSubtitles = this.parseRawSubtitles(payload);
+                if (originalSubtitles.length === 0) {
+                    this.showToast("解析後無有效字幕內容，已停止。");
+                    return;
+                }
+                this.initializeOrMergeTrack(originalSubtitles);
+                this.beginDisplay();
+                
+                for (let i = 0; i < this.translatedTrack.length; i += BATCH_SIZE) {
+                    if(isResume && !this.isTranslationIncomplete(this.translatedTrack[i])) {
+                        continue;
+                    }
+                    this.translationQueue.push({ startIndex: i });
+                }
+
+                this.showToast(`準備完成，佇列中共有 ${this.translationQueue.length} 個批次待翻譯。`);
+                this.startQueueProcessor();
+
+            } catch (e) {
+                this.showToast(`[嚴重錯誤] ${e.message}`, 6000);
             }
         }
         
+        startQueueProcessor() {
+            if (this.isProcessing) return;
+            this.processTranslationQueue();
+        }
+        
+        async processTranslationQueue() {
+            if (this.isProcessing) return;
+
+            if (this.translationQueue.length === 0) {
+                this.showToast("所有批次翻譯已完成！", 5000);
+                this.isProcessing = false;
+                return;
+            }
+            
+            this.isProcessing = true;
+            this.abortController = new AbortController();
+
+            const job = this.translationQueue.shift();
+            const { startIndex, isRetry } = job;
+            
+            const videoId = this.getVideoId();
+            const cacheKey = `ytEnhancerCache_${videoId}`;
+            const batch = this.translatedTrack.slice(startIndex, startIndex + BATCH_SIZE);
+            const batchNum = Math.floor(startIndex / BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(this.translatedTrack.length / BATCH_SIZE);
+
+            if(isRetry) {
+                this.showToast(`優先處理第 ${batchNum} 批次的重試請求...`);
+            }
+
+            await this.translateBatch(batch, batchNum, totalBatches, cacheKey, this.rawPayload);
+            
+            this.isProcessing = false;
+            setTimeout(() => this.processTranslationQueue(), 100);
+        }
+
+        async translateBatch(batch, batchNum, totalBatches, cacheKey, rawPayload) {
+            const batchTexts = batch.map(sub => sub.text);
+            try {
+                this.showToast(`正在翻譯第 ${batchNum}/${totalBatches} 批...`);
+                const translatedBatch = await this.sendBatchForTranslation(batchTexts, this.abortController.signal);
+                if (translatedBatch && Array.isArray(translatedBatch) && translatedBatch.length === batch.length) {
+                    batch.forEach((sub, index) => { sub.translatedText = translatedBatch[index]; });
+                } else {
+                    throw new Error("後端回應格式或數量不符");
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') { 
+                    this.showToast("任務已中止");
+                    throw error;
+                 }
+                // 【優化】在 Toast 中顯示詳細的錯誤訊息
+                this.showToast(`第 ${batchNum}/${totalBatches} 批翻譯失敗: ${error.message}`, 8000);
+                batch.forEach(sub => { sub.translatedText = "[此批翻譯失敗]"; });
+            } finally {
+                if (this.abortController && !this.abortController.signal.aborted) {
+                    await this.setCache(cacheKey, { translatedTrack: this.translatedTrack, rawPayload: rawPayload });
+                }
+            }
+        }
+        
+        handleRetryClick(event) {
+            const target = event.target;
+            if (target && target.classList.contains('enhancer-retry-link')) {
+                if (!this.rawPayload) {
+                    this.showToast("缺少原始字幕資料，無法重試。", 3000);
+                    return;
+                }
+                const failedIndex = parseInt(target.dataset.retryIndex, 10);
+                if (!isNaN(failedIndex)) {
+                    const startIndex = Math.floor(failedIndex / BATCH_SIZE) * BATCH_SIZE;
+                    
+                    const batch = this.translatedTrack.slice(startIndex, startIndex + BATCH_SIZE);
+                    batch.forEach(sub => sub.translatedText = "...");
+                    this.updateSubtitleDisplay(null, "...", failedIndex);
+
+                    this.translationQueue.unshift({ startIndex: startIndex, isRetry: true });
+                    
+                    this.startQueueProcessor();
+                }
+            }
+        }
+        
+        // 【優化】增強 sendBatchForTranslation 的錯誤處理
+        async sendBatchForTranslation(texts, signal) {
+            const response = await fetch(SERVER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    texts: texts,
+                    models_preference: this.settings.models_preference
+                }),
+                signal
+            });
+            if (!response.ok) {
+                let errorMsg = `HTTP 狀態碼: ${response.status}`;
+                try {
+                    // 嘗試解析後端回傳的 JSON 錯誤訊息
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || `伺服器未提供詳細錯誤訊息。`;
+                } catch (e) {
+                    // 如果後端回傳的不是 JSON (例如 HTML 錯誤頁面)
+                    errorMsg = `無法解析伺服器回應。狀態碼: ${response.status}`;
+                }
+                throw new Error(errorMsg);
+            }
+            return await response.json();
+        }
+
+        // ----- 以下為輔助函式，大部分未變動 -----
+
+        createSubtitleContainer(playerContainer) {
+            if (document.getElementById('enhancer-subtitle-container')) return;
+            this.subtitleContainer = document.createElement('div');
+            this.subtitleContainer.id = 'enhancer-subtitle-container';
+            this.subtitleContainer.addEventListener('click', this.handleRetryClick);
+            playerContainer.appendChild(this.subtitleContainer);
+        }
+
+        updateSubtitleDisplay(originalText, translatedText, index) {
+            if (!this.subtitleContainer) return;
+            let jaLine = "";
+            let zhLine = "";
+
+            if (this.settings.showOriginal && originalText) {
+                jaLine = `<div class="enhancer-line enhancer-ja-line">${this.escapeHTML(originalText)}</div>`;
+            }
+            if (this.settings.showTranslated && translatedText) {
+                if (translatedText === "[此批翻譯失敗]") {
+                    zhLine = `<div class.="enhancer-line enhancer-zh-line">[此批翻譯失敗] <span class="enhancer-retry-link" data-retry-index="${index}">點此重試</span></div>`;
+                } else {
+                    zhLine = `<div class="enhancer-line enhancer-zh-line">${this.escapeHTML(translatedText)}</div>`;
+                }
+            }
+            this.subtitleContainer.innerHTML = jaLine + zhLine;
+        }
+
         handleTimeUpdate() {
             if (!this.translatedTrack || !this.videoElement) return;
             const currentTime = this.videoElement.currentTime;
-            
             let foundIndex = -1;
             const startSearchIndex = this.currentSubtitleIndex > 0 ? this.currentSubtitleIndex - 1 : 0;
-
             for (let i = startSearchIndex; i < this.translatedTrack.length; i++) {
                 const sub = this.translatedTrack[i];
                 if (currentTime >= sub.start && currentTime < sub.end) {
@@ -184,7 +320,6 @@
                     break;
                 }
             }
-
             if (foundIndex !== -1) {
                 if (this.currentSubtitleIndex !== foundIndex) {
                     const sub = this.translatedTrack[foundIndex];
@@ -205,7 +340,7 @@
         }
 
         handleSettingsChange(request) {
-             if (request.action === 'settingsChanged') {
+            if (request.action === 'settingsChanged') {
                 this.settings = request.settings;
                 this.applySettings();
                 if (this.translatedTrack && this.currentSubtitleIndex !== -1) {
@@ -215,144 +350,22 @@
             }
         }
 
-        async parseAndTranslate(payload) {
-            try {
-                this.showToast(`成功攔截字幕，正在解析...`);
-                const videoId = this.getVideoId();
-                const cacheKey = `ytEnhancerCache_${videoId}`;
-
-                let originalSubtitles = this.parseRawSubtitles(payload);
-                if (originalSubtitles.length === 0) throw new Error("解析後發現字幕檔為空。");
-
-                this.initializeOrMergeTrack(originalSubtitles);
-                this.beginDisplay();
-
-                const totalBatches = Math.ceil(this.translatedTrack.length / BATCH_SIZE);
-                this.showToast(`解析完成，共 ${originalSubtitles.length} 句。開始分批翻譯 (共 ${totalBatches} 批)...`);
-
-                this.abortController = new AbortController();
-
-                for (let i = 0; i < this.translatedTrack.length; i += BATCH_SIZE) {
-                    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-                    if (!this.isTranslationIncomplete(this.translatedTrack[i])) continue;
-
-                    const batch = this.translatedTrack.slice(i, i + BATCH_SIZE);
-                    await this.translateBatch(batch, batchNum, totalBatches, cacheKey, payload);
-                }
-                this.showToast("所有批次翻譯已完成！", 5000);
-
-            } catch (e) {
-                if (e.name !== 'AbortError') {
-                    this.showToast(`[錯誤] ${e.message}`, 6000);
-                }
-            } finally {
-                this.isProcessing = false;
-                this.abortController = null;
-            }
-        }
-        
-        async translateBatch(batch, batchNum, totalBatches, cacheKey, rawPayload) {
-            const batchTexts = batch.map(sub => sub.text);
-            try {
-                this.showToast(`正在翻譯第 ${batchNum}/${totalBatches} 批...`);
-                const translatedBatch = await this.sendBatchForTranslation(batchTexts, this.abortController.signal);
-                
-                if (translatedBatch && translatedBatch.length === batch.length) {
-                    batch.forEach((sub, index) => { sub.translatedText = translatedBatch[index]; });
-                } else {
-                    throw new Error("回傳數量不符");
-                }
-            } catch (error) {
-                 if (error.name === 'AbortError') {
-                    console.log(`批次 ${batchNum} 的翻譯請求被主動中斷。`);
-                    throw error;
-                }
-                this.showToast(`第 ${batchNum}/${totalBatches} 批翻譯失敗！`, 5000);
-                batch.forEach(sub => { sub.translatedText = "[此批翻譯失敗]"; });
-            } finally {
-                if (!this.abortController.signal.aborted) {
-                    await this.setCache(cacheKey, { translatedTrack: this.translatedTrack, rawPayload: rawPayload });
-                }
-            }
-        }
-        
-        async retryFailedBatch(batchIndex) {
-            if (!this.translatedTrack || this.isProcessing) return;
-            
-            const videoId = this.getVideoId();
-            const cacheKey = `ytEnhancerCache_${videoId}`;
-            const cachedData = await this.getCache(cacheKey);
-            const rawPayload = cachedData?.rawPayload;
-
-            if (!rawPayload) {
-                this.showToast("錯誤：找不到原始字幕資料，無法重試。", 5000);
-                return;
-            }
-
-            const batchStart = batchIndex * BATCH_SIZE;
-            const batchEnd = batchStart + BATCH_SIZE;
-            const batch = this.translatedTrack.slice(batchStart, batchEnd);
-            if (!batch.length) return;
-
-            this.isProcessing = true;
-            this.abortController = new AbortController();
-            
-            this.showToast(`正在重試第 ${batchIndex + 1} 批...`);
-            batch.forEach(sub => sub.translatedText = '...');
-            
-            try {
-                await this.translateBatch(batch, batchIndex + 1, Math.ceil(this.translatedTrack.length / BATCH_SIZE), cacheKey, rawPayload);
-                this.showToast(`第 ${batchIndex + 1} 批重試成功！`);
-            } catch(e) {
-                 if (e.name !== 'AbortError') {
-                    this.showToast(`第 ${batchIndex + 1} 批重試失敗。`);
-                 }
-            } finally {
-                this.isProcessing = false;
-                this.abortController = null;
-                // 更新當前顯示
-                this.handleTimeUpdate();
-            }
-        }
-
-        createSubtitleContainer(playerContainer) {
-            if (document.getElementById('enhancer-subtitle-container')) return;
-            this.subtitleContainer = document.createElement('div');
-            this.subtitleContainer.id = 'enhancer-subtitle-container';
-            this.subtitleContainer.addEventListener('click', (event) => {
-                if (event.target && event.target.classList.contains('enhancer-retry-link')) {
-                    const index = parseInt(event.target.dataset.index, 10);
-                    if (!isNaN(index)) {
-                        const batchIndex = Math.floor(index / BATCH_SIZE);
-                        this.retryFailedBatch(batchIndex);
-                    }
-                }
-            });
-            playerContainer.appendChild(this.subtitleContainer);
-        }
-
-        updateSubtitleDisplay(originalText, translatedText, index) {
-            if (!this.subtitleContainer) return;
-            let jaLine = "";
-            let zhLine = "";
-
-            if (this.settings.showOriginal && originalText) {
-                jaLine = `<div class="enhancer-line enhancer-ja-line">${this.escapeHTML(originalText)}</div>`;
-            }
-            if (this.settings.showTranslated && translatedText) {
-                if (translatedText === '[此批翻譯失敗]') {
-                    zhLine = `<div class="enhancer-line enhancer-zh-line"><span class="enhancer-retry-link" data-index="${index}">[此批翻譯失敗 - 點此重試]</span></div>`;
-                } else {
-                    zhLine = `<div class="enhancer-line enhancer-zh-line">${this.escapeHTML(translatedText)}</div>`;
-                }
-            }
-            this.subtitleContainer.innerHTML = jaLine + zhLine;
-        }
-
         applySettings() {
             if (!this.subtitleContainer) return;
+            const rawFontFamily = this.settings.fontFamily || 'sans-serif';
+            const processedFontFamily = rawFontFamily.split(',')
+                .map(font => {
+                    let trimmedFont = font.trim();
+                    if (trimmedFont.includes(' ') && !['sans-serif', 'serif', 'monospace', 'cursive', 'fantasy'].includes(trimmedFont.toLowerCase())) {
+                        if (!/^['"].*['"]$/.test(trimmedFont)) {
+                            return `"${trimmedFont}"`;
+                        }
+                    }
+                    return trimmedFont;
+                })
+                .join(', ');
             this.subtitleContainer.style.fontSize = `${this.settings.fontSize}px`;
-            this.subtitleContainer.style.fontFamily = this.settings.fontFamily;
+            this.subtitleContainer.style.fontFamily = processedFontFamily;
         }
 
         showToast(message, duration = 4000) {
@@ -391,17 +404,18 @@
         parseRawSubtitles(payload) {
             const events = payload?.events || [];
             if (events.length === 0) return [];
-            
             const subtitles = [];
             for (const event of events) {
                 if (!event.segs) continue;
                 const start = (event.tStartMs || 0) / 1000;
-                let fullText = event.segs.map(seg => seg.utf8).join('').replace(/\s+/g, ' ').trim();
+                let fullText = event.segs.map(seg => seg.utf8).join('')
+                    .replace(/\[.*?\]/g, '')
+                    .replace(/\(.*?\)/g, '')
+                    .replace(/\s+/g, ' ').trim();
                 if (fullText) {
                     subtitles.push({ start, end: start + 5, text: fullText });
                 }
             }
-
             for (let i = 0; i < subtitles.length - 1; i++) {
                 subtitles[i].end = subtitles[i + 1].start;
             }
@@ -409,24 +423,16 @@
         }
 
         async sendMessageToBackground(message) {
-            try {
-                return await chrome.runtime.sendMessage(message);
-            } catch (e) {
-                console.warn(`[Enhancer] 無法連接到背景服務: ${e.message}`);
-                return null;
-            }
+            try { return await chrome.runtime.sendMessage(message); } 
+            catch (e) { return null; }
         }
 
         async getCache(key) {
             const response = await this.sendMessageToBackground({ action: 'getCache', key });
-            if (response && response.data) {
-                if (Array.isArray(response.data)) {
-                    return { translatedTrack: response.data, rawPayload: null };
-                }
-                return response.data;
-            }
-            return null;
+            return response?.data || null;
         }
+
+
 
         async setCache(key, data) {
             return await this.sendMessageToBackground({ action: 'setCache', key, data });
@@ -436,7 +442,10 @@
             const response = await fetch(SERVER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texts }),
+                body: JSON.stringify({
+                    texts: texts,
+                    models_preference: this.settings.models_preference
+                }),
                 signal
             });
             if (!response.ok) {

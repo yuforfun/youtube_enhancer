@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "YouTube 字幕增強器",
-    "version": "1.0.0",
-    "description": "即時攔截並翻譯 YouTube 日文字幕。",
+    "version": "1.3.0",
+    "description": "即時攔截並翻譯 YouTube 日文字幕，提供自訂化選項。",
     "permissions": [
         "storage",
         "scripting"

@@ -11,95 +11,228 @@
  * This script handles the logic for the extension's popup UI, including
  * user settings and button actions.
  */
-
+/**
+ * @file popup.js
+ * @version 1.3.0
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    // 獲取所有 UI 元素
-    const toggleButton = document.getElementById('toggleButton');
-    const statusDiv = document.getElementById('status');
-    const clearCacheButton = document.getElementById('clearCacheButton');
+    const allModels = {
+        'gemini-2.5-pro': { name: '2.5 Pro', tip: '最高品質，適合複雜推理任務。' },
+        'gemini-2.5-flash': { name: '2.5 Flash', tip: '效能與速度的絕佳平衡點。' },
+        'gemini-2.5-flash-lite': { name: '2.5 Flash-Lite', tip: '速度極快，適合高頻率即時回應。' },
+        'gemini-2.0-flash': { name: '2.0 Flash', tip: '舊版高速模型，適合快速請求。' },
+        'gemini-2.0-flash-lite': { name: '2.0 Flash-Lite', tip: '舊版最快模型，RPM限制最高。' }
+    };
     
-    const fontSizeSlider = document.getElementById('fontSizeSlider');
-    const fontSizeValue = document.getElementById('fontSizeValue');
+    const availableList = document.getElementById('available-models');
+    const selectedList = document.getElementById('selected-models');
     const fontFamilySelect = document.getElementById('fontFamilySelect');
-    const showOriginalCheckbox = document.getElementById('showOriginal');
-    const showTranslatedCheckbox = document.getElementById('showTranslated');
+    const customFontRow = document.getElementById('customFontRow');
+    const fontFamilyInput = document.getElementById('fontFamilyInput');
+    let activeTooltip = null;
 
-    // 從背景讀取設定並更新 UI
+    function initializeAccordions() {
+        document.querySelectorAll('.accordion .accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const accordion = header.closest('.accordion');
+                const icon = header.querySelector('.accordion-icon');
+                accordion.classList.toggle('collapsed');
+                icon.textContent = accordion.classList.contains('collapsed') ? '►' : '▼';
+            });
+        });
+    }
+
+    // 【UI 優化】Tooltip 處理邏輯
+    function initializeTooltips() {
+        function showTooltip(e) {
+            const tooltipSource = e.target.closest('.model-tooltip');
+            if (!tooltipSource) return;
+
+            removeTooltip(); // 確保先移除舊的
+
+            const modelId = tooltipSource.closest('li').dataset.id;
+            const tipText = allModels[modelId]?.tip;
+            if (!tipText) return;
+
+            activeTooltip = document.createElement('div');
+            activeTooltip.id = 'global-tooltip';
+            activeTooltip.textContent = tipText;
+            document.body.appendChild(activeTooltip);
+
+            const sourceRect = tooltipSource.getBoundingClientRect();
+            const tooltipRect = activeTooltip.getBoundingClientRect();
+            
+            let top = sourceRect.top - tooltipRect.height - 8; // 8px gap
+            let left = sourceRect.left + (sourceRect.width / 2) - (tooltipRect.width / 2);
+
+            // 邊界檢查
+            if (top < 0) { top = sourceRect.bottom + 8; }
+            if (left < 0) { left = 5; }
+            if (left + tooltipRect.width > window.innerWidth) { left = window.innerWidth - tooltipRect.width - 5; }
+
+            activeTooltip.style.top = `${top}px`;
+            activeTooltip.style.left = `${left}px`;
+            activeTooltip.style.opacity = '1';
+        }
+
+        function removeTooltip() {
+            if (activeTooltip) {
+                activeTooltip.remove();
+                activeTooltip = null;
+            }
+        }
+        
+        // 使用事件委派
+        document.body.addEventListener('mouseover', showTooltip);
+        document.body.addEventListener('mouseout', removeTooltip);
+    }
+
+    function initializeModelSelector() {
+        document.getElementById('add-model').addEventListener('click', () => moveSelectedModels(availableList, selectedList));
+        document.getElementById('remove-model').addEventListener('click', () => moveSelectedModels(selectedList, availableList));
+        [availableList, selectedList].forEach(list => {
+            list.addEventListener('click', (e) => e.target.tagName === 'li' && e.target.classList.toggle('selected'));
+            list.addEventListener('dragstart', (e) => e.target.classList.add('dragging'));
+            list.addEventListener('dragend', (e) => { e.target.classList.remove('dragging'); saveAndApplySettings(); });
+            list.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(list, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (dragging) {
+                    if (afterElement == null) { list.appendChild(dragging); } else { list.insertBefore(dragging, afterElement); }
+                }
+            });
+        });
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function createModelListItem(id) {
+        const li = document.createElement('li');
+        li.dataset.id = id;
+        li.draggable = true;
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = allModels[id].name;
+        const tooltipSpan = document.createElement('span');
+        tooltipSpan.className = 'model-tooltip';
+        tooltipSpan.textContent = '?';
+        
+        li.appendChild(nameSpan);
+        li.appendChild(tooltipSpan);
+        return li;
+    }
+
+    function populateLists(settings) {
+        const modelsPreference = Array.isArray(settings.models_preference) ? settings.models_preference : [];
+        const validSelectedIds = modelsPreference.filter(id => allModels.hasOwnProperty(id));
+        const selectedIdsSet = new Set(validSelectedIds);
+        availableList.innerHTML = '';
+        selectedList.innerHTML = '';
+        validSelectedIds.forEach(id => selectedList.appendChild(createModelListItem(id)));
+        Object.keys(allModels).forEach(id => !selectedIdsSet.has(id) && availableList.appendChild(createModelListItem(id)));
+    }
+
+    function moveSelectedModels(fromList, toList) {
+        fromList.querySelectorAll('li.selected').forEach(item => { item.classList.remove('selected'); toList.appendChild(item); });
+        saveAndApplySettings();
+    }
+
+    function handleFontSelectionChange() {
+        if (fontFamilySelect.value === 'custom') { customFontRow.classList.remove('hidden'); } 
+        else { customFontRow.classList.add('hidden'); saveAndApplySettings(); }
+    }
+
     async function loadSettings() {
         const response = await chrome.runtime.sendMessage({ action: 'getSettings' });
-        if (response && response.data) {
-            const settings = response.data;
-            fontSizeSlider.value = settings.fontSize;
-            fontSizeValue.textContent = settings.fontSize;
-            fontFamilySelect.value = settings.fontFamily;
-            showOriginalCheckbox.checked = settings.showOriginal;
-            showTranslatedCheckbox.checked = settings.showTranslated;
+        const settings = response?.data;
+        if (settings) {
+            populateLists(settings);
+            document.getElementById('fontSizeSlider').value = settings.fontSize;
+            document.getElementById('fontSizeValue').textContent = settings.fontSize + 'px';
+            const savedFont = settings.fontFamily;
+            const isPreset = [...fontFamilySelect.options].some(opt => opt.value === savedFont);
+            if (isPreset) { fontFamilySelect.value = savedFont; } 
+            else { fontFamilySelect.value = 'custom'; fontFamilyInput.value = savedFont; }
+            handleFontSelectionChange();
+            document.getElementById('showOriginal').checked = settings.showOriginal;
+            document.getElementById('showTranslated').checked = settings.showTranslated;
         }
     }
 
-    // 收集目前 UI 上的設定值，儲存並通知 content.js
     async function saveAndApplySettings() {
+        let finalFontFamily = fontFamilySelect.value;
+        if (finalFontFamily === 'custom') {
+            finalFontFamily = fontFamilyInput.value.trim() || 'YouTube Noto, Roboto, sans-serif';
+        }
         const newSettings = {
-            fontSize: parseInt(fontSizeSlider.value, 10),
-            fontFamily: fontFamilySelect.value,
-            showOriginal: showOriginalCheckbox.checked,
-            showTranslated: showTranslatedCheckbox.checked,
+            models_preference: [...selectedList.querySelectorAll('li')].map(li => li.dataset.id),
+            fontSize: parseInt(document.getElementById('fontSizeSlider').value, 10),
+            fontFamily: finalFontFamily,
+            showOriginal: document.getElementById('showOriginal').checked,
+            showTranslated: document.getElementById('showTranslated').checked,
         };
-        // 儲存到背景
         await chrome.runtime.sendMessage({ action: 'setSettings', data: newSettings });
-
-        // 通知當前分頁的 content.js 更新樣式
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab && tab.url && tab.url.includes("youtube.com/watch")) {
-            chrome.tabs.sendMessage(tab.id, {
-                action: 'settingsChanged',
-                settings: newSettings
-            });
+        if (tab && tab.url?.includes("youtube.com/watch")) {
+            chrome.tabs.sendMessage(tab.id, { action: 'settingsChanged', settings: newSettings });
         }
     }
-    
-    // 為所有設定控制項加上事件監聽器
-    fontSizeSlider.addEventListener('input', () => {
-        fontSizeValue.textContent = fontSizeSlider.value;
-    });
-    fontSizeSlider.addEventListener('change', saveAndApplySettings);
-    fontFamilySelect.addEventListener('change', saveAndApplySettings);
-    showOriginalCheckbox.addEventListener('change', saveAndApplySettings);
-    showTranslatedCheckbox.addEventListener('change', saveAndApplySettings);
 
-    // --- 以下為舊的邏輯 ---
-    async function checkStatus() { /* ... 與之前版本相同 ... */ }
-    toggleButton.addEventListener('click', () => { /* ... 與之前版本相同 ... */ });
-    clearCacheButton.addEventListener('click', () => { /* ... 與之前版本相同 ... */ });
-    function updateButton(isEnabled) { /* ... 與之前版本相同 ... */ }
+    function setupEventListeners() {
+        initializeModelSelector();
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        fontSizeSlider.addEventListener('input', (e) => { document.getElementById('fontSizeValue').textContent = e.target.value + 'px'; });
+        fontSizeSlider.addEventListener('change', saveAndApplySettings);
+        fontFamilySelect.addEventListener('change', handleFontSelectionChange);
+        fontFamilyInput.addEventListener('change', saveAndApplySettings);
+        document.getElementById('showOriginal').addEventListener('change', saveAndApplySettings);
+        document.getElementById('showTranslated').addEventListener('change', saveAndApplySettings);
+        document.getElementById('toggleButton').addEventListener('click', () => {
+            if (document.getElementById('toggleButton').disabled) return;
+            chrome.runtime.sendMessage({ action: 'toggle' }, (response) => response && updateButton(response.isEnabled));
+        });
+        document.getElementById('clearCacheButton').addEventListener('click', () => {
+            if (confirm('確定要清除所有已翻譯的字幕暫存嗎？')) {
+                chrome.runtime.sendMessage({ action: 'clearCache' }, (res) => res?.success && alert('字幕暫存已成功清除！'));
+            }
+        });
+    }
 
-    // 載入設定
-    loadSettings();
-    // 檢查啟用狀態
-    checkStatus();
+    function updateButton(isEnabled) {
+        const btn = document.getElementById('toggleButton');
+        const status = document.getElementById('status');
+        btn.textContent = isEnabled ? '停用翻譯' : '啟用翻譯';
+        btn.classList.toggle('active', isEnabled);
+        status.textContent = isEnabled ? '已啟用' : '未啟用';
+    }
 
-    // 為了完整性，貼上舊的邏輯
     async function checkStatus() {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab && tab.url && tab.url.includes("youtube.com/")) {
+        const btn = document.getElementById('toggleButton');
+        const status = document.getElementById('status');
+        if (tab && tab.url?.includes("youtube.com/")) {
             chrome.runtime.sendMessage({ action: 'checkStatus' }, (response) => {
-                if (chrome.runtime.lastError) { console.error("無法連接到背景服務:", chrome.runtime.lastError.message); toggleButton.textContent = '錯誤：背景服務未執行'; toggleButton.disabled = true; statusDiv.textContent = '請重新載入擴充功能'; } else if (response) { updateButton(response.isEnabled); toggleButton.disabled = false; }
+                if (chrome.runtime.lastError) {
+                    btn.textContent = '錯誤'; btn.disabled = true; status.textContent = '請重載擴充';
+                } else if (response) {
+                    updateButton(response.isEnabled); btn.disabled = false;
+                }
             });
-        } else { toggleButton.disabled = true; toggleButton.textContent = '請在 YouTube 頁面使用'; statusDiv.textContent = ''; }
+        } else {
+            btn.disabled = true; btn.textContent = '請在 YouTube 頁面使用'; status.textContent = '';
+        }
     }
-    toggleButton.addEventListener('click', () => { if(toggleButton.disabled) return; chrome.runtime.sendMessage({ action: 'toggle' }, (response) => { if (response) { updateButton(response.isEnabled); }}); });
-    clearCacheButton.addEventListener('click', () => { if (confirm('確定要清除所有已翻譯的字幕暫存嗎？')) { chrome.runtime.sendMessage({ action: 'clearCache' }, (response) => { if (response && response.success) { alert('字幕暫存已成功清除！'); }}); } });
-    function updateButton(isEnabled) {
-    if (isEnabled) {
-        toggleButton.textContent = '停用翻譯';
-        toggleButton.classList.add('active');
-        // 【核心修改】移除 "狀態：" 前綴
-        statusDiv.textContent = '已啟用'; 
-    } else {
-        toggleButton.textContent = '啟用翻譯';
-        toggleButton.classList.remove('active');
-        // 【核心修改】移除 "狀態：" 前綴
-        statusDiv.textContent = '未啟用';
-    }
-}
+
+    initializeAccordions();
+    initializeTooltips(); // 啟用新的 Tooltip 邏輯
+    setupEventListeners();
+    loadSettings();
+    checkStatus();
 });
