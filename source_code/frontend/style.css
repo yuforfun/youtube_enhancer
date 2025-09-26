@@ -72,3 +72,33 @@
     opacity: 1;
     visibility: visible;
 }
+
+/* ------------------------------------------- */
+/* 【新增】增強器控制按鈕樣式 (強制重譯按鈕) */
+/* ------------------------------------------- */
+#enhancer-controls {
+    position: absolute;
+    top: 10px; /* 放在影片上方 */
+    right: 10px;
+    z-index: 2147483647;
+    display: flex;
+    gap: 10px; /* 這裡可保留，用於未來擴展 */
+    pointer-events: auto; /* 確保按鈕可點擊 */
+}
+
+.enhancer-control-btn {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #18181b;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
+}
+
+.enhancer-control-btn:hover {
+    background-color: #e5e7eb;
+}

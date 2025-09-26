@@ -295,8 +295,8 @@ select:focus, input[type="text"]:focus {
     margin: 20px 0;
 }
 
+/* 調整通用按鈕樣式，從通用樣式中移除 flex-grow: 1 */
 .button-secondary {
-    width: 100%;
     padding: 8px;
     font-size: 13px;
     cursor: pointer;
@@ -306,9 +306,90 @@ select:focus, input[type="text"]:focus {
     font-weight: 500;
     background-color: var(--secondary-button-bg);
     color: var(--text-light-color);
+    /* 移除 flex-grow: 1 */
 }
 .button-secondary:hover {
     background-color: #f3f4f6;
     border-color: #9ca3af;
     color: var(--text-color);
+}
+
+/* 主要按鈕樣式 */
+.button-primary {
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid var(--accent-color-dark);
+    transition: background-color 0.2s, color 0.2s;
+    background-color: var(--accent-color);
+    color: white;
+    /* 移除 flex-grow: 1 */
+}
+.button-primary:hover {
+    background-color: var(--accent-color-dark);
+}
+
+/* 按鈕容器佈局：使用 Flex 實現等寬 */
+.prompt-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+/* 【關鍵修正】讓 prompt-controls 內的按鈕等寬 */
+.prompt-controls .button-primary,
+.prompt-controls .button-secondary {
+    flex-grow: 1; 
+}
+
+/* Textarea 樣式 */
+#customPromptTextarea {
+    width: 100%; 
+    box-sizing: border-box; 
+    max-width: 100%; 
+    min-height: 100px;
+    resize: vertical; 
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: #fff;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#customPromptTextarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px #e0e7ff;
+}
+
+/* 確保 general input[type="text"] 寬度維持 100% 避免被 flex 影響 */
+select, input[type="text"] {
+    width: 100%;
+    /* ... 保持其他樣式 ... */
+}
+
+/* --- 【新增】Options Page 專屬的 Toast 樣式 --- */
+#options-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 10000; /* 確保在最上層 */
+    font-size: 14px;
+    font-family: var(--font-family);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    pointer-events: none;
+}
+
+#options-toast.show {
+    opacity: 1;
+    visibility: visible;
 }

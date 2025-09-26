@@ -25,7 +25,8 @@ const defaultSettings = {
         "gemini-2.5-pro"
     ], 
     showOriginal: true,
-    showTranslated: true
+    showTranslated: true,
+    sourceLanguage: 'ja'
 };
 
 // --- 以下為既有程式碼，不需更動 ---
@@ -79,6 +80,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'setCache':
             isAsync = true;
             chrome.storage.local.set({ [request.key]: request.data }).then(() => {
+                sendResponse({ success: true });
+            });
+            break;
+        // 【新增】清除單一快取
+        case 'removeCache':
+            isAsync = true;
+            chrome.storage.local.remove(request.key).then(() => {
                 sendResponse({ success: true });
             });
             break;

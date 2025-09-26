@@ -40,9 +40,61 @@
 
 #### **步驟二：設定 Gemini API Key**
 
+<<<<<<< Updated upstream
 1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 申請你的 Gemini API Key。這個服務提供免費額度。
 2.  **編輯 `config.json` 檔案**：找到你下載的 `config.json.example` 重新命名為`config.json`檔案，用 Notepad++ 或記事本打開它。
 3.  **填入 API Key**：將你的 API Key 複製並貼到 `config.json` 檔案中的 `在這裡填入您的金鑰` 的位置。
+=======
+1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 登陸您的Google帳號，申請 Gemini API Key。`Create API Key`按鈕位於右上或者左下，Project按照網頁預設的即可，接著將Key完整複製下來進到下一步。   
+    此服務在您未開啟付費功能前皆是免費的，一切依Gemini官方網站說明為準 [Gemini API 說明文件：計費方式](https://ai.google.dev/gemini-api/docs/billing?hl=zh-tw)
+3.  **開啟config.json**：找到你下載的 `config.json`，右鍵使用記事本，或者其他文字編輯器開啟。
+4. **填入 API Key**：將你的 API Key 複製並貼到 `config.json` 檔案中的   
+`"填入您從https://aistudio.google.com/apikey ->Create API Key 取得的API"` 的位置  
+需保留""雙引號。
+完整看起來會像是 ↓
+    ```json
+        "GEMINI_API_KEYS": [
+            {"name": "Key 1", "key": "aiXXXyc5rqx0wgzerxj6b1c7sd3wcoootm8XXXX"}
+        ],
+    ```
+4. **config.json其他欄位**：MODEL_PREFERENCE 性能參照下方模型比較表，GEMINI_PROMPT_TEMPLATE_LINES可以先試用覺得翻譯品質有問題再改。
+    <details>
+    <summary>config.json 範例</summary>
+    
+    ```json
+    {
+        "GEMINI_API_KEYS": [
+            {"name": "Key 1", "key": "在這裡填入您的金鑰"},
+            {"name": "Key 2", "key": "在這裡填入您的金鑰"}
+        ],
+        "MODEL_PREFERENCE": [
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash"
+        ],
+        "GEMINI_PROMPT_TEMPLATE_LINES": [
+            "你是一位頂尖的繁體中文譯者與日文校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。",
+            "你收到的日文原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。",
+            "",
+            "**你的核心任務:**",
+            "請發揮你的推理能力，理解原文的真實意圖，並直接翻譯成最自然、口語化的繁體中文。",
+            "",
+            "**翻譯指南:**",
+            "- **專有名詞**: 翻譯時，人名經常被誤判請不要被日文漢字誤導，務必遵循以下對照規則：",
+            "  - 「しそん じゅん」應翻譯為「志尊 淳」。",
+            "  - 「さとう たける」應翻譯為「佐藤 健」。",
+            "  - 其他常見人名~~~~~~",
+            " 請注意格式，每一行頭尾都有雙引號，結尾要有,，最後兩句不要刪掉，中間想怎麼改都可以，但是不要太長喔",
+            "**請處理以下 JSON 陣列中的日文句子:**",
+            "{json_input_text}"
+        ]
+    }
+    ```
+
+    </details>
+>>>>>>> Stashed changes
 
 ```json
 {
@@ -188,3 +240,10 @@
 
 此工具僅供個人學習與研究使用。
 
+<<<<<<< Updated upstream
+=======
+---
+### 🙏 致謝
+
+感謝 [**Shison Jun**](https://www.instagram.com/jun_shison0305/p/DOoHP49E-__/) 讓我用愛發電。
+>>>>>>> Stashed changes

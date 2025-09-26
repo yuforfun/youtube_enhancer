@@ -39,5 +39,9 @@
             "resources": ["injector.js"],
             "matches": ["https://www.youtube.com/*"]
         }
-    ]
+    ],
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    }
 }

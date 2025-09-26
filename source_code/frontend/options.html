@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YT 字幕增強器 - 設定</title>
+    <link rel="stylesheet" href="popup.css">
+    <meta charset="UTF-8">
+</head>
+<body style="width: auto; max-width: 800px; margin: 0 auto; padding: 20px;">
+    
+    <div id="options-toast"></div>
+
+    <header class="header" style="margin-bottom: 20px;">
+        <h1>YT 字幕增強器 - 進階設定</h1>
+        <span class="version-badge">v1.4.5</span>
+    </header>
+
+    <div class="card">
+        <h2 class="card-title">字體管理</h2>
+        <div class="setting-row">
+            <label for="fontFamilySelect">字體選擇</label>
+            <select id="fontFamilySelect">
+                <optgroup label="通用"><option value="YouTube Noto, Roboto, sans-serif">YouTube 預設</option><option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option></optgroup>
+                <optgroup label="Windows"><option value="Microsoft JhengHei, sans-serif">微軟正黑體 (預設)</option></optgroup>
+                <optgroup label="macOS"><option value="PingFang TC, sans-serif">蘋方-TC (預設)</option><option value="Heiti TC, sans-serif">黑體-繁</option></optgroup>
+                <optgroup label="其他"><option value="custom">其他 (自訂)...</option></optgroup>
+            </select>
+        </div>
+        <div class="setting-row hidden" id="customFontRow">
+            <label for="fontFamilyInput">自訂名稱</label>
+            <input type="text" id="fontFamilyInput" placeholder="例如: Noto Serif TC">
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">模型偏好設定 (排序決定嘗試順序)</h2>
+        <p style="font-size: 11px; color: var(--text-light-color); margin-bottom: 8px;">
+            點擊選取，或直接拖曳項目來調整執行順序。<br>程式將依據上方列表**由上至下**依序嘗試呼叫模型。
+        </p>
+
+        <h3 class="card-subtitle">已選用模型 (會被調用)</h3>
+        <ul id="selected-models" class="model-list" style="height: 120px;"></ul>
+
+        <div class="model-controls">
+            <button id="add-model" title="新增選取">&#9650; (加入選用)</button>
+            <button id="remove-model" title="移除選取">&#9660; (移出選用)</button>
+        </div>
+
+        <h3 class="card-subtitle">可用模型</h3>
+        <ul id="available-models" class="model-list" style="height: 80px;"></ul>
+    </div>
+    
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h2 class="card-title" style="margin-bottom: 0;">Prompt 自訂 (風格指南/對照表)</h2>
+            <button id="syncPromptExample" class="button-secondary" style="padding: 4px 10px; font-size: 11px; margin-right: 0; flex-grow: 0;">同步範例</button>
+        </div>
+        
+        <p class="prompt-hint-text" style="font-size: 11px; color: var(--text-light-color); margin-bottom: 8px;">
+            建議將自訂內容控制在 1000 字元內(不超過1500字元)。提醒：Prompt 越長，AI 處理時間越久且出錯可能增加。
+        </p>
+        
+        <div class="setting-row">
+            <label for="promptLanguageSelect">選擇語言</label>
+            <select id="promptLanguageSelect">
+                <option value="ja">日文 (ja)</option>
+                <option value="ko">韓文 (ko)</option>
+                <option value="en">英文 (en)</option>
+            </select>
+        </div>
+        <p style="font-size: 11px; color: var(--text-light-color); margin-top: 8px;">編輯此處內容將覆蓋該語言的「風格指南與專有名詞對照表」。</p>
+        
+        <textarea id="customPromptTextarea" rows="10" placeholder="在這裡輸入您的自訂風格指南和專有名詞對照表..."></textarea>
+        
+        <div class="prompt-controls">
+            <button id="savePromptButton" class="button-primary">儲存 Prompt</button>
+            <button id="resetPromptButton" class="button-secondary">清空內容，並儲存</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2 class="card-title">資料管理</h2>
+        <button id="clearCacheButton" class="button-secondary" style="width: 100%;">清除所有暫存</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
