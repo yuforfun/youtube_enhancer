@@ -9,83 +9,97 @@
 ### ✨ 主要功能
 
 * **日文/中文雙語字幕**：自動抓取 YouTube 上的日文字幕，並將其翻譯成中文。
-* **靈活切換**：可以自由選擇「日文 + 中文」、「僅日文」或「僅中文」三種顯示模式。
+* **靈活切換**：可以自由選擇「雙語」、「原文」或「翻譯」三種顯示模式。
 * **自訂翻譯內容**：你可以自行調整翻譯時使用的提示詞（Prompt），讓翻譯更符合你的需求。
+
+### 即將更新
+1. 改良Key&Prompt設定方式
+2. 支援mac
+3. 支援其他語言
+
 
 ---
 
 ### 📥 如何安裝與使用
 
-請依照以下三個簡單步驟操作：
+請依照以下三個簡單步驟操作：  
 
-#### **步驟一：下載檔案
+#### **步驟一：下載檔案yuforfun/youtube_enhancer**
 
-1. 前往 [**Release 頁面**](https://github.com/yuforfun/youtube_enhancer/tree/master/release_files) 下載最新的 `YouTube_Subtitle_Backend_vX.X.X.exe`、`config.json.example`、`YouTube_Subtitle_Extension_vX.X.X.zip` 三個檔案以及兩張圖片(server_icon)。
+1. 前往**[最新發布頁面 (Latest Release)](https://github.com/yuforfun/youtube_enhancer/releases/latest)**。
+2. 在頁面下方找到名為 **"Assets"** 的區域。下載最新的檔案
+    - `YouTube_Subtitle_Backend_vX.X.X.exe`
+    - `config.json`
+    - `YouTube_Subtitle_Extension_vX.X.X.zip` 
+    - `server_icon.ico`
+    - `server_icon.png`
 
-    方法一：下載單個檔案
-    - 在 GitHub 專案頁面上，找到你想下載的檔案。
-    - 點擊檔案名稱進入檔案內容頁面。
-    - 在右上角會看到一個「Raw」或「Download」按鈕。
-    - 點擊右鍵選擇「另存連結為...」或直接點擊按鈕，就可以將檔案下載到你的電腦中。
-
-    方法二：下載整個[專案壓縮檔](https://github.com/yuforfun/youtube_enhancer/tree/master)
-    - 如果你想下載整個專案，包含所有程式碼和資料夾結構，可以下載一個完整的 .zip 壓縮檔。
-    - 在 GitHub 專案的首頁，找到右上方的綠色按鈕，上面通常寫著「Code」。
-    - 點擊這個按鈕。
-    - 在下拉式選單中，選擇「Download ZIP」。
-    - 這樣，GitHub 就會自動將整個專案打包成一個 .zip 壓縮檔，你下載後解壓縮就可以使用了。
-
-2.  將release_files的檔案放到一個你找得到的地方，例如桌面。
+2.  找一個你找得到的地方，例如桌面，將檔案都放到同一個資料夾。
 
 
 #### **步驟二：設定 Gemini API Key**
 
-1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 申請你的 Gemini API Key。這個服務提供免費額度。
-2.  **編輯 `config.json` 檔案**：找到你下載的 `config.json.example` 重新命名為`config.json`檔案，用 Notepad++ 或記事本打開它。
-3.  **填入 API Key**：將你的 API Key 複製並貼到 `config.json` 檔案中的 `在這裡填入您的金鑰` 的位置。
+1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 登陸您的Google帳號，申請 Gemini API Key。`Create API Key`按鈕位於右上或者左下，Project按照網頁預設的即可，接著將Key完整複製下來進到下一步。   
+    此服務在您未開啟付費功能前皆是免費的，一切依Gemini官方網站說明為準 [Gemini API 說明文件：計費方式](https://ai.google.dev/gemini-api/docs/billing?hl=zh-tw)
+3.  **開啟config.json**：找到你下載的 `config.json`，右鍵使用記事本，或者其他文字編輯器開啟。
+4. **填入 API Key**：將你的 API Key 複製並貼到 `config.json` 檔案中的   
+`"填入您從https://aistudio.google.com/apikey ->Create API Key 取得的API"` 的位置  
+需保留""雙引號。
+完整看起來會像是 ↓
+    ```json
+        "GEMINI_API_KEYS": [
+            {"name": "Key 1", "key": "aiXXXyc5rqx0wgzerxj6b1c7sd3wcoootm8XXXX"}
+        ],
+    ```
+4. **config.json其他欄位**：MODEL_PREFERENCE 性能參照下方模型比較表，GEMINI_PROMPT_TEMPLATE_LINES可以先試用覺得翻譯品質有問題再改。
+    <details>
+    <summary>config.json 範例</summary>
+    ```json
+    {
+        "GEMINI_API_KEYS": [
+            {"name": "Key 1", "key": "在這裡填入您的金鑰"},
+            {"name": "Key 2", "key": "在這裡填入您的金鑰"}
+        ],
+        "MODEL_PREFERENCE": [
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash"
+        ],
+        "GEMINI_PROMPT_TEMPLATE_LINES": [
+            "你是一位頂尖的繁體中文譯者與日文校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。",
+            "你收到的日文原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。",
+            "",
+            "**你的核心任務:**",
+            "請發揮你的推理能力，理解原文的真實意圖，並直接翻譯成最自然、口語化的繁體中文。",
+            "",
+            "**翻譯指南:**",
+            "- **專有名詞**: 翻譯時，人名經常被誤判請不要被日文漢字誤導，務必遵循以下對照規則：",
+            "  - 「しそん じゅん」應翻譯為「志尊 淳」。",
+            "  - 「さとう たける」應翻譯為「佐藤 健」。",
+            "  - 其他常見人名~~~~~~",
+            " 請注意格式，每一行頭尾都有雙引號，結尾要有,，最後兩句不要刪掉，中間想怎麼改都可以，但是不要太長喔",
+            "**請處理以下 JSON 陣列中的日文句子:**",
+            "{json_input_text}"
+        ]
+    }
+    ```
+    </details>
 
-```json
-{
-    "GEMINI_API_KEYS": [
-        {"name": "Key 1", "key": "在這裡填入您的金鑰"},
-        {"name": "Key 2", "key": "這個檔案只是範例，請重新命名為 config.json"}
-    ],
-    "MODEL_PREFERENCE": [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash-lite",
-        "gemini-2.0-flash"
-    ],
-    "GEMINI_PROMPT_TEMPLATE_LINES": [
-        "你是一位頂尖的繁體中文譯者與日文校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。",
-        "你收到的日文原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。",
-        "",
-        "**你的核心任務:**",
-        "請發揮你的推理能力，理解原文的真實意圖，並直接翻譯成最自然、口語化的繁體中文。",
-        "",
-        "**翻譯指南:**",
-        "- **專有名詞**: 翻譯時，人名經常被誤判請不要被日文漢字誤導，務必遵循以下對照規則：",
-        "  - 「しそん じゅん」應翻譯為「志尊 淳」。",
-		"  - 「さとう たける」應翻譯為「佐藤 健」。",
-        "  - 其他常見人名~~~~~~",
-        " 請注意格式，每一行頭尾都有雙引號，結尾要有,，最後兩句不要刪掉，中間想怎麼改都可以，但是不要太長喔",
-        "**請處理以下 JSON 陣列中的日文句子:**",
-        "{json_input_text}"
-    ]
-}
-```
+    <details>
+    <summary>Google Gemini 模型比較表</summary>
 
-#### Google Gemini 模型比較表
+    點擊這裡查看關於 <a href="https://ai.google.dev/gemini-api/docs/rate-limits?hl=zh-tw">Gemini API 說明文件：頻率限制</a> 
 
-| 模型名稱 | RPD (每日請求上限) | RPM (每分鐘請求上限) | 效能/複雜度 | 建議 |
-| :--- | :---: | :---: | :---: | :--- |
-| **gemini-2.5-pro** | 100 | 5 | **優異** | 適合需要高品質、複雜推理的任務，但因請求限制較低，不適合高頻率的應用。 |
-| **gemini-2.5-flash** | 250 | 10 | **好** | 在效能與速度之間取得平衡，適合大多數應用場景，例如聊天機器人。 |
-| **gemini-2.5-flash-lite** | 1000 | 15 | **中等** | 速度快，最適合需要高頻率、即時回應的任務，如即時翻譯、簡單問答。 |
-| **gemini-2.0-flash** | 200 | 15 | **中等** | 速度快，適合需要高頻率請求的任務，效能略遜於 2.5 系列。 |
-| **gemini-2.0-flash-lite** | 200 | 30 | **中等** | 速度最快，是五個模型中每分鐘請求數最高的，適合非常高頻率、即時的簡單任務。 |
-
+    | 模型名稱 | RPD (每日請求上限) | RPM (每分鐘請求上限) | 效能/複雜度 | 建議 |
+    | :--- | :---: | :---: | :---: | :--- |
+    | **gemini-2.5-pro** | 100 | 5 | **優異** | 適合需要高品質、複雜推理的任務，但因請求限制較低，不適合高頻率的應用。 |
+    | **gemini-2.5-flash** | 250 | 10 | **好** | 在效能與速度之間取得平衡，適合大多數應用場景，例如聊天機器人。 |
+    | **gemini-2.5-flash-lite** | 1000 | 15 | **中等** | 速度快，最適合需要高頻率、即時回應的任務，如即時翻譯、簡單問答。 |
+    | **gemini-2.0-flash** | 200 | 15 | **中等** | 速度快，適合需要高頻率請求的任務，效能略遜於 2.5 系列。 |
+    | **gemini-2.0-flash-lite** | 200 | 30 | **中等** | 速度最快，是五個模型中每分鐘請求數最高的，適合非常高頻率、即時的簡單任務。 |
+    </details>
 
 #### **步驟三：執行後端小程式**
 
@@ -188,3 +202,7 @@
 
 此工具僅供個人學習與研究使用。
 
+---
+### 🙏 致謝
+
+感謝Shison Jun 讓我用愛發電。
