@@ -40,11 +40,6 @@
 
 #### **步驟二：設定 Gemini API Key**
 
-<<<<<<< Updated upstream
-1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 申請你的 Gemini API Key。這個服務提供免費額度。
-2.  **編輯 `config.json` 檔案**：找到你下載的 `config.json.example` 重新命名為`config.json`檔案，用 Notepad++ 或記事本打開它。
-3.  **填入 API Key**：將你的 API Key 複製並貼到 `config.json` 檔案中的 `在這裡填入您的金鑰` 的位置。
-=======
 1.  **申請 API Key**：前往 [**Google AI Studio 網站**](https://aistudio.google.com/app/apikey) 登陸您的Google帳號，申請 Gemini API Key。`Create API Key`按鈕位於右上或者左下，Project按照網頁預設的即可，接著將Key完整複製下來進到下一步。   
     此服務在您未開啟付費功能前皆是免費的，一切依Gemini官方網站說明為準 [Gemini API 說明文件：計費方式](https://ai.google.dev/gemini-api/docs/billing?hl=zh-tw)
 3.  **開啟config.json**：找到你下載的 `config.json`，右鍵使用記事本，或者其他文字編輯器開啟。
@@ -94,7 +89,6 @@
     ```
 
     </details>
->>>>>>> Stashed changes
 
 ```json
 {
@@ -240,10 +234,9 @@
 
 此工具僅供個人學習與研究使用。
 
-<<<<<<< Updated upstream
-=======
 ---
 ### 🙏 致謝
 
 感謝 [**Shison Jun**](https://www.instagram.com/jun_shison0305/p/DOoHP49E-__/) 讓我用愛發電。
->>>>>>> Stashed changes
+
+

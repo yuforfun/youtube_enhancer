@@ -5,491 +5,556 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- *
- * This script runs in the content process and interacts with the page DOM
- * to find the video, create the subtitle container, and communicate with
- * the background script (service worker).
- *
- * v1.5.0 Final Content Script:
- * 1. Implemented '強制重新翻譯' (Clear Cache & Rerun) function.
- * 2. Fixed sourceLanguage and models_preference passing in API calls.
- * 3. Robustified start/run sequence.
+ * Version: 1.7.0 (Final Stability Patch)
  */
-
-const SERVER_URL = 'http://127.0.0.1:5001/api/translate';
-const TOAST_DURATION = 3000;
 
 class YouTubeSubtitleEnhancer {
     constructor() {
-        console.log("YT 字幕增強器 v1.5.0 已注入 (穩定版)");
-        this.isEnabled = false;
-        this.isProcessing = false;
+        this.log("YT 字幕增強器 v1.7.0 已注入");
         this.settings = {};
-        this.videoElement = null;
-        this.subtitleContainer = null;
-        this.translatedTrack = null;
-        this.rawPayload = null;
-        this.translationQueue = [];
-        this.currentSubtitleIndex = -1;
-        this.toastTimeout = null;
-        this.abortController = null;
-        this.initRetryCount = 0;
-        // 【新增修正點】：用於標記是否強制重譯
-        this.isForceRerun = false; 
-        //--- 綁定 this ---
+        this.currentVideoId = null; 
+        this.state = {
+            isEnabled: false,
+            isProcessing: false,
+            hasActivated: false,
+            videoElement: null,
+            statusOrb: null,
+            subtitleContainer: null,
+            translatedTrack: null,
+            sourceLang: null, 
+            isOverride: false,
+            abortController: null,
+            tempErrorCount: 0,
+            persistentError: null,
+            translationProgress: { done: 0, total: 0 },
+        };
+        this.onNavigateFinish = this.onNavigateFinish.bind(this);
         this.handleWindowMessage = this.handleWindowMessage.bind(this);
+        this.handleBackgroundMessage = this.handleBackgroundMessage.bind(this);
         this.handleTimeUpdate = this.handleTimeUpdate.bind(this);
-        this.handleStateChange = this.handleStateChange.bind(this);
-        this.handleSettingsChange = this.handleSettingsChange.bind(this);
-        this.handleRetryClick = this.handleRetryClick.bind(this);
-        // 【新增修正點】：綁定新的重譯事件處理方法
-        this.handleRerunClick = this.handleRerunClick.bind(this);
-        this.run = this.run.bind(this);
+    }
+
+    log(message, ...args) { console.log("[YT Enhancer]", message, ...args); }
+    error(message, ...args) { console.error("[YT Enhancer]", message, ...args); }
+
+    translateToFriendlyError(errorMessage) {
+        const msg = String(errorMessage);
+        if (msg.includes('Failed to fetch')) {
+            return "無法連線至後端翻譯伺服器。請確認後端程式是否已啟動。";
+        }
+        if (msg.includes('[ACCOUNT_ISSUE]') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('billing')) {
+            const match = msg.match(/'([^']+)'/);
+            const keyName = match ? match[1] : "某個金鑰";
+            return `API Key '${keyName}' 已達用量上限或帳戶計費無效。請更換金鑰或檢查 Google Cloud 帳戶。`;
+        }
+        if (msg.toLowerCase().includes('api key not valid')) {
+            return "API Key 無效。請檢查 api_keys.txt 中的金鑰是否正確。";
+        }
+        if (msg.toLowerCase().includes('permission denied')) {
+            return "後端權限不足，無法寫入設定檔 (例如 custom_prompts.json)。";
+        }
+        if (msg.includes('所有模型與 API Key 均嘗試失敗')) {
+            return "翻譯執行失敗：所有模型均無法回傳有效結果，可能觸發了內容安全策略或遇到暫時性問題。";
+        }
+        return errorMessage;
     }
 
     async sendMessageToBackground(message) {
         try {
             return await chrome.runtime.sendMessage(message);
         } catch (e) {
-            console.error('與背景服務通訊失敗:', e);
-            // 由於服務可能在重新載入，這裡不做太多處理
+            if (!e.message.includes("Receiving end does not exist")) {
+                this.error('與背景服務通訊失敗:', e);
+            }
             return null;
         }
     }
 
-    async getCache(key) {
-        return (await this.sendMessageToBackground({ action: 'getCache', key: key }))?.data;
-    }
-
-    async setCache(key, data) {
-        return await this.sendMessageToBackground({ action: 'setCache', key: key, data: data });
-    }
-
     async initialize() {
-        // 【關鍵修正點】：確保先從背景服務獲取最新的啟用狀態和所有設定
-        const statusResponse = await this.sendMessageToBackground({ action: 'checkStatus' });
-        this.isEnabled = statusResponse?.isEnabled || false;
-        
-        // 獲取所有設定，包括 sourceLanguage
-        const settingsResponse = await this.sendMessageToBackground({ action: 'getSettings' });
-        this.settings = settingsResponse?.data || {};
+        const response = await this.sendMessageToBackground({ action: 'getSettings' });
+        this.settings = response?.data;
+        this.state.isEnabled = this.settings.isEnabled;
 
         window.addEventListener('message', this.handleWindowMessage);
-        chrome.runtime.onMessage.addListener(this.handleStateChange);
-        chrome.runtime.onMessage.addListener(this.handleSettingsChange);
-        document.addEventListener('yt-navigate-finish', () => setTimeout(this.run, 500));
+        chrome.runtime.onMessage.addListener(this.handleBackgroundMessage);
+        document.addEventListener('yt-navigate-finish', this.onNavigateFinish);
+        
         this.run();
+    }
+    
+    onNavigateFinish() {
+        const newVideoId = new URLSearchParams(window.location.search).get('v');
+        if (this.state.hasActivated && newVideoId === this.currentVideoId) {
+            this.log("偵測到偽導航事件，已忽略。");
+            return;
+        }
+        
+        this.log("偵測到新的頁面導航，準備重設。");
+        this.cleanup();
+        setTimeout(() => this.run(), 500);
     }
 
     run() {
-        this.initRetryCount = 0;
-        if (this.isEnabled && document.URL.includes("youtube.com/watch")) {
-            this.start();
-        } else {
-            this.stop();
-        }
-    }
-
-    async start() {
-        this.stop();
-        this.videoElement = document.querySelector('video');
-        const playerContainer = document.getElementById('movie_player');
-        if (!this.videoElement || !playerContainer) {
-            if (this.initRetryCount < 10) {
-                this.initRetryCount++;
-                setTimeout(() => this.start(), 1000);
-            }
-            return;
-        }
-        this.createSubtitleContainer(playerContainer);
-        // 【關鍵修正點】：按鈕創建必須在找到 playerContainer 後立即執行
-        this.createControls(playerContainer);
-        this.applySettings();
-        const videoId = this.getVideoId();
-        if (!videoId) return;
-        const cacheKey = `ytEnhancerCache_${videoId}`;
-        
-        // 新增判斷，如果用戶點擊了強制重譯，則跳過快取
-        if (this.isForceRerun) {
-            this.isForceRerun = false; // 重設標記
-            this.showToast("強制重譯已啟動，跳過暫存...");
+        this.currentVideoId = new URLSearchParams(window.location.search).get('v');
+        if (this.state.isEnabled && this.currentVideoId) {
+            this.log("符合執行條件，注入 injector.js。");
             this.injectInterceptor();
-            return;
-        }
-
-        const cachedData = await this.getCache(cacheKey);
-        if (cachedData && cachedData.translatedTrack) {
-            this.translatedTrack = cachedData.translatedTrack;
-            this.rawPayload = cachedData.rawPayload;
-            const needsResume = this.translatedTrack.some(sub => this.isTranslationIncomplete(sub));
-            if (needsResume && this.rawPayload) {
-                this.showToast("偵測到未完成的翻譯，正在自動繼續...", 4000);
-                setTimeout(() => this.parseAndTranslate(this.rawPayload, true), 100);
-                return;
-            }
-            if (!needsResume) {
-                this.showToast("翻譯完成 (來自暫存)");
-            }
-            this.beginDisplay();
-            return;
-        }
-        this.showToast("攔截器已部署，等待字幕觸發...");
-        this.injectInterceptor();
-    }
-
-    stop() {
-        if (this.subtitleContainer) {
-            this.subtitleContainer.remove();
-            this.subtitleContainer = null;
-        }
-    }
-    
-    // 【新增方法】建立控制按鈕 (合併功能為單一按鈕)
-    createControls(playerContainer) {
-        if (document.getElementById('enhancer-controls')) return;
-        
-        const controls = document.createElement('div');
-        controls.id = 'enhancer-controls';
-        controls.innerHTML = `
-            <button id="enhancer-rerun-btn" class="enhancer-control-btn" title="清除暫存並強制重新翻譯">🔄 強制重新翻譯</button>
-        `;
-        playerContainer.appendChild(controls);
-        
-        document.getElementById('enhancer-rerun-btn').addEventListener('click', this.handleRerunClick);
-    }
-    
-    // 【新增方法】處理強制重譯點擊事件 (清除快取並重啟)
-    async handleRerunClick() {
-        const videoId = this.getVideoId();
-        if (!videoId) return;
-
-        if (confirm("確定要清除當前影片的所有翻譯暫存，並強制重新開始翻譯嗎？")) {
-            const cacheKey = `ytEnhancerCache_${videoId}`;
-            // 步驟 1: 清除暫存
-            await this.sendMessageToBackground({ action: 'removeCache', key: cacheKey });
-            
-            // 步驟 2: 設定標記並重新啟動 run()
-            this.isForceRerun = true; 
-            this.run(); 
-        }
-    }
-
-    handleWindowMessage(event) {
-        if (event.source !== window || event.data.type !== 'FROM_YT_ENHANCER_INTERCEPTOR') {
-            return;
-        }
-        if (this.isProcessing) return; 
-
-        if (event.data.status === 'SUCCESS') {
-            this.showToast("字幕數據已成功攔截，正在處理...");
-            this.parseAndTranslate(event.data.payload);
         } else {
-            this.showToast(`字幕攔截失敗: ${event.data.reason}`, 5000);
+            this.log("執行條件不符 (未啟用或非觀看頁面)。");
         }
     }
 
-    handleStateChange(request) {
-        if (request.action === 'stateChanged') {
-            this.isEnabled = request.enabled;
-            this.run();
+    cleanup() {
+        this.state.abortController?.abort();
+
+        if (this.state.videoElement) {
+            this.state.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
         }
-    }
+        document.getElementById('enhancer-status-orb')?.remove();
+        document.getElementById('enhancer-subtitle-container')?.remove();
 
-    handleSettingsChange(request) {
-        if (request.action === 'settingsChanged') {
-            // 【關鍵修正點】：確保將完整的 settings 物件賦予 this.settings
-            this.settings = request.settings; 
-            this.applySettings();
-            if (this.translatedTrack && this.currentSubtitleIndex !== -1) {
-                const sub = this.translatedTrack[this.currentSubtitleIndex];
-                this.updateSubtitleDisplay(sub.text, sub.translatedText, this.currentSubtitleIndex);
-            }
-        }
-    }
-
-    applySettings() {
-        if (!this.subtitleContainer) return;
-        const s = this.settings;
-        this.subtitleContainer.style.fontSize = `${s.fontSize}px`;
-        this.subtitleContainer.style.fontFamily = s.fontFamily;
-        
-        // 處理顯示模式
-        const jaLines = this.subtitleContainer.querySelectorAll('.enhancer-ja-line');
-        const zhLines = this.subtitleContainer.querySelectorAll('.enhancer-zh-line');
-
-        jaLines.forEach(el => el.style.display = s.showOriginal ? 'block' : 'none');
-        zhLines.forEach(el => el.style.display = s.showTranslated ? 'block' : 'none');
+        this.state = {
+            ...this.state,
+            isProcessing: false,
+            hasActivated: false,
+            videoElement: null,
+            statusOrb: null,
+            subtitleContainer: null,
+            translatedTrack: null,
+            sourceLang: null,
+            isOverride: false,
+            abortController: null,
+            tempErrorCount: 0,
+            persistentError: null,
+            translationProgress: { done: 0, total: 0 },
+        };
+        this.toggleNativeSubtitles(false);
     }
     
-    getVideoId() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('v');
-    }
-
-    parseRawSubtitles(payload) {
-        if (!payload.events || payload.events.length === 0) return [];
-
-        const subtitles = payload.events.map(event => {
-            const fullText = event.segs ? event.segs.map(seg => seg.utf8).join('') : '';
-            const start = event.tStartMs;
-            const dur = event.dDurationMs || 5000;
-            const end = start + dur;
-
-            return {
-                start: start,
-                end: end,
-                text: fullText,
-                translatedText: null
-            };
-        }).filter(sub => sub.text.trim() !== '');
-
-        // 修正結束時間: 下一句的開始時間
-        for (let i = 0; i < subtitles.length - 1; i++) {
-            subtitles[i].end = subtitles[i + 1].start;
+    async prepareForTranslation(captionsData) {
+        if (this.state.sourceLang) {
+            this.log("語言已匹配，等待字幕攔截。");
+            return;
         }
-        return subtitles;
-    }
-
-    isTranslationIncomplete(sub) {
-        return !sub.translatedText && sub.text.trim().length > 0;
-    }
-
-    async parseAndTranslate(payload, isResuming = false) {
-        this.isProcessing = true;
         
-        // 只有在非續傳模式下才重新解析整個字幕軌
-        if (!isResuming) {
-            this.translatedTrack = this.parseRawSubtitles(payload);
-            this.rawPayload = payload;
+        if (!captionsData) {
+            this.log("injector 未能取回字幕數據。");
+            return;
+        }
+        this.log("成功接收到 injector 傳來的初始字幕數據。");
+
+        const availableLangs = this.getAvailableLanguagesFromData(captionsData);
+        if (!availableLangs || availableLangs.length === 0) {
+            this.log("等待中：可用語言列表為空。");
+            return;
+        }
+        this.log("偵測到可用語言:", availableLangs);
+        await this.sendMessageToBackground({ action: 'storeAvailableLangs', langs: availableLangs });
+
+        const { preferred_langs, ignored_langs } = this.settings;
+        const matchedLang = preferred_langs.find(pLang => 
+            availableLangs.includes(pLang) && !ignored_langs.includes(pLang)
+        );
+
+        if (!matchedLang) {
+            this.log("等待中：無可用字幕匹配您的偏好設定。");
+            return;
         }
 
-        const segmentsToTranslate = [];
-        let startIndex = -1;
+        this.state.sourceLang = matchedLang;
+        this.log(`智慧匹配成功！選定 "${matchedLang}" 作為翻譯源，等待使用者開啟字幕...`);
+    }
 
-        // 找到第一個需要翻譯的片段
-        for (let i = 0; i < this.translatedTrack.length; i++) {
-            if (this.isTranslationIncomplete(this.translatedTrack[i])) {
-                if (startIndex === -1) startIndex = i;
-                segmentsToTranslate.push(this.translatedTrack[i].text);
-            } else if (startIndex !== -1 && segmentsToTranslate.length > 0) {
-                // 如果已經在翻譯中，遇到已翻譯的，就發送當前累積的批次
-                break;
+    async activate(isOverride, lang, initialPayload = null) {
+        if (this.state.hasActivated) return;
+        this.state.hasActivated = true;
+        this.state.isOverride = isOverride;
+        this.state.sourceLang = lang;
+
+        this.state.videoElement = document.querySelector('video');
+        const playerContainer = document.getElementById('movie_player');
+        
+        if (!this.state.videoElement || !playerContainer) {
+            this.error("找不到播放器元件，啟動失敗。");
+            return;
+        }
+        
+        this.createStatusOrb(playerContainer);
+        this.createSubtitleContainer(playerContainer);
+        this.applySettingsToUI();
+        this.toggleNativeSubtitles(true);
+
+        const videoId = this.currentVideoId;
+        const cacheKey = `ytEnhancerCache_${videoId}_${this.state.sourceLang}`;
+        
+        this.setOrbState('translating');
+
+        if (isOverride) {
+            this.log("手動覆蓋或重譯模式，清除舊暫存。");
+            await this.sendMessageToBackground({ action: 'removeCache', key: cacheKey });
+            if (initialPayload) {
+                this.parseAndTranslate(initialPayload, false);
             }
-            // 每次最多翻譯 30 句，避免 API 請求過大
-            if (segmentsToTranslate.length >= 30) break; 
+            return;
+        }
+        
+        const cachedData = await this.sendMessageToBackground({ action: 'getCache', key: cacheKey });
+        if (cachedData?.translatedTrack) {
+            this.log("成功從暫存載入翻譯。");
+            this.state.translatedTrack = cachedData.translatedTrack;
+            const isComplete = !this.state.translatedTrack.some(sub => !sub.translatedText);
+            if (isComplete) {
+                this.setOrbState('cached');
+                this.beginDisplay();
+            } else {
+                this.log("從暫存恢復未完成的翻譯。");
+                this.parseAndTranslate(null, true);
+            }
+            return;
+        }
+        
+        if (initialPayload) {
+             this.parseAndTranslate(initialPayload, false);
+        } else {
+            this.log("未找到暫存，將等待 injector 攔截字幕。");
+        }
+    }
+    
+    getAvailableLanguagesFromData(captionsData) {
+        try {
+            const tracks = captionsData?.playerCaptionsTracklistRenderer?.captionTracks;
+            if (tracks && tracks.length > 0) {
+                return tracks.map(track => track.languageCode);
+            }
+        } catch (e) {
+            this.error("解析字幕數據失敗:", e);
+        }
+        return [];
+    }
+    
+    handleWindowMessage(event) {
+        if (event.source !== window || !event.data || !event.data.type) return;
+
+        if (event.data.type === 'YT_ENHANCER_PLAYER_RESPONSE') {
+            this.prepareForTranslation(event.data.payload);
+            return;
+        }
+
+        if (event.data.type === 'FROM_YT_ENHANCER_INTERCEPTOR') {
+            const { status, payload, lang } = event.data;
+            if (status !== 'SUCCESS' || !lang) return;
+            if (lang === this.state.sourceLang && !this.state.hasActivated) {
+                this.log(`攔截到目標語言 "${lang}"，正式啟用 UI 並開始翻譯。`);
+                this.activate(this.state.isOverride, lang, payload);
+            }
+        }
+    }
+    
+    async parseAndTranslate(payload, isResuming = false) {
+        if (this.state.isProcessing) return;
+        this.state.isProcessing = true;
+
+        if (!isResuming) {
+            this.state.translatedTrack = this.parseRawSubtitles(payload);
+        }
+        
+        this.state.translationProgress.done = this.state.translatedTrack.filter(t => t.translatedText).length;
+        this.state.translationProgress.total = this.state.translatedTrack.length;
+        
+        await this.processNextBatch();
+
+        this.state.isProcessing = false;
+    }
+
+    async processNextBatch() {
+        const batchSize = 30;
+        const segmentsToTranslate = [];
+        const indicesToUpdate = [];
+
+        for (let i = 0; i < this.state.translatedTrack.length; i++) {
+            const segment = this.state.translatedTrack[i];
+            if (!segment.translatedText && segment.text.trim() !== '') {
+                segmentsToTranslate.push(segment.text);
+                indicesToUpdate.push(i);
+                if (segmentsToTranslate.length >= batchSize) break;
+            }
         }
 
         if (segmentsToTranslate.length === 0) {
-            this.isProcessing = false;
-            this.showToast("翻譯已完成！");
-            this.setCache(`ytEnhancerCache_${this.getVideoId()}`, {
-                translatedTrack: this.translatedTrack,
-                rawPayload: this.rawPayload
-            });
+            this.log("所有批次翻譯完成。");
+            this.setOrbState('success');
             return;
         }
 
-        this.showToast(`正在翻譯 ${segmentsToTranslate.length} 句字幕...`, 0);
+        this.state.translationProgress.done = this.state.translatedTrack.filter(t => t.translatedText).length;
+        this.setOrbState('translating');
+        
         this.abortController = new AbortController();
 
         try {
+            if (this.state.videoElement && !this.state.videoElement.ontimeupdate) {
+                this.beginDisplay();
+            }
             const translatedTexts = await this.sendBatchForTranslation(segmentsToTranslate, this.abortController.signal);
-            
-            for (let i = 0; i < translatedTexts.length; i++) {
-                this.translatedTrack[startIndex + i].translatedText = translatedTexts[i];
+            if (translatedTexts.length !== segmentsToTranslate.length) {
+                throw new Error("翻譯回傳的句數與批次不符。");
             }
-
-            this.setCache(`ytEnhancerCache_${this.getVideoId()}`, {
-                translatedTrack: this.translatedTrack,
-                rawPayload: this.rawPayload
+            translatedTexts.forEach((text, i) => {
+                const trackIndex = indicesToUpdate[i];
+                this.state.translatedTrack[trackIndex].translatedText = text;
             });
-
-            this.showToast(`完成翻譯 ${translatedTexts.length} 句！`);
-            this.beginDisplay();
-            
-            // 檢查是否還有未完成的，如果是，遞歸調用繼續翻譯
-            const remaining = this.translatedTrack.slice(startIndex + translatedTexts.length).some(sub => this.isTranslationIncomplete(sub));
-            if (remaining) {
-                this.parseAndTranslate(this.rawPayload, true); // 繼續翻譯下一批
-            }
-
+            const cacheKey = `ytEnhancerCache_${this.currentVideoId}_${this.state.sourceLang}`;
+            await this.sendMessageToBackground({ action: 'setCache', key: cacheKey, data: { translatedTrack: this.state.translatedTrack } });
+            this.log(`批次完成，已儲存進度 (${this.state.translatedTrack.filter(t => t.translatedText).length}/${this.state.translationProgress.total})。`);
+            this.state.tempErrorCount = 0;
+            await this.processNextBatch();
         } catch (e) {
+            const userFriendlyError = this.translateToFriendlyError(e.message);
             if (e.name === 'AbortError') {
-                this.showToast("翻譯已取消 (影片切換或停止)。");
+                this.log("翻譯請求已中止。");
             } else {
-                this.showToast(`翻譯失敗: ${e.message}`, 8000);
-                console.error("翻譯批次失敗:", e);
-                // 顯示重試連結
-                this.showRetryLink(startIndex, segmentsToTranslate.length);
+                this.error("翻譯批次失敗:", e);
+                this.handleTranslationError(userFriendlyError);
             }
         } finally {
-            this.isProcessing = false;
             this.abortController = null;
         }
     }
 
     async sendBatchForTranslation(texts, signal) {
-        const response = await fetch(SERVER_URL, {
+        const response = await fetch('http://127.0.0.1:5001/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 texts: texts,
-                // 【關鍵修正點】：新增 source_lang 參數，從設定中讀取
-                source_lang: this.settings.sourceLanguage, 
+                source_lang: this.state.sourceLang,
                 models_preference: this.settings.models_preference
             }),
             signal
         });
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`伺服器錯誤 ${response.status}: ${errorData.error || '未知錯誤'}`);
+            throw new Error(errorData.error || `伺服器錯誤 ${response.status}`);
         }
         return await response.json();
     }
-
-    handleRetryClick(startIndex, count) {
-        if (this.isProcessing) return;
-        this.showToast(`正在重試翻譯 ${count} 句字幕...`, 0);
-
-        // 將這些句子的 translatedText 設為 null，以便 parseAndTranslate 再次處理
-        for (let i = 0; i < count; i++) {
-            this.translatedTrack[startIndex + i].translatedText = null;
-        }
-
-        // 重新開始處理未完成的片段
-        this.parseAndTranslate(this.rawPayload, true);
-    }
-
-    createSubtitleContainer(playerContainer) {
-        if (this.subtitleContainer) return;
-
-        this.subtitleContainer = document.createElement('div');
-        this.subtitleContainer.id = 'enhancer-subtitle-container';
-        playerContainer.appendChild(this.subtitleContainer);
-
-        // 創建 Toast 容器
-        this.toastContainer = document.createElement('div');
-        this.toastContainer.id = 'enhancer-toast';
-        playerContainer.appendChild(this.toastContainer);
-
-        // 初始套用設定
-        this.applySettings();
-    }
-
-    updateSubtitleDisplay(originalText, translatedText, index) {
-        if (!this.subtitleContainer) return;
-        this.subtitleContainer.innerHTML = ''; // 清空舊字幕
-
-        const s = this.settings;
-        let originalLineHTML = '';
-        let translatedLineHTML = '';
-
-        // 檢查並創建原文 HTML
-        if (originalText && s.showOriginal) {
-            // 這裡修正了 style 屬性的邏輯，使其更簡潔
-            originalLineHTML = `<div class="enhancer-line enhancer-ja-line">${originalText}</div>`;
-        }
-
-        // 檢查並創建翻譯 HTML
-        if (translatedText && s.showTranslated) {
-            // 這裡修正了 style 屬性的邏輯，使其更簡潔
-            translatedLineHTML = `<div class="enhancer-line enhancer-zh-line">${translatedText}</div>`;
-        }
-        
-        // 只有當至少有一個內容存在時才更新容器
-        if (originalLineHTML || translatedLineHTML) {
-            this.subtitleContainer.innerHTML = originalLineHTML + translatedLineHTML;
-            // 【關鍵檢查點】：套用 settings 樣式，確保顯示/隱藏的邏輯正確
-            this.applySettings();
-        } else if (this.currentSubtitleIndex !== -1) {
-            // 如果當前有字幕，但內容是空的，則清空容器
-            this.subtitleContainer.innerHTML = '';
-        }
-    }
     
-    showRetryLink(startIndex, count) {
-        if (!this.subtitleContainer) return;
-        const retryLink = document.createElement('a');
-        retryLink.href = '#';
-        retryLink.className = 'enhancer-retry-link';
-        retryLink.textContent = `點擊重試 ${count} 句`;
-        retryLink.onclick = (e) => {
-            e.preventDefault();
-            this.handleRetryClick(startIndex, count);
-        };
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'enhancer-line enhancer-error-line';
-        errorDiv.textContent = '翻譯失敗！ ';
-        errorDiv.appendChild(retryLink);
+    handleTranslationError(errorMessage) {
+        this.state.tempErrorCount++;
+        if (this.state.tempErrorCount >= 2) {
+            this.setPersistentError(errorMessage);
+        } else {
+            this.showTemporaryError(errorMessage);
+        }
+    }
 
-        this.subtitleContainer.innerHTML = '';
-        this.subtitleContainer.appendChild(errorDiv);
+    setPersistentError(message) {
+        this.state.persistentError = message;
+        
+        if (!this.state.statusOrb || !document.body.contains(this.state.statusOrb)) {
+            const playerContainer = document.getElementById('movie_player');
+            if (playerContainer) this.createStatusOrb(playerContainer);
+        }
+        this.setOrbState('error', message);
+        this.sendMessageToBackground({ action: 'logError', message: message });
+    }
+
+    showTemporaryError(message) {
+        if (!this.state.subtitleContainer || !this.state.videoElement) return;
+        const currentTime = this.state.videoElement.currentTime * 1000;
+        const currentSub = this.state.translatedTrack.find(sub => currentTime >= sub.start && currentTime < sub.end);
+        let html = '';
+        if (this.settings.showOriginal && currentSub) {
+            html += `<div class="enhancer-line enhancer-original-line">${currentSub.text}</div>`;
+        }
+        html += `<div class="enhancer-line enhancer-error-line">${message} <a href="#" id="enhancer-retry-link">點此重試</a></div>`;
+        this.state.subtitleContainer.innerHTML = html;
+        document.getElementById('enhancer-retry-link')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.log("點擊重試...");
+            this.state.subtitleContainer.innerHTML = '';
+            this.setOrbState('translating');
+            this.processNextBatch();
+        });
     }
 
     beginDisplay() {
-        if (!this.videoElement || !this.translatedTrack) return;
-
-        this.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
-        this.videoElement.addEventListener('timeupdate', this.handleTimeUpdate);
-
-        // 第一次呼叫，確保字幕容器存在
-        if (this.translatedTrack.length > 0) {
-            this.handleTimeUpdate(); 
-        }
+        if (!this.state.videoElement || !this.state.translatedTrack) return;
+        this.state.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
+        this.state.videoElement.addEventListener('timeupdate', this.handleTimeUpdate);
+        this.handleTimeUpdate();
     }
 
     handleTimeUpdate() {
-        const currentTime = this.videoElement.currentTime * 1000;
-        const s = this.translatedTrack;
-
-        // 搜尋當前時間點的字幕
-        let newIndex = -1;
-        for (let i = 0; i < s.length; i++) {
-            if (currentTime >= s[i].start && currentTime < s[i].end) {
-                newIndex = i;
-                break;
-            }
-        }
-
-        if (newIndex !== -1 && newIndex !== this.currentSubtitleIndex) {
-            this.currentSubtitleIndex = newIndex;
-            const sub = s[newIndex];
-            this.updateSubtitleDisplay(sub.text, sub.translatedText, newIndex);
-        } else if (newIndex === -1 && this.currentSubtitleIndex !== -1) {
-            // 時間點不在任何字幕區間內，隱藏字幕
-            this.currentSubtitleIndex = -1;
-            if (this.subtitleContainer) {
-                this.subtitleContainer.innerHTML = '';
-            }
+        const { videoElement, translatedTrack, subtitleContainer } = this.state;
+        if (!videoElement || !translatedTrack || !subtitleContainer) return;
+        const currentTime = videoElement.currentTime * 1000;
+        const currentSub = translatedTrack.find(sub => currentTime >= sub.start && currentTime < sub.end);
+        if (currentSub) {
+            this.updateSubtitleDisplay(currentSub.text, currentSub.translatedText);
+        } else {
+            subtitleContainer.innerHTML = '';
         }
     }
 
-    showToast(message, duration = TOAST_DURATION) {
-        if (!this.toastContainer) return;
+    updateSubtitleDisplay(originalText, translatedText) {
+        if (!this.state.subtitleContainer) return;
         
-        // 清除舊的計時器
-        if (this.toastTimeout) {
-            clearTimeout(this.toastTimeout);
+        const { showOriginal, showTranslated } = this.settings;
+        let html = '';
+        if (showOriginal && originalText) {
+            html += `<div class="enhancer-line enhancer-original-line">${originalText}</div>`;
         }
+        if (showTranslated) {
+            const displayText = translatedText || '...';
+            const placeholderClass = translatedText ? '' : 'enhancer-placeholder';
+            html += `<div class="enhancer-line enhancer-translated-line ${placeholderClass}">${displayText}</div>`;
+        }
+        
+        this.state.subtitleContainer.innerHTML = html;
+    }
 
-        this.toastContainer.textContent = message;
-        this.toastContainer.classList.add('show');
-        
-        if (duration > 0) {
-            this.toastTimeout = setTimeout(() => {
-                this.toastContainer.classList.remove('show');
-            }, duration);
+    handleBackgroundMessage(request, sender, sendResponse) {
+        if (request.action === 'stateChanged') {
+            this.state.isEnabled = request.isEnabled;
+            this.cleanup();
+            this.run();
+        } else if (request.action === 'settingsChanged') {
+            this.settings = request.settings;
+            this.log("設定已更新:", this.settings);
+            this.applySettingsToUI();
+            if (this.state.isEnabled !== this.settings.isEnabled) {
+                this.state.isEnabled = this.settings.isEnabled;
+                this.cleanup();
+                this.run();
+            }
+        } else if (request.action === 'forceRerun' || request.action === 'translateWithOverride') {
+            const lang = request.action === 'translateWithOverride' ? request.language : this.state.sourceLang;
+            if (!lang) {
+                this.log("無法重譯/覆蓋：缺少目標語言。");
+                return;
+            }
+            this.log(`收到指令: ${request.action}, 語言: ${lang}`);
+            this.cleanup();
+            this.run();
+            // 在這種情況下，我們需要一種方法來觸發 override
+            // 最好的方法是讓 run() 之後的流程重新匹配，或者我們直接 activate
+            // 為了確保 injector 重新發送初始數據，重跑 run() 是最乾淨的
+            // 但我們需要一個方法告訴下一次的 prepareForTranslation 這是 override
+            this.state.isOverride = true;
+            this.state.sourceLang = lang; // 預先設定
         }
+        sendResponse({ success: true });
+        return true;
+    }
+    
+    createStatusOrb(container) {
+        if (this.state.statusOrb && document.body.contains(this.state.statusOrb)) return;
+        this.state.statusOrb = document.createElement('div');
+        this.state.statusOrb.id = 'enhancer-status-orb';
+        container.appendChild(this.state.statusOrb);
+        this.state.statusOrb.addEventListener('click', () => {
+            if (this.state.persistentError) {
+                chrome.runtime.sendMessage({ action: 'openOptionsPage' });
+            }
+        });
+    }
+
+    getFriendlyLangName(langCode) {
+        const langMap = { ja: '日文', ko: '韓文', en: '英文' };
+        return langMap[langCode] || langCode;
+    }
+
+    setOrbState(state, errorMsg = '') {
+        const orb = this.state.statusOrb;
+        if (!orb) return;
+        
+        orb.classList.remove('fade-out', 'state-translating', 'state-success', 'state-cached', 'state-error', 'progress');
+        orb.classList.add(`state-${state}`);
+
+        const { translationProgress: progress, isOverride, sourceLang } = this.state;
+        const langName = this.getFriendlyLangName(sourceLang);
+        const prefix = isOverride ? '手動選擇' : '自動選擇';
+
+        switch (state) {
+            case 'translating':
+                if (progress && progress.total > 0) {
+                    orb.classList.add('progress');
+                    const percent = Math.round((progress.done / progress.total) * 100);
+                    orb.innerHTML = `<div>${percent}%</div>`;
+                    orb.title = `${prefix}: [${langName}] | 翻譯中: ${progress.done} / ${progress.total}`;
+                } else {
+                    orb.innerHTML = '<div>%</div>';
+                    orb.title = `${prefix}: [${langName}]`;
+                }
+                break;
+            case 'success': 
+                orb.innerHTML = '<div>✓</div>';
+                orb.title = '翻譯成功';
+                setTimeout(() => orb.classList.add('fade-out'), 1500); 
+                break;
+            case 'cached': 
+                orb.innerHTML = '<div>✓</div>';
+                orb.title = '已從暫存載入';
+                setTimeout(() => orb.classList.add('fade-out'), 1500); 
+                break;
+            case 'error': 
+                orb.innerHTML = '<div>!</div>';
+                orb.title = `發生錯誤: ${errorMsg}`;
+                break;
+        }
+    }
+
+    createSubtitleContainer(container) {
+        if (this.state.subtitleContainer && document.body.contains(this.state.subtitleContainer)) return;
+        this.state.subtitleContainer = document.createElement('div');
+        this.state.subtitleContainer.id = 'enhancer-subtitle-container';
+        container.appendChild(this.state.subtitleContainer);
+    }
+    
+    applySettingsToUI() {
+        if (this.state.subtitleContainer) {
+            this.state.subtitleContainer.style.fontSize = `${this.settings.fontSize}px`;
+            this.state.subtitleContainer.style.fontFamily = this.settings.fontFamily;
+        }
+    }
+    
+    toggleNativeSubtitles(hide) {
+        const nativeContainer = document.querySelector('.ytp-caption-window-container');
+        if (nativeContainer) {
+            nativeContainer.style.display = hide ? 'none' : '';
+        }
+    }
+
+    parseRawSubtitles(payload) {
+        if (!payload.events) return [];
+        const subtitles = payload.events
+            .map(event => ({
+                start: event.tStartMs,
+                end: event.tStartMs + (event.dDurationMs || 5000),
+                text: event.segs ? event.segs.map(seg => seg.utf8).join('') : '',
+                translatedText: null
+            }))
+            .filter(sub => sub.text.trim() !== '');
+        for (let i = 0; i < subtitles.length - 1; i++) {
+            subtitles[i].end = subtitles[i + 1].start;
+        }
+        return subtitles;
     }
 
     injectInterceptor() {
-        if (!chrome.runtime) return; // 檢查上下文是否有效
-
-        const script = document.createElement('script');
-        script.src = chrome.runtime.getURL('injector.js');
-        (document.head || document.documentElement).appendChild(script);
-        script.onload = () => script.remove();
+        try {
+            if (document.getElementById('yt-enhancer-injector')) return;
+            const script = document.createElement('script');
+            script.id = 'yt-enhancer-injector';
+            script.src = chrome.runtime.getURL('injector.js');
+            (document.head || document.documentElement).appendChild(script);
+            script.onload = () => script.remove();
+        } catch(e) {
+            const userFriendlyError = this.translateToFriendlyError(e.message);
+            this.error(`注入 injector.js 失敗: ${e.message}`);
+            this.setPersistentError(userFriendlyError);
+        }
     }
 }
 

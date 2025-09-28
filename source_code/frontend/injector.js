@@ -5,86 +5,129 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * You can find a copy of the license in the LICENSE file that should be
- * distributed with this software.
- *
- * This script is injected into the main page world to intercept
- * `fetch` and `XMLHttpRequest` for YouTube's subtitle data.
+ * Version: 1.7.0 (Final Stability Patch)
  */
 
 (function() {
     'use strict';
-
-    const postSuccess = (data) => {
-        window.postMessage({
-            type: 'FROM_YT_ENHANCER_INTERCEPTOR',
-            status: 'SUCCESS',
-            payload: data
-        }, '*');
+    if (window.ytEnhancerInjectorAttached) {
+        return;
+    }
+    window.ytEnhancerInjectorAttached = true;
+    
+    // 【關鍵修正點】: 任務一：不再立即執行，而是輪詢等待關鍵物件出現
+    const findInitialData = () => {
+        let attempts = 0;
+        const maxAttempts = 20; // 20 * 250ms = 5 秒
+        const interval = setInterval(() => {
+            if (window.ytInitialPlayerResponse) {
+                clearInterval(interval);
+                try {
+                    const captionsData = window.ytInitialPlayerResponse.captions;
+                    window.postMessage({ type: 'YT_ENHANCER_PLAYER_RESPONSE', payload: captionsData || null }, '*');
+                } catch (e) {
+                    window.postMessage({ type: 'YT_ENHANCER_PLAYER_RESPONSE', payload: null }, '*');
+                }
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    // 逾時後，嘗試用您提供的 HTML 解析法做最後的努力
+                    try {
+                        const scripts = document.querySelectorAll('script');
+                        let playerResponse = null;
+                        for (const script of scripts) {
+                            const scriptContent = script.textContent;
+                            if (scriptContent && scriptContent.includes('var ytInitialPlayerResponse = ')) {
+                                const jsonStr = scriptContent.substring(
+                                    scriptContent.indexOf('{'),
+                                    scriptContent.lastIndexOf('}') + 1
+                                );
+                                playerResponse = JSON.parse(jsonStr);
+                                break;
+                            }
+                        }
+                        window.postMessage({ type: 'YT_ENHANCER_PLAYER_RESPONSE', payload: playerResponse ? playerResponse.captions : null }, '*');
+                    } catch(e) {
+                        window.postMessage({ type: 'YT_ENHANCER_PLAYER_RESPONSE', payload: null }, '*');
+                    }
+                }
+            }
+        }, 250);
     };
+    findInitialData();
 
-    const postFail = (reason) => {
+
+    // --- 任務二：設定網路攔截器，攔截後續的字幕內容 ---
+    const postSubtitleMessage = (status, payload, lang = null, reason = '') => {
         window.postMessage({
             type: 'FROM_YT_ENHANCER_INTERCEPTOR',
-            status: 'FAIL',
+            status: status,
+            payload: payload,
+            lang: lang,
             reason: reason
         }, '*');
     };
+    
+    const getLangFromUrl = (url) => {
+        try {
+            const urlParams = new URLSearchParams(url.split('?')[1]);
+            return urlParams.get('lang') || null;
+        } catch (e) {
+            return null;
+        }
+    };
 
-    // --- 1. Fetch Interceptor ---
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         const url = args[0] instanceof Request ? args[0].url : args[0];
 
         if (typeof url === 'string' && url.includes('/api/timedtext')) {
+            const lang = getLangFromUrl(url);
             return new Promise((resolve, reject) => {
-                originalFetch(...args)
+                originalFetch.apply(this, args)
                     .then(response => {
                         const clonedResponse = response.clone();
-                        clonedResponse.json().then(postSuccess).catch(err => postFail(`Fetch JSON parse error: ${err.message}`));
+                        clonedResponse.json()
+                            .then(data => postSubtitleMessage('SUCCESS', data, lang))
+                            .catch(err => postSubtitleMessage('FAIL', null, lang, `Fetch JSON parse error: ${err.message}`));
                         resolve(response);
                     })
                     .catch(err => {
-                        postFail(`Fetch request failed: ${err.message}`);
+                        postSubtitleMessage('FAIL', null, lang, `Fetch request failed: ${err.message}`);
                         reject(err);
                     });
             });
         }
-        return originalFetch(...args);
+        return originalFetch.apply(this, args);
     };
 
-    // --- 2. XMLHttpRequest Interceptor ---
     const originalXhrOpen = window.XMLHttpRequest.prototype.open;
-    const originalXhrSend = window.XMLHttpRequest.prototype.send;
-
     window.XMLHttpRequest.prototype.open = function(...args) {
-        // 在 open 時儲存 URL，因為 send 時可能沒有
         this._interceptorRequestUrl = args[1];
         return originalXhrOpen.apply(this, args);
     };
 
+    const originalXhrSend = window.XMLHttpRequest.prototype.send;
     window.XMLHttpRequest.prototype.send = function(...args) {
         this.addEventListener('load', () => {
-            // 監聽 load 事件，代表請求已成功完成
             if (this._interceptorRequestUrl && this._interceptorRequestUrl.includes('/api/timedtext')) {
+                const lang = getLangFromUrl(this._interceptorRequestUrl);
                 try {
-                    // responseText 包含了回應的文字內容
                     const data = JSON.parse(this.responseText);
-                    postSuccess(data);
+                    postSubtitleMessage('SUCCESS', data, lang);
                 } catch (e) {
-                    postFail(`XHR JSON parse error: ${e.message}`);
+                    postSubtitleMessage('FAIL', null, lang, `XHR JSON parse error: ${e.message}`);
                 }
             }
         });
-         // 也監聽 error 事件
         this.addEventListener('error', () => {
              if (this._interceptorRequestUrl && this._interceptorRequestUrl.includes('/api/timedtext')) {
-                 postFail('XHR request failed');
+                 const lang = getLangFromUrl(this._interceptorRequestUrl);
+                 postSubtitleMessage('FAIL', null, lang, 'XHR request failed');
              }
         });
         return originalXhrSend.apply(this, args);
     };
-
-    console.log('YT Enhancer Universal Interceptor (v7.1) deployed.');
 
 })();
