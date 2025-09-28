@@ -68,10 +68,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let settings = {};
 
+    // 以下是從 loadSettings() 開始的完整內容。
     async function loadSettings() {
         const response = await sendMessage({ action: 'getSettings' });
+
+        // 【關鍵修正點】: 提供最低限度的預設結構，以防止 updateUI 讀取不存在的屬性時崩潰
+        const minimumDefaults = {
+            fontSize: 22,
+            showOriginal: true,
+            showTranslated: true,
+            // 其他設置如果未用於 Popup UI 則可省略，但為求完整性，最好與 defaultSettings 一致
+        };
+
         if (response?.success) {
-            settings = response.data;
+            // 如果成功，則合併（避免 settings 僅有部分內容）
+            settings = { ...minimumDefaults, ...response.data };
+            updateUI();
+        } else {
+            // 如果失敗，則使用最低限度預設值
+            settings = minimumDefaults;
             updateUI();
         }
     }
@@ -82,14 +97,18 @@ document.addEventListener('DOMContentLoaded', () => {
             settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
         }
         
-        await sendMessage({ action: 'setSettings', data: settings });
+        // 【關鍵修正點】: 修正：使用 { data: settings } 結構傳輸，與 background.js 期待的 updateSettings 結構一致。
+        await sendMessage({ action: 'updateSettings', data: settings });
+        
         const tab = await getActiveTab();
         if (tab?.url?.includes("youtube.com")) {
-            chrome.tabs.sendMessage(tab.id, { action: 'settingsChanged', settings: settings });
+            // 【關鍵修正點】: 修正：sendMessage 的參數必須是 { action: ..., settings: ... }，而不是直接傳遞 settings。
+            chrome.tabs.sendMessage(tab.id, { action: 'settingsChanged', settings: settings }).catch(() => {});
         }
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
 
+    // 以下是從 updateUI() 開始的完整內容。
     function updateUI() {
         if (isOptionsPage) {
             updateListUI('preferred-lang-list', settings.preferred_langs);
@@ -97,10 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
             populateModelLists(); 
             document.getElementById('fontFamilySelect').value = settings.fontFamily;
         } else {
-            document.getElementById('fontSizeSlider').value = settings.fontSize;
-            document.getElementById('fontSizeValue').textContent = settings.fontSize + 'px';
-            document.getElementById('showOriginal').checked = settings.showOriginal;
-            document.getElementById('showTranslated').checked = settings.showTranslated;
+            // 【關鍵修正點】: 針對 Popup UI 元素，安全地讀取設定，預設為 true/22
+            document.getElementById('fontSizeSlider').value = settings.fontSize ?? 22;
+            document.getElementById('fontSizeValue').textContent = (settings.fontSize ?? 22) + 'px';
+            
+            // 【關鍵修正點】: 處理布林值時，使用 ?? true 確保預設勾選，解決問題 4
+            document.getElementById('showOriginal').checked = settings.showOriginal ?? true; 
+            document.getElementById('showTranslated').checked = settings.showTranslated ?? true;
         }
     }
 
@@ -328,10 +350,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tab = await getActiveTab();
             if (tab?.url?.includes("youtube.com")) {
                 toggleButton.disabled = false;
+                
+                // 【關鍵修正點】: 使用選用串連 (?. ) 來安全讀取 response 及其 isEnabled 屬性。
                 const response = await sendMessage({ action: 'getGlobalState' });
-                toggleButton.textContent = response.isEnabled ? '停用翻譯' : '啟用翻譯';
-                toggleButton.classList.toggle('active', response.isEnabled);
-                statusText.textContent = response.isEnabled ? '已啟用' : '未啟用';
+                const isEnabled = response?.isEnabled ?? false; // 如果 response 或 isEnabled 是 undefined，則視為 false (未啟用)
+
+                toggleButton.textContent = isEnabled ? '停用翻譯' : '啟用翻譯';
+                toggleButton.classList.toggle('active', isEnabled);
+                statusText.textContent = isEnabled ? '已啟用' : '未啟用';
             } else {
                 toggleButton.disabled = true;
                 toggleButton.textContent = '請在 YouTube 頁面使用';
@@ -339,10 +365,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         toggleButton.addEventListener('click', async () => {
+            // 【關鍵修正點】: 使用選用串連 (?. ) 來安全讀取 response 及其 isEnabled 屬性。
             const response = await sendMessage({ action: 'toggleGlobalState' });
-            toggleButton.textContent = response.isEnabled ? '停用翻譯' : '啟用翻譯';
-            toggleButton.classList.toggle('active', response.isEnabled);
-            statusText.textContent = response.isEnabled ? '已啟用' : '未啟用';
+            const isEnabled = response?.isEnabled ?? false; // 如果 response 或 isEnabled 是 undefined，則視為 false (未啟用)
+
+            toggleButton.textContent = isEnabled ? '停用翻譯' : '啟用翻譯';
+            toggleButton.classList.toggle('active', isEnabled);
+            statusText.textContent = isEnabled ? '已啟用' : '未啟用';
         });
         updatePopupStatus();
 
@@ -383,17 +412,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         async function loadAvailableLangs() {
+            // 呼叫新的 getAvailableLangs 邏輯 (background.js 已新增)
             const response = await sendMessage({ action: 'getAvailableLangs' });
-            if (response.success && response.data.length > 0) {
-                overrideSelect.innerHTML = '<option value="auto">自動 (推薦)</option>';
+            
+            // 【關鍵修正點】: 預先準備選項，確保「自動」永遠是第一個選項。
+            overrideSelect.innerHTML = '<option value="auto">自動 (推薦)</option>';
+            
+            // 【關鍵修正點】: 修正傳回資料的判斷，確保 data 是一個陣列且有內容。
+            if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
                 response.data.forEach(lang => {
                     const option = document.createElement('option');
                     option.value = lang;
                     option.textContent = LANG_CODE_MAP[lang] ? `${LANG_CODE_MAP[lang]} (${lang})` : lang;
                     overrideSelect.appendChild(option);
                 });
+                overrideSelect.disabled = false; // 確保在有語言時啟用選擇器
             } else {
-                overrideSelect.innerHTML = '<option value="auto">無可用語言</option>';
+                // 如果沒有語言，則只顯示「自動 (推薦)」和「無可用語言」的提示。
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = 'none';
+                placeholderOption.textContent = '無可用語言';
+                placeholderOption.disabled = true;
+                overrideSelect.appendChild(placeholderOption);
                 overrideSelect.disabled = true;
             }
         }

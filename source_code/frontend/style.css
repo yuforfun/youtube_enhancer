@@ -67,16 +67,72 @@
     color: #ffffff;
 }
 
+/* 【關鍵修正點】: 新增在地化引導提示框樣式 */
+#enhancer-prompt-guide {
+    position: absolute;
+    /* 初始定位在播放器最上方，後續會被 JS 調整到 CC 按鈕上方 */
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2147483647; /* 確保在最上層 */
+    pointer-events: none; /* 讓點擊能穿透到下方的 CC 按鈕 */
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#enhancer-prompt-guide.show {
+    opacity: 1;
+}
+
+.enhancer-prompt-box {
+    background-color: #fce7f3; /* 淺粉色背景，吸引注意力 */
+    color: #9d174d; /* 深紅色文字 */
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    display: inline-block;
+    margin-bottom: 15px; /* 為箭頭留出空間 */
+}
+
+/* 提示框下方的向下箭頭 */
+.enhancer-prompt-box::after {
+    content: '';
+    position: absolute;
+    bottom: -10px; /* 定位在框底部 */
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0;
+    border-style: solid;
+    border-color: #fce7f3 transparent transparent transparent; /* 匹配背景色 */
+}
+
+.enhancer-prompt-arrow {
+    display: block;
+    font-size: 24px;
+    line-height: 0.5;
+    color: #9d174d;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
 /* --- 狀態圓環 (右上角) --- */
-/* 【關鍵修正點】: 加大圓圈尺寸並微調字體 */
+/* 【關鍵修正點】: 加大圓圈尺寸並移除旋轉相關的樣式 */
 #enhancer-status-orb {
     position: absolute;
     top: 10px;
     right: 10px;
-    width: 38px; /* 加大 */
-    height: 38px; /* 加大 */
+    width: 42px; /* 修正: 加大到 42px 以容納 100% */
+    height: 42px; /* 修正: 加大到 42px */
     border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.8); /* 略微加深背景 */
     z-index: 2147483647;
     display: flex;
     align-items: center;
@@ -86,23 +142,18 @@
     font-weight: bold;
     cursor: default;
     transition: opacity 0.5s, transform 0.3s;
+    overflow: hidden; 
 }
 
 #enhancer-status-orb div {
-    font-size: 16px; /* 初始字體大小 */
-    line-height: 38px; /* 與高度一致以確保垂直居中 */
+    font-size: 16px; 
+    line-height: normal; 
 }
 
-/* 【關鍵修正點】: 只有在沒有 .progress class 時才旋轉 */
-#enhancer-status-orb.state-translating:not(.progress) div {
-    animation: spin 1.2s linear infinite;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+/* 【關鍵修正點】: 徹底移除 @keyframes spin 的定義。 */
 
-/* 【關鍵修正點】: 針對有數字進度的狀態，縮小字體以容納三位數 */
+
+/* 針對有數字進度的狀態，縮小字體 */
 #enhancer-status-orb.state-translating.progress div {
     font-size: 14px;
 }

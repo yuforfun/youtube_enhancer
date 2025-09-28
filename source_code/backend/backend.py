@@ -17,6 +17,8 @@ from pystray import MenuItem as item, Icon as icon
 from PIL import Image
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import ctypes # 【關鍵修正點】
+from ctypes import wintypes # 【關鍵修正點】
 
 def get_base_path():
     """ 獲取應用程式的基礎路徑，支援打包後的 .exe 環境。 """
@@ -24,6 +26,21 @@ def get_base_path():
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
+
+def set_hidden_attribute(file_path):
+    """ 為指定的檔案路徑設定 Windows 的隱藏屬性。 """
+    # 【關鍵修正點】: 這是新增的完整函數
+    try:
+        # FILE_ATTRIBUTE_HIDDEN 的值為 0x2
+        attribute = 0x2
+        ret = ctypes.windll.kernel32.SetFileAttributesW(wintypes.LPWSTR(file_path), attribute)
+        if ret:
+            print(f"   -> 成功將 '{os.path.basename(file_path)}' 設定為隱藏檔案。", flush=True)
+        # 如果檔案本來就是隱藏的，ret 會是 0，但 GetLastError() 會是 183 (ERROR_ALREADY_EXISTS)，這是正常的
+        elif ctypes.windll.kernel32.GetLastError() != 183:
+            print(f"   -> 警告：無法設定 '{os.path.basename(file_path)}' 的隱藏屬性。", flush=True)
+    except Exception as e:
+        print(f"   -> 警告：設定隱藏屬性時發生錯誤: {e}", flush=True)
 
 # 定義所有語言都適用的繁體中文核心指令模板
 DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。
@@ -109,6 +126,7 @@ def load_config():
             print("   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔。", flush=True)
             with open(custom_prompts_path, 'w', encoding='utf-8') as f:
                 json.dump(custom_prompts, f, ensure_ascii=False, indent=2)
+            set_hidden_attribute(custom_prompts_path) # 【關鍵修正點】
 
         if api_keys:
             print(f"   -> 成功載入 {len(api_keys)} 個 API Key。", flush=True)
@@ -266,6 +284,7 @@ def set_custom_prompts():
         custom_prompts_path = os.path.join(base_path, 'custom_prompts.json')
         with open(custom_prompts_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        set_hidden_attribute(custom_prompts_path) # 【關鍵修正點】
         custom_prompts.update(data)
         print("[API 請求] POST /api/prompts/custom - 儲存成功。", flush=True)
         return jsonify({"success": True})
