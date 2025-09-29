@@ -10,14 +10,22 @@
  */
 'use strict';
 
-// 【關鍵修正點】: 這是 sessionData 的完整內容
-// lastPlayerData 作為跨頁面「信箱」的核心功能被保留。
 const sessionData = {
+// 區塊: sessionData
+// 功能: 一個在記憶體中運行的全域變數，用於儲存與特定分頁 (Tab) 相關的臨時資料。
+//      它會在瀏覽器關閉時被清除。
+// input: 由 content.js 和 injector.js 寫入。
+// output: 供 content.js 和 popup.js 讀取。
+// 其他補充: lastPlayerData 作為一個「信箱」，解決了 injector.js 和 content.js 之間因載入時序不同而造成的通訊問題。
     lastPlayerData: {},
     availableLangs: {} // 【關鍵修正點】: 新增用於儲存每個 Tab 可用語言的結構
 };
 
 const defaultSettings = {
+// 區塊: defaultSettings
+// 功能: 定義擴充功能的預設設定值。
+// input: 無 (靜態物件)
+// output: 在使用者首次安裝或清除儲存資料時，作為基礎設定寫入 chrome.storage。
     isEnabled: true,
     fontSize: 22,
     fontFamily: 'Microsoft JhengHei, sans-serif',
@@ -32,9 +40,14 @@ const defaultSettings = {
     ignored_langs: ['zh-Hant', 'zh-Hans', 'zh-CN', 'zh-TW']
 };
 
-// 【關鍵修正點】: 這是 v5.0 架構的核心，確保信使 (injector.js) 總是最先被注入。
+
 chrome.runtime.onInstalled.addListener(async () => {
-    // 【關鍵修正點】: 使用 try...catch 包裹註銷操作，使其失敗時不會中斷整個流程。
+// 區塊: chrome.runtime.onInstalled.addListener
+// 功能: 在擴充功能首次安裝或更新時執行一次的特殊事件監聽器。
+// input: 無
+// output: 無 (操作 Chrome Scripting API)
+// 其他補充: 核心任務是透過 chrome.scripting.registerContentScripts API，以動態方式注入 injector.js。
+//           這確保了 injector.js 能以最高的權限 (MAIN world) 和最早的時機 (document_start) 運行。
     try {
         // 嘗試註銷舊的腳本，為新的註冊做準備。
         await chrome.scripting.unregisterContentScripts({ ids: ["injector-script"] });
@@ -64,20 +77,32 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-    // 當分頁關閉時，清理信箱，防止記憶體洩漏。
+// 區塊: chrome.tabs.onRemoved.addListener
+// 功能: 監聽瀏覽器分頁關閉事件。
+// input: tabId (整數) - 被關閉的分頁 ID。
+// output: 無 (操作 sessionData)
+// 其他補充: 當一個 YouTube 分頁被關閉時，從 sessionData 中清除該分頁的暫存資料，以防止記憶體洩漏。
     delete sessionData.lastPlayerData[tabId];
 });
 
-// 請用以下內容完整替換您現有的 chrome.runtime.onMessage.addListener 整個函式區塊：
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+// 功能: 擴充功能內部所有組件 (content, popup) 之間的訊息總中樞。
+// input: request (物件) - 包含 action 和 payload 的訊息。
+//        sender (物件) - 訊息發送者的資訊，包含 tabId。
+//        sendResponse (函式) - 用於非同步回傳結果給發送者。
+// output: 透過 sendResponse 回傳處理結果。
+// 其他補充: 根據 request.action 的不同，分發到不同的處理邏輯。
     let isAsync = false;
 
     // 取得 tabId，popup 頁面發送時可能沒有 sender.tab。
     const tabId = sender.tab ? sender.tab.id : null;
 
     switch (request.action) {
-        case 'STORE_ERROR_LOG': // 接收來自 content.js 的錯誤日誌並存入
+        case 'STORE_ERROR_LOG':
+            // 功能: 接收來自 content.js 的錯誤日誌並存入 chrome.storage。
+            // input from: content.js -> setPersistentError 函式
+            // output to: content.js (透過 sendResponse 確認收到)
+            // 其他補充: 用於在「診斷與日誌」頁面顯示持續性錯誤，方便除錯。最多儲存20筆。
             isAsync = true;
             chrome.storage.local.get({ 'errorLogs': [] }, (result) => {
                 const logs = result.errorLogs;
@@ -89,14 +114,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 });
             });
             break;
-        case 'getErrorLogs': // 來自 Options Page：取得持久性錯誤日誌
+        case 'getErrorLogs': 
+            // 功能: 從 chrome.storage 讀取所有已儲存的錯誤日誌。
+            // input from: popup.js (options.html) -> loadErrorLogs 函式
+            // output to: popup.js (透過 sendResponse 回傳日誌陣列)
             isAsync = true;
             chrome.storage.local.get({ 'errorLogs': [] }, (result) => {
                 sendResponse({ success: true, data: result.errorLogs });
             });
             break;
             
-        case 'clearAllCache': // 來自 Options Page：清除所有資料
+        case 'clearAllCache':
+            // 功能: 清除所有與此擴充功能相關的暫存和日誌資料。
+            // input from: popup.js (options.html) -> clearCacheButton 的點擊事件
+            // output to: popup.js (透過 sendResponse 確認完成)
+            // 其他補充: 用於重置擴充功能狀態，方便開發和除錯。
             isAsync = true;
             sessionData.lastPlayerData = {};
             sessionData.availableLangs = {};
@@ -106,9 +138,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'getSettings':
+            // 功能: 從 chrome.storage 讀取使用者設定，若無則回傳預設值。
+            // input from: content.js -> initialSetup 函式
+            //             popup.js -> loadSettings 函式
+            // output to: content.js 和 popup.js (透過 sendResponse 回傳設定物件)
+            // 其他補充: 回應採用兼容格式，同時包含 'data' 和 'settings' 兩個鍵，以滿足新舊不同前端的需求。
             isAsync = true;
             chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings }, (result) => {
-                // # 【關鍵修正點】: 回傳兼容格式，同時滿足 content.js (需要 settings) 和 popup.js (需要 success, data)
                 sendResponse({ 
                     success: true, 
                     data: result.ytEnhancerSettings,
@@ -118,9 +154,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'getGlobalState':
+            // 功能: 快速獲取擴充功能的總開關狀態。
+            // input from: popup.js -> updatePopupStatus 函式
+            // output to: popup.js (透過 sendResponse 回傳 isEnabled 狀態)
+            // 其他補充: 專為 popup 主視窗設計的輕量級請求。
             isAsync = true;
             chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings }, (result) => {
-                // # 【關鍵修正點】: 同樣增加 success 旗標以標準化回應格式，這對 popup.js 兼容
                 sendResponse({ 
                     success: true, 
                     isEnabled: result.ytEnhancerSettings.isEnabled 
@@ -128,7 +167,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
             break;
 
-        case 'STORE_PLAYER_DATA': // 來自 content.js：儲存單個分頁的 Player Data
+        case 'STORE_PLAYER_DATA': 
+            // 功能: 將從 injector.js 獲取的原始字幕清單資料 (PLAYER_DATA) 暫存到記憶體的「信箱」中。
+            // input from: injector.js (在舊版架構中)
+            // output to: injector.js (透過 sendResponse 確認收到)
+            // 其他補充: 這是解決 injector.js 和 content.js 載入時序問題的關鍵機制。在新版 v6.0 架構中，此功能的重要性降低，但仍可作為備援。
             if (tabId && request.payload) {
                 sessionData.lastPlayerData[tabId] = request.payload;
                 sendResponse({ success: true });
@@ -137,14 +180,22 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             }
             break;
 
-        case 'GET_STORED_PLAYER_DATA': // 來自 content.js：啟動時取件
+        case 'GET_STORED_PLAYER_DATA': 
+            // 功能: 讓 content.js 從「信箱」中讀取一次性的 PLAYER_DATA。
+            // input from: content.js
+            // output to: content.js (透過 sendResponse 回傳 PLAYER_DATA)
+            // 其他補充: 讀取後會立刻從信箱中刪除該資料，確保每個頁面只處理一次。
             isAsync = true;
             const data = tabId ? sessionData.lastPlayerData[tabId] : null;
             if (tabId) delete sessionData.lastPlayerData[tabId];
             sendResponse({ success: true, payload: data || null });
             break;
 
-        case 'STORE_AVAILABLE_LANGS': // 接收來自 content.js 的可用語言清單並存入
+        case 'STORE_AVAILABLE_LANGS': 
+            // 功能: 儲存特定分頁影片所提供的所有可用字幕語言代碼。
+            // input from: content.js -> startActivationProcess 函式
+            // output to: content.js (透過 sendResponse 確認收到)
+            // 其他補充: 這些資料主要由 popup.js 讀取，用於動態生成「自訂來源語言」下拉選單。
             if (tabId && request.payload) { 
                 sessionData.availableLangs[tabId] = request.payload;
                 sendResponse({ success: true });
@@ -153,7 +204,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             }
             break;
             
-        case 'getAvailableLangs': // 來自 popup.js：取得語言清單
+        case 'getAvailableLangs':
+            // 功能: 獲取當前分頁可用的字幕語言列表。
+            // input from: popup.js -> loadAvailableLangs 函式
+            // output to: popup.js (透過 sendResponse 回傳語言代碼陣列)
             isAsync = true;
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const activeTabId = tabs[0] ? tabs[0].id : null;
@@ -163,6 +217,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'updateSettings':
+            // 功能: 更新使用者設定，將其儲存到 chrome.storage，並廣播通知所有開啟的 YouTube 分頁。
+            // input from: popup.js -> saveSettings 函式
+            // output to: popup.js (確認儲存) 和 所有 content.js (廣播 settingsChanged 事件)
             isAsync = true;
             chrome.storage.local.set({ 'ytEnhancerSettings': request.data })
                 .then(() => {
@@ -177,6 +234,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'toggleGlobalState':
+            // 功能: 切換擴充功能的總開關 (isEnabled)。
+            // input from: popup.js -> 主開關按鈕的點擊事件
+            // output to: popup.js (回傳新的開關狀態) 和 所有 content.js (廣播 settingsChanged 事件)
             isAsync = true;
             chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings }, (result) => {
                 const newSettings = result.ytEnhancerSettings;

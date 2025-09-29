@@ -9,6 +9,10 @@
  */
 class YouTubeSubtitleEnhancer {
     constructor() {
+        // 功能: 初始化 class 實例，設定日誌格式、初始狀態，並手動綁定所有需要作為事件處理器的方法。
+        // input: 無
+        // output: (YouTubeSubtitleEnhancer 物件)
+        // 其他補充: 手動綁定是為了確保在非同步或事件回呼中，'this' 的指向永遠正確，避免 '... is not a function' 的錯誤。
         this.log = (message, ...args) => { console.log(`%c[現場經理]`, 'color: #007bff; font-weight: bold;', message, ...args); };
         this.error = (message, ...args) => { console.error(`%c[現場經理]`, 'color: #dc2626; font-weight: bold;', message, ...args); };
 
@@ -25,8 +29,11 @@ class YouTubeSubtitleEnhancer {
         this.findPlayerAndCommand = this.findPlayerAndCommand.bind(this);
     }
 
-    // 1. 擴充功能啟動入口
     async initialSetup() {
+        // 功能: 整個 content.js 腳本的啟動入口，在 DOM 載入後執行一次。
+        // input: 無
+        // output: 無
+        // 其他補充: 負責獲取初始設定、註冊所有頂層的事件監聽器。
         this.log('v6.1 (Stable Refactor) 已啟動，開始準備環境。');
         
         const response = await this.sendMessageToBackground({ action: 'getSettings' });
@@ -41,20 +48,24 @@ class YouTubeSubtitleEnhancer {
         this.log('環境準備完成，已開始監聽頁面活動。');
     }
 
-    // 2. 頁面切換時的處理函數
     async onNavigation() {
+        // 功能: 處理 YouTube 的 'yt-navigate-finish' 事件，當使用者在站內切換影片時觸發。
+        // input: (事件物件)
+        // output: 無
+        // 其他補充: 核心任務是呼叫 cleanup() 來重置所有狀態，為新頁面做準備。在新架構下，它不再主動觸發任何流程。
         const newVideoId = new URLSearchParams(window.location.search).get('v');
         if (this.currentVideoId === newVideoId && newVideoId !== null) return;
         
         this.log(`偵測到頁面切換 (影片 ID: ${newVideoId || '非影片頁面'})，正在重設所有狀態...`);
         await this.cleanup();
         this.currentVideoId = newVideoId;
-        
-        // 【關鍵修正點】: 這裡不再有任何主動行為，完全等待 injector.js 的通知。
     }
     
-    // 3. 監聽來自 Injector (信使) 的消息 - 【新的核心觸發點】
     async onMessageFromInjector(event) {
+        // 功能: 監聽來自 injector.js 的所有訊息，是新架構下的核心觸發點和訊息中樞。
+        // input from: injector.js (透過 window.postMessage)
+        // output to: startActivationProcess() 或 processTimedTextData() 或 switchToManualMode()
+        // 其他補充: 根據訊息類型的不同，分發到不同的處理函式。也負責扮演 injector 和 background 之間的通訊橋樑。
         if (event.source !== window || !event.data || event.data.from !== 'YtEnhancerInjector') return;
 
         const { type, payload } = event.data;
@@ -87,8 +98,10 @@ class YouTubeSubtitleEnhancer {
         }
     }
     
-    // 4. 監聽來自 Background (總調度) 的指令
     async onMessageFromBackground(request, sender, sendResponse) {
+        // 功能: 監聽來自 background.js 的訊息，主要用於接收設定變更或來自 popup 的指令。
+        // input from: background.js (透過 chrome.runtime.sendMessage)
+        // output: 無
         if (request.action === 'settingsChanged') {
             this.log('收到設定變更通知，正在更新...');
             const oldIsEnabled = this.settings.isEnabled;
@@ -112,8 +125,11 @@ class YouTubeSubtitleEnhancer {
         return true;
     }
 
-    // 【關鍵修正點】: 新的核心函式，作為收到 PLAYER_DATA 後的總處理入口
     startActivationProcess(playerData) {
+        // 功能: 在收到 PLAYER_DATA 後，作為自動化流程 (Plan A) 的啟動器。
+        // input from: onMessageFromInjector
+        // output to: findPlayerAndCommand()
+        // 其他補充: 負責匹配語言，如果匹配成功，則呼叫帶有重試機制的 findPlayerAndCommand 來接手後續。
         if (!this.settings.isEnabled || this.state.sourceLang || this.state.hasActivated) return;
 
         this.log('開始分析字幕清單，匹配您的偏好語言...');
@@ -146,8 +162,13 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 【關鍵修正點】: 新的重試函式，只負責找播放器和下命令
     async findPlayerAndCommand(trackToEnable, playerData, retryCount = 0) {
+        // 功能: Plan A 的核心執行者，以重試機制穩定地尋找播放器物件並下達啟用字幕的命令。
+        // input: trackToEnable (物件) - 要啟用的字幕軌道資訊。
+        //        playerData (物件) - 完整的字幕清單，用於 Plan B fallback。
+        //        retryCount (整數) - 當前重試次數。
+        // output to: 成功時 -> YouTube 播放器 API
+        //            失敗時 -> switchToManualMode()
         const MAX_RETRIES = 10;
         const RETRY_INTERVAL = 1000;
 
@@ -171,8 +192,11 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 處理最終字幕內容的函式
     processTimedTextData({ payload, lang }) {
+        // 功能: 處理從 injector.js 收到的最終字幕內容 (TIMEDTEXT_DATA)。
+        // input from: onMessageFromInjector
+        // output to: activate()
+        // 其他補充: 無論是自動還是手動模式，這都是觸發翻譯前的最後一站。它會做最後的語言檢查，然後啟動 activate。
         if (this.state.hasActivated) return;
 
         if (!this.state.sourceLang) {
@@ -197,6 +221,7 @@ class YouTubeSubtitleEnhancer {
     // --- 以下為輔助函數與UI操作 ---
 
     resetState() {
+        // 功能: 將 class 的 state 物件重置為初始狀態。
         this.state = {
             isProcessing: false, hasActivated: false,
             videoElement: null, statusOrb: null, subtitleContainer: null,
@@ -208,6 +233,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     async cleanup() {
+        // 功能: 清理所有由擴充功能產生的 UI 元件、事件監聽器，並重置狀態。
         this.log("正在清理舊的狀態與畫面元件...");
         this.stopFallbackListener();
         this.state.abortController?.abort();
@@ -222,6 +248,7 @@ class YouTubeSubtitleEnhancer {
     }
     
     async activate(initialPayload) {
+        // 功能: 翻譯流程的正式啟動函式。負責建立所有 UI 容器、隱藏原生字幕，並呼叫 parseAndTranslate。
         this.removeGuidancePrompt();
         
         this.state.videoElement = document.querySelector('video');
@@ -240,6 +267,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     getPlayerInstance() {
+        // 功能: 獲取 YouTube 播放器的 API 物件實例。
         const playerElement = document.getElementById('movie_player');
         if (playerElement) {
             if (typeof playerElement.getPlayer === 'function') {
@@ -256,6 +284,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     switchToManualMode(playerData) {
+        // 功能: 當 Plan A 失敗時，建立並顯示手動模式的引導提示 UI。
         this.log('切換至手動模式，將顯示提示 UI。');
         const availableLangs = this.getAvailableLanguagesFromData(playerData);
         const { preferred_langs = [], ignored_langs = [] } = this.settings;
@@ -280,6 +309,7 @@ class YouTubeSubtitleEnhancer {
     }
     
     stopFallbackListener() {
+        // 功能: 停止並銷毀備援模式的 DOM 監聽器。
         if (this.state.fallbackObserver) {
             this.log('備援監聽器已完成任務，停止監聽原生字幕容器。');
             this.state.fallbackObserver.disconnect();
@@ -289,6 +319,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     startFallbackListener() {
+        // 功能: 啟動備援模式，監聽原生字幕容器的 DOM 變化。
         const targetNode = document.querySelector('.ytp-caption-window-container');
         if (!targetNode || this.state.fallbackListenerActive) return;
         
@@ -314,6 +345,7 @@ class YouTubeSubtitleEnhancer {
     }
     
     async sendMessageToBackground(message) {
+        // 功能: 向 background.js 發送訊息的標準化輔助函式。
         try { return await chrome.runtime.sendMessage(message); }
         catch (e) {
             if (e.message && !e.message.includes("Receiving end does not exist")) { this.error('與背景服務通訊失敗:', e); }
@@ -322,12 +354,14 @@ class YouTubeSubtitleEnhancer {
     }
 
     getAvailableLanguagesFromData(playerData) {
+        // 功能: 從 PLAYER_DATA 中解析出所有可用的語言代碼列表。
         try {
             return playerData?.playerCaptionsTracklistRenderer?.captionTracks?.map(t => t.languageCode) || [];
         } catch (e) { this.error("解析字幕數據失敗:", e); return []; }
     }
 
     parseRawSubtitles(payload) {
+        // 功能: 將從 injector.js 傳來的原始 timedtext JSON 格式化為我們內部使用的標準化字幕物件陣列。
         if (!payload?.events) return [];
         const subtitles = payload.events
             .map(event => ({
@@ -343,6 +377,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     async parseAndTranslate(payload) {
+        // 功能: 解析字幕並啟動分批翻譯的總流程。
         if (this.state.isProcessing) return;
         this.state.isProcessing = true;
         this.state.translatedTrack = this.parseRawSubtitles(payload);
@@ -359,6 +394,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     async processNextBatch() {
+        // 功能: 處理下一個批次的翻譯，直到所有句子都翻譯完成。這是一個遞迴函式。
         const BATCH_SIZE = 30;
         const segmentsToTranslate = [];
         const indicesToUpdate = [];
@@ -390,6 +426,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     async sendBatchForTranslation(texts, signal) {
+        // 功能: 將一個批次的文字發送到本地後端進行翻譯。
         const response = await fetch('http://127.0.0.1:5001/api/translate', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ texts, source_lang: this.state.sourceLang, models_preference: this.settings.models_preference }),
@@ -402,11 +439,13 @@ class YouTubeSubtitleEnhancer {
         return await response.json();
     }
     handleTranslationError(errorMessage) {
+        // 功能: 處理翻譯過程中的錯誤，並決定顯示臨時還是永久性錯誤。
         this.state.tempErrorCount++;
         if (this.state.tempErrorCount >= 2) this.setPersistentError(errorMessage);
         else this.showTemporaryError(errorMessage);
     }
     setPersistentError(message) {
+        // 功能: 顯示一個永久性的錯誤圖示，並將錯誤記錄到 background。
         this.state.persistentError = message;
         
         this.sendMessageToBackground({ 
@@ -421,6 +460,7 @@ class YouTubeSubtitleEnhancer {
         this.setOrbState('error', message);
     }
     showTemporaryError(message) {
+        // 功能: 在字幕區域顯示一個帶有重試按鈕的臨時錯誤訊息。
         if (!this.state.subtitleContainer || !this.state.videoElement) return;
         const currentTime = this.state.videoElement.currentTime * 1000;
         const currentSub = this.state.translatedTrack?.find(sub => currentTime >= sub.start && currentTime < sub.end);
@@ -437,6 +477,7 @@ class YouTubeSubtitleEnhancer {
         });
     }
     beginDisplay() {
+        // 功能: 開始字幕的顯示流程，註冊 videoElement 的 'timeupdate' 事件監聽。
         if (!this.state.videoElement || !this.state.translatedTrack) return;
         this.state.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
         this.state.videoElement.addEventListener('timeupdate', this.handleTimeUpdate);
@@ -444,6 +485,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     handleTimeUpdate() {
+        // 功能: 根據影片當前播放時間，尋找對應的字幕並呼叫 updateSubtitleDisplay 來更新畫面。
         const { videoElement, translatedTrack, subtitleContainer } = this.state;
         if (!videoElement || !translatedTrack || !subtitleContainer) return;
         const currentTime = videoElement.currentTime * 1000;
@@ -452,6 +494,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     updateSubtitleDisplay(originalText, translatedText) {
+        // 功能: 將原文和譯文渲染到我們自訂的字幕容器中。
         if (!this.state.subtitleContainer) return;
         const { showOriginal, showTranslated } = this.settings;
         let html = '';
@@ -463,6 +506,7 @@ class YouTubeSubtitleEnhancer {
         }
         this.state.subtitleContainer.innerHTML = html;
     }
+    // ... 其他純 UI 創建/管理函式 ...
     createStatusOrb(container) {
         if (document.getElementById('enhancer-status-orb')) return;
         this.state.statusOrb = document.createElement('div');
@@ -579,7 +623,10 @@ class YouTubeSubtitleEnhancer {
         }
     }
 }
-// 確保在 DOM 載入完成後執行
+// 區塊: if (document.readyState === 'loading') ...
+// 功能: 確保在頁面 DOM 結構完全載入後，才建立 YouTubeSubtitleEnhancer 的實例並啟動腳本。
+// input: (DOM 事件)
+// output: 無
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         new YouTubeSubtitleEnhancer().initialSetup();

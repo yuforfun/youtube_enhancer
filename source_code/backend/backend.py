@@ -21,15 +21,22 @@ import ctypes # 【關鍵修正點】
 from ctypes import wintypes # 【關鍵修正點】
 
 def get_base_path():
-    """ 獲取應用程式的基礎路徑，支援打包後的 .exe 環境。 """
+    # 功能: 獲取應用程式執行的基礎路徑。
+    #      在正常執行 .py 檔案時，回傳腳本所在目錄；
+    #      在被 PyInstaller 打包成 .exe 後執行時，回傳 .exe 所在目錄。
+    # input: 無 (讀取系統變數)
+    # output: (字串) 基礎路徑
+    # 其他補充: 這是確保無論開發或部署環境，都能正確找到相依檔案 (如設定檔、圖示) 的關鍵函式。
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
 
 def set_hidden_attribute(file_path):
-    """ 為指定的檔案路徑設定 Windows 的隱藏屬性。 """
-    # 【關鍵修正點】: 這是新增的完整函數
+    # 功能: 為指定的檔案路徑在 Windows 系統上設定「隱藏」屬性。
+    # input: file_path (字串) - 要設定為隱藏的檔案完整路徑。
+    # output: 無 (直接操作檔案系統)
+    # 其他補充: 使用 ctypes 直接呼叫 Windows Kernel32 API 來實現，主要用於自動建立的設定檔，使其不干擾使用者。
     try:
         # FILE_ATTRIBUTE_HIDDEN 的值為 0x2
         attribute = 0x2
@@ -42,7 +49,12 @@ def set_hidden_attribute(file_path):
     except Exception as e:
         print(f"   -> 警告：設定隱藏屬性時發生錯誤: {e}", flush=True)
 
-# 定義所有語言都適用的繁體中文核心指令模板
+# 區塊: DEFAULT_CORE_PROMPT_TEMPLATE
+# 功能: 定義一個給 Gemini AI 的核心指令模板。
+#      此模板包含了對 AI 角色的設定、任務描述、輸出格式範例，以及最終的執行指令。
+# input: 無 (靜態字串)
+# output: (字串) 包含佔位符 ({source_lang}, {json_input_text}) 的 Prompt 模板。
+# 其他補充: 這是整個翻譯功能的核心 Prompt，後續會與使用者自訂的 Prompt 結合使用。
 DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。
 你收到的{source_lang}原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。
 
@@ -58,7 +70,11 @@ DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{sou
 
 {json_input_text}"""
 
-# 預設使用者自訂的 Prompt 內容 (風格指南/專有名詞對照表)
+# 區塊: custom_prompts
+# 功能: 定義一個預設的使用者自訂 Prompt 字典。
+#      使用者可以透過編輯 custom_prompts.json 檔案，為不同語言（ja, ko, en）添加特定的風格指南或專有名詞對照表。
+# input: 無 (靜態字典)
+# output: (字典) 包含各語言預設提示內容的字典。
 custom_prompts = {
     "ja": """**風格指南:**
 - 翻譯需符合台灣人的說話習慣，並保留說話者(日本偶像)的情感語氣。
@@ -84,7 +100,10 @@ custom_prompts = {
 }
 
 def load_config():
-    """從 api_keys_test.txt (優先) 或 api_keys.txt 載入設定，並載入自訂 Prompt"""
+    # 功能: 載入擴充功能的設定檔案，主要包含 API Keys 和自訂 Prompts。
+    # input: 無 (讀取 api_keys_test.txt / api_keys.txt 和 custom_prompts.json 檔案)
+    # output: (字典) 包含 'GEMINI_API_KEYS' 和 'KEYS_PATH_USED' 的設定物件。若失敗則回傳 None。
+    # 其他補充: 優先讀取 personal.txt，若不存在則讀取公開的範本檔案。如果 custom_prompts.json 不存在，會自動建立一個。
     global custom_prompts
     base_path = get_base_path()
     config = {}
@@ -147,6 +166,10 @@ exhausted_key_timestamps = {}
 gemini_initialized_successfully = False
 
 def initialize_gemini():
+    # 功能: 使用載入的 API Keys 逐一嘗試初始化並驗證 Google Gemini 服務。
+    # input: 無 (讀取全域變數 config)
+    # output: (布林值) 成功初始化任何一個 Key 則回傳 True，否則回傳 False。
+    # 其他補充: 只有成功通過此驗證，後端的翻譯 API 才會啟用。這能防止因無效金鑰導致的持續性錯誤。
     global gemini_initialized_successfully
     if not config: return False
     api_keys = config.get('GEMINI_API_KEYS', [])
@@ -181,6 +204,11 @@ def initialize_gemini():
     return False
 
 def _extract_strings_from_response(data, expected_len):
+    # 功能: 一個輔助函式，用於安全地從 Gemini API 的回應中提取翻譯結果。
+    # input: data (任意格式) - 從 API 回應解析出的 JSON 物件。
+    #        expected_len (整數) - 預期應有的句子數量。
+    # output: (列表) 如果 data 是格式正確的字串列表且長度相符，則回傳該列表；否則回傳 None。
+    # 其他補充: 這是確保 AI 回應格式正確性的重要防護措施。
     if not isinstance(data, list) or len(data) != expected_len:
         return None
     if all(isinstance(item, str) for item in data):
@@ -189,6 +217,10 @@ def _extract_strings_from_response(data, expected_len):
 
 @app.route('/api/translate', methods=['POST'])
 def translate():
+    # 功能: 提供翻譯服務的核心 API 端點。
+    # input from: content.js -> sendBatchForTranslation 函式 (透過 HTTP POST 請求)
+    # output to: content.js -> sendBatchForTranslation 函式的回應 (以 HTTP JSON 格式)
+    # 其他補充: 此函式會遍歷所有可用的 API Keys 和使用者偏好的模型，直到成功翻譯或全部失敗為止。它也包含了對 API 用量超額的冷卻機制。
     global exhausted_key_timestamps
     if not gemini_initialized_successfully:
         return jsonify({"error": "後端服務未成功初始化，請檢查 API Key 設定。"}), 500
@@ -268,11 +300,18 @@ def translate():
 
 @app.route('/api/prompts/custom', methods=['GET'])
 def get_custom_prompts():
+    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能獲取當前儲存的自訂 Prompts。
+    # input from: options.html -> loadCustomPrompts 函式 (透過 HTTP GET 請求)
+    # output to: options.html -> loadCustomPrompts 函式的回應
     print("[API 請求] GET /api/prompts/custom", flush=True)
     return jsonify(custom_prompts)
 
 @app.route('/api/prompts/custom', methods=['POST'])
 def set_custom_prompts():
+    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能儲存更新後的自訂 Prompts。
+    # input from: options.html -> savePromptButton 的點擊事件 (透過 HTTP POST 請求)
+    # output to: options.html -> savePromptButton 事件的回應
+    # 其他補充: 儲存後會覆寫 custom_prompts.json 檔案。
     global custom_prompts
     try:
         data = request.get_json()
@@ -294,6 +333,10 @@ def set_custom_prompts():
 
 @app.route('/api/keys/diagnose', methods=['POST'])
 def diagnose_api_keys():
+    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能診斷所有 API Keys 的基本有效性。
+    # input from: options.html -> diagnoseKeysButton 的點擊事件 (透過 HTTP POST 請求)
+    # output to: options.html -> diagnoseKeysButton 事件的回應
+    # 其他補充: 此功能不會檢測金鑰的剩餘配額。
     print("[API 請求] POST /api/keys/diagnose", flush=True)
     try:
         keys_to_test = config.get('GEMINI_API_KEYS', [])
@@ -319,11 +362,17 @@ def diagnose_api_keys():
         return jsonify({"error": f"伺服器錯誤: {e}"}), 500
 
 def quit_action(icon, item):
+    # 功能: 定義系統匣圖示中「結束」按鈕的行為。
+    # input: icon, item - 由 pystray 函式庫傳入的物件。
+    # output: 無 (直接結束程式)
     print("\n-> 收到關閉指令，正在關閉伺服器...", flush=True)
     icon.stop()
     os._exit(0)
 
 def run_tray_icon():
+    # 功能: 建立並執行一個 Windows 系統匣的背景圖示，讓使用者可以手動關閉後端服務。
+    # input: 無
+    # output: 無 (顯示一個系統匣圖示)
     base_path = get_base_path()
     image_path = os.path.join(base_path, 'server_icon.png')
     try:
@@ -337,6 +386,10 @@ def run_tray_icon():
     tray_icon.run()
 
 if __name__ == '__main__':
+# 功能: 整個後端服務的啟動入口點。
+# input: 無
+# output: 無
+# 其他補充: 依序執行設定載入、Gemini 初始化、啟動 Flask 伺服器執行緒，以及建立系統匣圖示。若初始化失敗，會提示使用者檢查設定並結束程式。
     print("="*50, flush=True)
     print("YT 字幕增強器後端 v1.7.0", flush=True)
     print("="*50, flush=True)

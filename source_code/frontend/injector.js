@@ -14,6 +14,10 @@
 
     class YtEnhancerInjector {
         constructor() {
+        // 功能: 初始化 class 實例，設定日誌格式、初始狀態，並綁定所有方法的 'this' 指向。
+        // input: 無
+        // output: (YtEnhancerInjector 物件)
+        // 其他補充: 綁定 'this' 是為了確保在事件監聽器或非同步回呼中，class 方法能正確存取實例的屬性 (如 this.state)。
             this.startTime = performance.now();
             this.log = (message, ...args) => {
                 const time = (performance.now() - this.startTime).toFixed(2);
@@ -39,8 +43,11 @@
             });
         }
         
-        // 【新增職責】: 初始化所有監聽器和主流程
         init() {
+        // 功能: 整個 injector 腳本的啟動入口。
+        // input: 無
+        // output: 無
+        // 其他補充: 負責註冊所有必要的監聽器 (網路請求、頁面導航、訊息)，並呼叫主流程 main()。
             this.log('v6.0 (信使驅動自動化) 已就位，開始執行。');
             
             this.setupInterceptors();
@@ -51,8 +58,12 @@
             this.main();
         }
 
-        // 【新增職責】: 主流程，帶有重試機制
         main(retryCount = 0) {
+        // 功能: 自動化流程的核心，採用重試機制來穩定地獲取頁面上的關鍵物件。
+        // input: retryCount (整數) - 目前的重試次數，由遞迴呼叫傳入。
+        // output to: 成功時 -> getSettingsFromBackground()
+        //            失敗時 -> sendMessageToContent('AUTOMATION_FAILED', ...) -> content.js
+        // 其他補充: 這是 Plan A 的核心。它會持續嘗試，直到同時拿到「播放器物件」和「字幕清單」後，才會繼續下一步。若10次後仍失敗，則宣告 Plan A 失敗。
             const MAX_RETRIES = 10;
             const RETRY_INTERVAL = 1000;
 
@@ -86,8 +97,11 @@
             }
         }
         
-        // 【新增職責】: 獲取播放器實例 (從 content.js 移植過來)
         getPlayerInstance() {
+        // 功能: 獲取 YouTube 播放器的 API 物件實例。
+        // input: 無 (讀取頁面 DOM)
+        // output: (物件) 播放器 API 物件，若找不到則回傳 null。
+        // 其他補充: 嘗試了多種 YouTube 可能使用的方法來獲取播放器物件，以提高成功率。
             const playerElement = document.getElementById('movie_player');
             if (playerElement) {
                 if (typeof playerElement.getPlayer === 'function') {
@@ -103,13 +117,18 @@
             return null;
         }
 
-        // 【新增職責】: 透過 content.js 作為橋樑，從 background 獲取設定
         getSettingsFromBackground() {
+        // 功能: 向 content.js 發送一個請求，要求它作為橋樑，去向 background.js 獲取使用者設定。
+        // input: 無
+        // output to: sendMessageToContent('GET_SETTINGS_FROM_INJECTOR') -> content.js
+        // 其他補充: 這是 injector.js (MAIN world) 與 background.js (Service Worker) 之間通訊的唯一途徑。
             this.sendMessageToContent('GET_SETTINGS_FROM_INJECTOR');
         }
 
-        // 【新增職責】: 處理來自 content.js 的訊息 (主要是設定的回應)
         handleContentMessage(event) {
+        // 功能: 處理來自 content.js 的訊息，主要是 getSettingsFromBackground 的回應。
+        // input from: content.js (透過 window.postMessage)
+        // output to: activateBySettings()
             if (event.source !== window || !event.data || event.data.type !== 'SETTINGS_RESPONSE_FROM_CONTENT') return;
             
             this.log('收到來自 content.js 的設定回應。');
@@ -119,8 +138,11 @@
             this.activateBySettings();
         }
         
-        // 【新增職責】: 根據設定，匹配語言並命令播放器
         activateBySettings() {
+        // 功能: 在獲取到所有必要資訊（播放器、字幕清單、使用者設定）後，執行的最終自動化決策與動作。
+        // input: 無 (讀取 this.state 中的 player, playerResponse, settings)
+        // output: (播放器 API 呼叫) player.setOption(...)
+        // 其他補充: 這是 Plan A 的最後一步，如果匹配到偏好語言，它會直接命令播放器載入字幕，從而觸發 timedtext 網路請求。
             if (!this.state.settings || !this.state.playerResponse) {
                 this.error('缺少設定或字幕清單，無法執行自動化決策。');
                 return;
@@ -148,16 +170,22 @@
             }
         }
 
-        // 頁面切換時的處理
         handleNavigation() {
+        // 功能: 處理 YouTube 的 'yt-navigate-finish' 事件，代表頁面已切換。
+        // input: (事件物件)
+        // output: 無
+        // 其他補充: 重置所有狀態並重新啟動主流程 main()。
             this.log('偵測到 YouTube 頁面切換完成，重新初始化所有狀態和流程。');
             // 重置所有狀態並重新開始主流程
             this.state = { player: null, playerResponse: null, settings: null, isDataSent: false };
             this.main();
         }
 
-        // 設置變數監聽器 (用於 playerResponse)
         setupVariableListener() {
+        // 功能: 透過 Object.defineProperty 劫持 ytInitialPlayerResponse 這個全域變數。
+        // input: 無
+        // output: 無
+        // 其他補充: 這是獲取「字幕清單」最穩定可靠的方法。一旦 YouTube 的腳本為這個變數賦值，我們就能立刻捕捉到。
             let actualPlayerResponse = null;
             Object.defineProperty(window, 'ytInitialPlayerResponse', {
                 configurable: true, enumerable: true,
@@ -169,9 +197,11 @@
             });
         }
         
-        // 設置網路攔截器 (Fetch 和 XHR)
-        // 設置網路攔截器 (Fetch 和 XHR)
         setupInterceptors() {
+        // 功能: 覆寫瀏覽器原生的 Fetch 和 XMLHttpRequest，以攔截網路請求。
+        // input: 無
+        // output: 無
+        // 其他補充: 這是攔截「字幕內容」的核心機制。
             const originalFetch = window.fetch;
             window.fetch = (...args) => {
                 const url = args[0] instanceof Request ? args[0].url : args[0];
@@ -212,8 +242,11 @@
             this.log('Fetch 和 XHR 攔截器已啟動。');
         }
 
-        // 統一處理 timedtext 請求
         handleTimedTextRequest(fetcher, args) {
+        // 功能: 統一處理被 Fetch 攔截到的 timedtext 請求。
+        // input: fetcher (函式) - 原生的 fetch 函式。
+        //        args (列表) - fetch 的參數。
+        // output to: sendMessageToContent('TIMEDTEXT_DATA', ...) -> content.js
             const url = args[0] instanceof Request ? args[0].url : args[0];
             const lang = new URLSearchParams(url.split('?')[1]).get('lang');
             return new Promise((resolve, reject) => {
@@ -230,8 +263,11 @@
             });
         }
         
-        // 向 content.js 發送訊息
         sendMessageToContent(type, payload = {}) {
+        // 功能: 向 content.js 發送訊息的標準化輔助函式。
+        // input: type (字串) - 訊息類型。
+        //        payload (物件) - 訊息內容。
+        // output: (window.postMessage)
             window.postMessage({ from: 'YtEnhancerInjector', type, payload }, '*');
         }
     }

@@ -11,6 +11,10 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 功能: 整個 popup.html 和 options.html 腳本的啟動入口。
+    // input: (DOM 事件)
+    // output: 無
+    // 其他補充: 確保在頁面 DOM 元素都載入完成後才執行腳本。
     const isOptionsPage = document.body.style.width === 'auto';
 
     const LANG_CODE_MAP = {
@@ -41,12 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 通用函數 ---
     const sendMessage = (message) => chrome.runtime.sendMessage(message);
+        // 功能: 向 background.js 發送訊息的簡化輔助函式。
     const getActiveTab = async () => {
+        // 功能: 獲取當前使用者正在檢視的分頁。
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         return tab;
     };
     
     function translateToFriendlyError(errorMessage) {
+        // 功能: 將後端或網路層返回的技術性錯誤訊息，轉換為使用者看得懂的友善提示。
         const msg = String(errorMessage).toLowerCase();
         if (msg.includes('failed to fetch')) {
             return "無法連線至後端翻譯伺服器。請確認後端程式是否已啟動。";
@@ -68,8 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let settings = {};
 
-    // 以下是從 loadSettings() 開始的完整內容。
     async function loadSettings() {
+        // 功能: 從 background.js 獲取儲存的設定，並更新到 UI 上。
+        // input from: background.js -> getSettings
+        // output: 更新 settings 全域變數，並呼叫 updateUI()
         const response = await sendMessage({ action: 'getSettings' });
 
         // 【關鍵修正點】: 提供最低限度的預設結構，以防止 updateUI 讀取不存在的屬性時崩潰
@@ -92,6 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveSettings(showToast = false) {
+        // 功能: 將使用者在 UI 上的設定變動儲存到 background.js，並通知 content.js 即時更新。
+        // input from: UI 元件的事件 (例如拖曳、點擊)
+        // output to: background.js -> updateSettings
+        //            content.js -> settingsChanged (透過 background.js 廣播)
         if (isOptionsPage) {
             const selectedList = document.getElementById('selected-models');
             settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
@@ -108,8 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
 
-    // 以下是從 updateUI() 開始的完整內容。
     function updateUI() {
+        // 功能: 根據 settings 全域變數的內容，更新 popup 或 options 頁面上所有 UI 元件的狀態（例如滑桿位置、勾選框狀態等）。
+        // input: (全域變數) settings
+        // output: (DOM 操作)
         if (isOptionsPage) {
             updateListUI('preferred-lang-list', settings.preferred_langs);
             document.getElementById('ignored-lang-input').value = (settings.ignored_langs || []).join(', ');
@@ -130,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isOptionsPage) {
         const promptTextarea = document.getElementById('customPromptTextarea');
 
-        // Tab切換
         const tabLinks = document.querySelectorAll('.tab-link');
         const tabContents = document.querySelectorAll('.tab-content');
         tabLinks.forEach(link => {
@@ -142,8 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
-        // 模型選擇器邏輯
         function initializeModelSelector() {
+            // 功能: 初始化「模型偏好設定」區塊的 UI 和事件監聽。
             const selectedList = document.getElementById('selected-models');
             const availableList = document.getElementById('available-models');
 
@@ -167,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function moveSelectedItems(fromList, toList) {
+            // 功能: 處理在「已選用」和「可用」模型列表之間移動選項的邏輯。
             fromList.querySelectorAll('li.selected').forEach(item => {
                 item.classList.remove('selected');
                 toList.appendChild(item);
@@ -175,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function populateModelLists() {
+            // 功能: 根據 settings 中的模型偏好，將模型動態填入兩個列表中。
             const selectedList = document.getElementById('selected-models');
             const availableList = document.getElementById('available-models');
             selectedList.innerHTML = '';
@@ -195,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function createModelListItem(id) {
+            // 功能: 創建單個模型選項的 HTML 元素。
             const li = document.createElement('li');
             li.dataset.id = id;
             li.draggable = true;
@@ -220,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let allCustomPrompts = {};
         const promptSelect = document.getElementById('promptLanguageSelect');
         async function loadCustomPrompts() {
+            // 功能: 從後端獲取已儲存的自訂 Prompts 並顯示在編輯區。
             try {
                 const response = await fetch('http://127.0.0.1:5001/api/prompts/custom');
                 if (!response.ok) {
@@ -235,6 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         const updatePromptTextarea = () => {
+            // 功能: 根據語言下拉選單的選擇，更新編輯區顯示的 Prompt 內容。
             promptTextarea.value = allCustomPrompts[promptSelect.value] || '';
         };
         promptSelect.addEventListener('change', updatePromptTextarea);
@@ -268,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCustomPrompts();
         
         function syncExampleToClipboard() {
+            // 功能: 複製 Prompt 範例到使用者的剪貼簿。
             navigator.clipboard.writeText(EXAMPLE_PROMPT_CONTENT).then(() => {
                 showOptionsToast('範例格式已複製！請直接在編輯區貼上。');
             }).catch(err => {
@@ -326,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         async function loadErrorLogs() {
+            // 功能: 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
             const logContainer = document.getElementById('error-log-container');
             const response = await sendMessage({ action: 'getErrorLogs' });
             if (response.success && response.data.length > 0) {
@@ -347,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusText = document.getElementById('status');
         
         async function updatePopupStatus() {
+            // 功能: 更新 popup 主視窗的 UI 狀態（例如「啟用/停用」按鈕的文字）。
             const tab = await getActiveTab();
             if (tab?.url?.includes("youtube.com")) {
                 toggleButton.disabled = false;
@@ -412,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         async function loadAvailableLangs() {
-            // 呼叫新的 getAvailableLangs 邏輯 (background.js 已新增)
+            // 功能: 從 background.js 獲取當前影片可用的字幕語言，並動態生成到「自訂來源語言」的下拉選單中。
             const response = await sendMessage({ action: 'getAvailableLangs' });
             
             // 【關鍵修正點】: 預先準備選項，確保「自動」永遠是第一個選項。
@@ -448,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
 
     function initializeSortableList(listId, onSortEndCallback) {
+        // 功能: 為一個列表 (ul) 賦予拖曳排序的功能。
         const list = document.getElementById(listId);
         if (!list) return;
         let draggingElement = null;
@@ -475,6 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getDragAfterElement(container, y) {
+        // 功能: 拖曳排序的輔助函式，用於計算拖曳項目應該插入的位置。
         const draggable = [...container.querySelectorAll('li:not(.dragging)')];
         return draggable.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
@@ -484,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateListUI(listId, items) {
+        // 功能: 根據一個字串陣列，動態更新一個列表 (ul) 的內容。
         const list = document.getElementById(listId);
         if (!list) return;
         list.innerHTML = '';
@@ -505,6 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let toastTimeout = null;
     function showOptionsToast(message, duration = 3000) {
+        // 功能: 在 options.html 頁面頂部顯示一個短暫的提示訊息（例如「儲存成功」）。
         const toast = document.getElementById('options-toast');
         if (!toast) return;
         toast.textContent = message;
