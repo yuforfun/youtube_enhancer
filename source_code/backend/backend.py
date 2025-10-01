@@ -7,7 +7,7 @@
 # @license MIT
 #
 # This program is free software distributed under the MIT License.
-# Version: 1.7.0
+# Version: 1.6.0
 # ==============================================================================
 import sys, os, json, time, threading
 from datetime import datetime
@@ -81,11 +81,11 @@ custom_prompts = {
 
 **人名/專有名詞對照表 (優先級最高):**
 無論上下文如何，只要看到左側的原文或讀音，就必須嚴格地翻譯為右側的詞彙。
-- まちだ / まち田 / まちだ けいた -> 町田 啟太
-- さとう たける -> 佐藤 健
-- しそん じゅん -> 志尊 淳
-- しろたゆう -> 城田 優
-- みやざき ゆう -> 宮崎 優
+- まちだ / まち田 / まちだ けいた -> 町田啟太
+- さとう たける -> 佐藤健
+- しそん じゅん -> 志尊淳
+- しろたゆう -> 城田優
+- みやざき ゆう -> 宮崎優
 - 天ブランク -> TENBLANK
 - グラスハート -> 玻璃之心
 - Fujitani Naoki -> 藤谷直季
@@ -101,13 +101,20 @@ custom_prompts = {
 
 def load_config():
     # 功能: 載入擴充功能的設定檔案，主要包含 API Keys 和自訂 Prompts。
-    # input: 無 (讀取 api_keys_test.txt / api_keys.txt 和 custom_prompts.json 檔案)
-    # output: (字典) 包含 'GEMINI_API_KEYS' 和 'KEYS_PATH_USED' 的設定物件。若失敗則回傳 None。
-    # 其他補充: 優先讀取 personal.txt，若不存在則讀取公開的範本檔案。如果 custom_prompts.json 不存在，會自動建立一個。
+    # input: 無 (讀取 api_keys.txt 和 AppData 中的 custom_prompts.json)
+    # output: (字典) 包含設定的物件。
+    # 其他補充: API Keys 從程式目錄讀取，而使用者自訂的 Prompts 從 AppData 目錄讀取，以避免權限問題。
     global custom_prompts
     base_path = get_base_path()
     config = {}
+
+    # 【關鍵修正點】: 定義 AppData 的儲存路徑
+    app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+    # 【關鍵修正點】: 如果路徑不存在，則建立它
+    os.makedirs(app_data_dir, exist_ok=True)
+    custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
     
+    # --- API Key 載入邏輯 (維持不變) ---
     test_keys_path = os.path.join(base_path, 'api_keys_test.txt')
     default_keys_path = os.path.join(base_path, 'api_keys.txt')
     keys_path_to_use = None
@@ -135,17 +142,17 @@ def load_config():
         config['GEMINI_API_KEYS'] = api_keys
         config['KEYS_PATH_USED'] = keys_path_to_use
         
-        custom_prompts_path = os.path.join(base_path, 'custom_prompts.json')
+        # --- Custom Prompts 載入邏輯 (使用新的 AppData 路徑) ---
         if os.path.exists(custom_prompts_path):
             with open(custom_prompts_path, 'r', encoding='utf-8') as f:
                 loaded_prompts = json.load(f)
                 custom_prompts.update(loaded_prompts)
-            print("   -> 成功載入自訂 Prompt 檔案。", flush=True)
+            print(f"   -> 成功從 AppData 載入自訂 Prompt 檔案。", flush=True)
         else:
-            print("   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔。", flush=True)
+            print(f"   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔於 AppData。", flush=True)
             with open(custom_prompts_path, 'w', encoding='utf-8') as f:
                 json.dump(custom_prompts, f, ensure_ascii=False, indent=2)
-            set_hidden_attribute(custom_prompts_path) # 【關鍵修正點】
+            # 在 AppData 中，不需要特別設定為隱藏
 
         if api_keys:
             print(f"   -> 成功載入 {len(api_keys)} 個 API Key。", flush=True)
@@ -308,24 +315,29 @@ def get_custom_prompts():
 
 @app.route('/api/prompts/custom', methods=['POST'])
 def set_custom_prompts():
-    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能儲存更新後的自訂 Prompts。
-    # input from: options.html -> savePromptButton 的點擊事件 (透過 HTTP POST 請求)
-    # output to: options.html -> savePromptButton 事件的回應
-    # 其他補充: 儲存後會覆寫 custom_prompts.json 檔案。
+    # 功能: 提供一個 API 端點，讓設定頁面能儲存更新後的自訂 Prompts。
+    # input: 來自 options.html 的 HTTP POST 請求。
+    # output: HTTP JSON 回應。
+    # 其他補充: 儲存時會覆寫 AppData 中的 custom_prompts.json 檔案。
     global custom_prompts
     try:
         data = request.get_json()
         if not data or not isinstance(data, dict): return jsonify({"error": "請求格式錯誤"}), 400
+        
         valid_langs = {"ja", "ko", "en"}
         if not all(key in valid_langs and isinstance(value, str) for key, value in data.items()):
             return jsonify({"error": "無效的語言代碼或內容格式"}), 400
-        base_path = get_base_path()
-        custom_prompts_path = os.path.join(base_path, 'custom_prompts.json')
+            
+        # 【關鍵修正點】: 使用與 load_config 中一致的 AppData 路徑
+        app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+        os.makedirs(app_data_dir, exist_ok=True) # 再次確保目錄存在
+        custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
+        
         with open(custom_prompts_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        set_hidden_attribute(custom_prompts_path) # 【關鍵修正點】
+
         custom_prompts.update(data)
-        print("[API 請求] POST /api/prompts/custom - 儲存成功。", flush=True)
+        print("[API 請求] POST /api/prompts/custom - 成功儲存至 AppData。", flush=True)
         return jsonify({"success": True})
     except Exception as e:
         print(f"錯誤：更新自訂 Prompt 失敗。原因: {e}", flush=True)

@@ -5,102 +5,182 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 6.1.0 (Stable Refactor)
+ * Version: 1.6.0 目前版本使用自動擷取字幕可以順利進行
+ * 待處理問題 暫存 UI 字幕列表 log區
  */
 class YouTubeSubtitleEnhancer {
     constructor() {
-        // 功能: 初始化 class 實例，設定日誌格式、初始狀態，並手動綁定所有需要作為事件處理器的方法。
+        // 功能: 初始化 class 實例。
         // input: 無
         // output: (YouTubeSubtitleEnhancer 物件)
-        // 其他補充: 手動綁定是為了確保在非同步或事件回呼中，'this' 的指向永遠正確，避免 '... is not a function' 的錯誤。
-        this.log = (message, ...args) => { console.log(`%c[現場經理]`, 'color: #007bff; font-weight: bold;', message, ...args); };
-        this.error = (message, ...args) => { console.error(`%c[現場經理]`, 'color: #dc2626; font-weight: bold;', message, ...args); };
+        this.log = (message, ...args) => { console.log(`%c[指揮中心]`, 'color: #007bff; font-weight: bold;', message, ...args); };
+        this.error = (message, ...args) => { console.error(`%c[指揮中心]`, 'color: #dc2626; font-weight: bold;', message, ...args); };
 
         this.currentVideoId = null;
         this.settings = {};
         this.resetState();
         
-        // # 【關鍵修正點】: 顯式手動綁定所有需要作為事件監聽器或非同步回呼的函式。
-        // # 這是為了解決 '... is not a function' 的致命錯誤。
-        this.onNavigation = this.onNavigation.bind(this);
+        // 【關鍵修正點】: 移除 isInitialLoad 旗標和 onNavigation 的綁定。
+        this.start = this.start.bind(this);
         this.onMessageFromInjector = this.onMessageFromInjector.bind(this);
         this.onMessageFromBackground = this.onMessageFromBackground.bind(this);
         this.handleTimeUpdate = this.handleTimeUpdate.bind(this);
-        this.findPlayerAndCommand = this.findPlayerAndCommand.bind(this);
+        this.processNextBatch = this.processNextBatch.bind(this);
     }
 
     async initialSetup() {
-        // 功能: 整個 content.js 腳本的啟動入口，在 DOM 載入後執行一次。
+        // 功能: 整個 content.js 腳本的啟動入口。
         // input: 無
         // output: 無
-        // 其他補充: 負責獲取初始設定、註冊所有頂層的事件監聽器。
-        this.log('v6.1 (Stable Refactor) 已啟動，開始準備環境。');
+        // 其他補充: 現在的職責是設定監聽器，並被動等待 injector 的啟動信號。
+        this.log('v1.6.0 (指揮中心) 已啟動，等待現場特工回報關鍵數據...');
         
         const response = await this.sendMessageToBackground({ action: 'getSettings' });
         this.settings = response?.data || {};
-        this.log('初始設定讀取完畢，目前總開關狀態:', this.settings.isEnabled ? '開啟' : '關閉');
+        this.log('初始設定讀取完畢。');
         
         window.addEventListener('message', this.onMessageFromInjector);
         chrome.runtime.onMessage.addListener(this.onMessageFromBackground);
-        document.addEventListener('yt-navigate-finish', this.onNavigation);
-        
-        await this.onNavigation();
-        this.log('環境準備完成，已開始監聽頁面活動。');
+        // 【關鍵修正點】: 徹底移除對 'yt-navigate-finish' 的監聽，不再使用此信號。
     }
 
-    async onNavigation() {
-        // 功能: 處理 YouTube 的 'yt-navigate-finish' 事件，當使用者在站內切換影片時觸發。
-        // input: (事件物件)
+    /*async onNavigation() {
+        // 功能: 在收到「字幕清單」後，執行頁面清理和新流程啟動的核心函式。
+        // input: 無
         // output: 無
-        // 其他補充: 核心任務是呼叫 cleanup() 來重置所有狀態，為新頁面做準備。在新架構下，它不再主動觸發任何流程。
+        // 其他補充: 此函式現在不再是事件監聽器，而是由 onMessageFromInjector 內部呼叫。
         const newVideoId = new URLSearchParams(window.location.search).get('v');
         if (this.currentVideoId === newVideoId && newVideoId !== null) return;
         
-        this.log(`偵測到頁面切換 (影片 ID: ${newVideoId || '非影片頁面'})，正在重設所有狀態...`);
+        this.log(`偵測到新頁面內容 (影片 ID: ${newVideoId || '非影片頁面'})，正在重設...`);
         await this.cleanup();
         this.currentVideoId = newVideoId;
+
+        if (this.settings.isEnabled && this.currentVideoId) {
+            this.start();
+        }
+    }*/
+    
+    // 【關鍵修正點】: 新增 start() 作為主流程入口，整合「暫存優先」邏輯。
+    async start() {
+        // 功能: v6.2 的新主流程入口，整合了「暫存優先」邏輯。
+        // input: 無
+        // output: 無
+        // 其他補充: 如果有暫存，直接載入並結束流程；若無，則向 injector.js 下達自動化指令。
+        if (!this.currentVideoId) return;
+
+        const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
+        const cachedData = await this.getCache(cacheKey);
+
+        if (cachedData && cachedData.translatedTrack) {
+            this.log('發現此影片的有效暫存，將直接載入。');
+            this.state.translatedTrack = cachedData.translatedTrack;
+            // 直接使用暫存的原始資料來啟動顯示
+            this.activate(cachedData.rawPayload); 
+        } else {
+            this.log('無暫存，通知現場特工開始自動化流程...');
+            // 指揮 injector.js 開始 Plan A
+            window.postMessage({ from: 'YtEnhancerContent', type: 'START_AUTO_ACTIVATION' }, '*');
+        }
     }
     
+    // 【關鍵修正點】: 新增 getCache 輔助函式。
+    async getCache(key) {
+        // 功能: 從 background.js 獲取指定 key 的暫存資料。
+        // input: key (字串) - 暫存鍵值。
+        // output: (物件 | null) - 暫存的資料或 null。
+        try {
+            const response = await this.sendMessageToBackground({ action: 'getCache', key });
+            return response?.data;
+        } catch (e) {
+            this.error('讀取暫存失敗:', e);
+            return null;
+        }
+    }
+
+    // 【關鍵修正點】: 新增 setCache 輔助函式。
+    async setCache(key, data) {
+        // 功能: 將資料透過 background.js 存入指定 key 的暫存。
+        // input: key (字串) - 暫存鍵值。
+        //        data (物件) - 要暫存的資料。
+        // output: 無
+        try {
+            await this.sendMessageToBackground({ action: 'setCache', key, data });
+        } catch (e) {
+            this.error('寫入暫存失敗:', e);
+        }
+    }
+
     async onMessageFromInjector(event) {
-        // 功能: 監聽來自 injector.js 的所有訊息，是新架構下的核心觸發點和訊息中樞。
-        // input from: injector.js (透過 window.postMessage)
-        // output to: startActivationProcess() 或 processTimedTextData() 或 switchToManualMode()
-        // 其他補充: 根據訊息類型的不同，分發到不同的處理函式。也負責扮演 injector 和 background 之間的通訊橋樑。
+        // 功能: 監聽來自 injector.js 的所有訊息，並作為新架構的唯一啟動入口。
+        // input: event (MessageEvent)
+        // output: 無
         if (event.source !== window || !event.data || event.data.from !== 'YtEnhancerInjector') return;
 
         const { type, payload } = event.data;
 
         switch (type) {
+            case 'PLAYER_RESPONSE_CAPTURED':
+                this.log('【除錯追蹤 - 2/4】首次接收點：content 收到的 payload 如下：');
+                console.log(payload);
+
+                this.log('收到新影片資料，執行清理與啟動程序...');
+                await this.cleanup();
+                
+                this.state.playerResponse = payload;
+                this.currentVideoId = new URLSearchParams(window.location.search).get('v');
+                this.log(`新影片 ID 已設定為: ${this.currentVideoId}`);
+
+                if (this.settings.isEnabled && this.currentVideoId) {
+                    this.start();
+                }
+                break;
+
             case 'GET_SETTINGS_FROM_INJECTOR':
-                // 作為橋樑，幫助 injector 獲取設定
-                this.log('收到信使的請求，正在向總調度獲取設定...');
+                this.log('收到現場特工的設定請求，正在準備回傳...');
                 const response = await this.sendMessageToBackground({ action: 'getSettings' });
                 if (response?.success) {
-                    window.postMessage({ type: 'SETTINGS_RESPONSE_FROM_CONTENT', payload: response.data }, '*');
+                    // 【關鍵修正點】: 從完整的 playerResponse 中僅提取出 captionTracks 陣列。
+                    const captionTracks = this.state.playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+                    
+                    const combinedPayload = {
+                        settings: response.data,
+                        captionTracks: captionTracks // 【關鍵修正點】: 改為發送輕量化的 captionTracks 陣列。
+                    };
+
+                    this.log('【除錯追蹤 - 3/4】再次發送點：content 準備回傳的輕量化組合包如下：');
+                    console.log(combinedPayload);
+
+                    window.postMessage({ from: 'YtEnhancerContent', type: 'SETTINGS_RESPONSE_FROM_CONTENT', payload: combinedPayload }, '*');
                 }
                 break;
 
             case 'TIMEDTEXT_DATA':
-                // 收到最終字幕內容，啟動翻譯
-                this.log(`收到信使送來的「${payload.lang}」字幕文字，準備翻譯...`);
-                this.processTimedTextData(payload);
+                this.log(`收到現場特工送來的「${payload.lang}」字幕文字，準備翻譯...`);
+                if (this.state.hasActivated) return;
+                this.state.sourceLang = this.state.sourceLang || payload.lang;
+                if (payload.lang !== this.state.sourceLang && !this.state.isOverride) return;
+
+                this.log(`成功捕獲到已鎖定的「${this.getFriendlyLangName(this.state.sourceLang)}」字幕，翻譯流程啟動！`);
+                this.state.hasActivated = true;
+                this.activate(payload.payload);
                 break;
                 
             case 'AUTOMATION_FAILED':
-                // 收到自動化失敗的通知，切換到手動模式
-                this.log('收到信使的自動化失敗通知，切換至手動模式。');
-                if (payload.playerResponse) {
-                    this.switchToManualMode(payload.playerResponse);
-                } else {
-                    this.error('自動化失敗，且無法獲取字幕清單以提供手動提示。');
-                }
+                this.log('收到現場特工的自動化失敗通知，切換至手動模式。');
+                this.switchToManualMode();
+                break;
+            
+            case 'INJECTOR_ERROR':
+                this.log(`收到來自現場特工的嚴重錯誤回報。`);
+                this.handleCriticalFailure('injector', payload.message);
                 break;
         }
     }
     
     async onMessageFromBackground(request, sender, sendResponse) {
         // 功能: 監聽來自 background.js 的訊息，主要用於接收設定變更或來自 popup 的指令。
-        // input from: background.js (透過 chrome.runtime.sendMessage)
+        // input: request (物件) - 傳來的訊息。
         // output: 無
         if (request.action === 'settingsChanged') {
             this.log('收到設定變更通知，正在更新...');
@@ -116,11 +196,30 @@ class YouTubeSubtitleEnhancer {
                 }
             }
         }
+        
         if (request.action === 'forceRerun') {
-            this.log('收到強制重跑指令，將通知信使重新執行主流程。');
-            await this.cleanup();
-            window.postMessage({ type: 'RERUN_INJECTOR_MAIN' }, '*');
+            this.log('收到強制重跑指令，將清除暫存並重新執行主流程。');
+            if (this.currentVideoId) {
+                const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
+                await this.setCache(cacheKey, null);
+            }
+            await this.onNavigation();
         }
+
+        if (request.action === 'translateWithOverride') {
+            this.log(`收到語言覆蓋指令，目標語言: ${request.language}`);
+            await this.cleanup();
+            this.state.sourceLang = request.language;
+            this.state.isOverride = true;
+
+            // 【關鍵修正點】: 直接使用 state 中儲存的 playerResponse，不再依賴 background。
+            if (this.state.playerResponse) {
+                this.switchToManualMode(this.state.playerResponse);
+            } else {
+                 this.handleCriticalFailure('override', `缺少字幕清單，無法執行語言覆蓋。請稍後重試。`);
+            }
+        }
+
         sendResponse({ success: true });
         return true;
     }
@@ -222,13 +321,16 @@ class YouTubeSubtitleEnhancer {
 
     resetState() {
         // 功能: 將 class 的 state 物件重置為初始狀態。
+        // input: 無
+        // output: 無
+        // 其他補充: 在每次頁面導航時呼叫，確保狀態純淨。
         this.state = {
             isProcessing: false, hasActivated: false,
             videoElement: null, statusOrb: null, subtitleContainer: null,
             translatedTrack: null, sourceLang: null,
             abortController: null,
-            fallbackObserver: null,
-            fallbackListenerActive: false,
+            playerResponse: null, // 【關鍵修正點】: 新增 state 用於儲存字幕清單
+            isOverride: false
         };
     }
 
@@ -249,12 +351,17 @@ class YouTubeSubtitleEnhancer {
     
     async activate(initialPayload) {
         // 功能: 翻譯流程的正式啟動函式。負責建立所有 UI 容器、隱藏原生字幕，並呼叫 parseAndTranslate。
+        // input: initialPayload (物件) - 從 injector 傳來的原始 timedtext JSON。
+        // output: 無
         this.removeGuidancePrompt();
         
+        // 【關鍵修正點】: 儲存原始 payload 以便後續寫入暫存。
+        this.state.rawPayload = initialPayload;
+
         this.state.videoElement = document.querySelector('video');
         const playerContainer = document.getElementById('movie_player');
         if (!this.state.videoElement || !playerContainer) {
-            this.error("找不到播放器元件，啟動失敗。");
+            this.handleCriticalFailure('activate', "找不到播放器元件，啟動失敗。");
             return;
         }
         this.createStatusOrb(playerContainer);
@@ -283,21 +390,36 @@ class YouTubeSubtitleEnhancer {
         return null;
     }
 
-    switchToManualMode(playerData) {
-        // 功能: 當 Plan A 失敗時，建立並顯示手動模式的引導提示 UI。
+    switchToManualMode() {
+        // 功能: 當 Plan A (自動化) 失敗時，使用自身儲存的 playerResponse 建立並顯示手動提示 UI。
+        // input: 無 (從 this.state.playerResponse 讀取資料)
+        // output: 無 (產生 UI 元素)
         this.log('切換至手動模式，將顯示提示 UI。');
-        const availableLangs = this.getAvailableLanguagesFromData(playerData);
+        
+        // 【關鍵修正點】: 資料來源改為 this.state.playerResponse
+        if (!this.state.playerResponse) {
+            this.handleCriticalFailure('manual-mode', '無法進入手動模式，因為缺少字幕清單資料。');
+            return;
+        }
+        const availableLangs = this.getAvailableLanguagesFromData(this.state.playerResponse);
+
+        this.sendMessageToBackground({
+            action: 'STORE_AVAILABLE_LANGS',
+            payload: availableLangs
+        }).catch(e => this.error('無法儲存可用語言列表:', e));
+
         const { preferred_langs = [], ignored_langs = [] } = this.settings;
         const matchedLang = preferred_langs.find(pLang =>
             availableLangs.includes(pLang) && !ignored_langs.includes(pLang)
         );
 
+
         if (matchedLang) {
+            this.state.sourceLang = matchedLang; // 預先鎖定語言
             const playerContainer = document.getElementById('movie_player');
             if (playerContainer) {
                 this.createStatusOrb(playerContainer);
                 this.setOrbState('error', `請手動在 YT 播放器中選擇「${this.getFriendlyLangName(matchedLang)}」語言的字幕`);
-                this.state.isProcessing = true;
                 const ccButton = document.querySelector('.ytp-subtitles-button');
                 if (ccButton) {
                     this.createGuidancePrompt(playerContainer, ccButton, `請手動開啟「${this.getFriendlyLangName(matchedLang)}」字幕`);
@@ -378,16 +500,30 @@ class YouTubeSubtitleEnhancer {
 
     async parseAndTranslate(payload) {
         // 功能: 解析字幕並啟動分批翻譯的總流程。
+        // input: payload (物件) - 原始 timedtext JSON。
+        // output: 無
+        // 其他補充: 新增了對暫存恢復的判斷，避免重複解析。
         if (this.state.isProcessing) return;
         this.state.isProcessing = true;
-        this.state.translatedTrack = this.parseRawSubtitles(payload);
+
+        // 【關鍵修正點】: 檢查 translatedTrack 是否已從暫存中載入。
+        // 如果不是，才執行首次解析。
+        if (!this.state.translatedTrack) {
+            this.state.translatedTrack = this.parseRawSubtitles(payload);
+        }
+        
         if (!this.state.translatedTrack.length) {
             this.log("解析後無有效字幕句段，停止翻譯。");
             this.setOrbState('error', '無有效字幕內容');
             this.state.isProcessing = false;
             return;
         }
-        this.state.translationProgress = { done: 0, total: this.state.translatedTrack.length };
+
+        this.state.translationProgress = { 
+            done: this.state.translatedTrack.filter(t => t.translatedText).length, 
+            total: this.state.translatedTrack.length 
+        };
+
         this.beginDisplay();
         await this.processNextBatch();
         this.state.isProcessing = false;
@@ -395,6 +531,8 @@ class YouTubeSubtitleEnhancer {
 
     async processNextBatch() {
         // 功能: 處理下一個批次的翻譯，直到所有句子都翻譯完成。這是一個遞迴函式。
+        // input: 無
+        // output: 無
         const BATCH_SIZE = 30;
         const segmentsToTranslate = [];
         const indicesToUpdate = [];
@@ -405,23 +543,68 @@ class YouTubeSubtitleEnhancer {
                 if (segmentsToTranslate.length >= BATCH_SIZE) break;
             }
         }
+
         if (segmentsToTranslate.length === 0) {
             this.log("所有翻譯批次處理完成！");
             this.setOrbState('success');
             return;
         }
-        const alreadyDone = this.state.translatedTrack.length - segmentsToTranslate.length;
+
+        // 【關鍵修正點】: 使用更可靠的 '已完成' 數量計算方式，取代原本有缺陷的公式。
+        const alreadyDone = this.state.translatedTrack.filter(t => t.translatedText).length;
         this.state.translationProgress.done = alreadyDone;
         this.setOrbState('translating');
+
         this.state.abortController = new AbortController();
         try {
             const translatedTexts = await this.sendBatchForTranslation(segmentsToTranslate, this.state.abortController.signal);
-            if (translatedTexts.length !== segmentsToTranslate.length) throw new Error("翻譯回傳的句數與批次不符。");
-            translatedTexts.forEach((text, i) => { this.state.translatedTrack[indicesToUpdate[i]].translatedText = text; });
-            this.log(`批次完成 (${this.state.translatedTrack.filter(t=>t.translatedText).length}/${this.state.translationProgress.total})。`);
+            if (translatedTexts.length !== segmentsToTranslate.length) {
+                throw new Error("翻譯回傳的句數與請求不符。");
+            }
+
+            translatedTexts.forEach((text, i) => { 
+                if(this.state.translatedTrack[indicesToUpdate[i]]) {
+                    this.state.translatedTrack[indicesToUpdate[i]].translatedText = text; 
+                }
+            });
+
+            if (this.currentVideoId) {
+                const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
+                // 計算最新的完成數量並寫入日誌
+                const currentDoneCount = this.state.translatedTrack.filter(t=>t.translatedText).length;
+                await this.setCache(cacheKey, {
+                    translatedTrack: this.state.translatedTrack,
+                    rawPayload: this.state.rawPayload
+                });
+                this.log(`批次完成 (${currentDoneCount}/${this.state.translationProgress.total})，進度已暫存。`);
+            }
+            
             await this.processNextBatch();
         } catch (e) {
-            if (e.name !== 'AbortError') this.error("翻譯批次失敗:", e);
+            if (e.name !== 'AbortError') {
+                this.error("翻譯批次失敗:", e);
+                this.handleTranslationError(e.message);
+            }
+        }
+    }
+
+    handleCriticalFailure(source, message, data = {}) {
+        // 功能: 統一的嚴重錯誤處理中心。
+        // input: source (字串) - 錯誤來源 (例如 'injector', 'backend')。
+        //        message (字串) - 錯誤訊息。
+        //        data (物件) - 附帶的資料。
+        // output: 無 (呼叫 setPersistentError 顯示 UI)
+        this.error(`[嚴重錯誤 | 來源: ${source}] ${message}`, data);
+
+        const finalMessage = `[${source}] ${message}`;
+
+        // 呼叫 setPersistentError 來顯示永久性錯誤圖示並記錄日誌。
+        this.setPersistentError(finalMessage);
+
+        // 根據來源決定後續行為
+        if (source === 'injector') {
+            // 如果是 injector 徹底失敗，我們無法引導使用者，只能顯示錯誤。
+            //switchToManualMode 的邏輯已在 onMessageFromInjector 中處理。
         }
     }
 

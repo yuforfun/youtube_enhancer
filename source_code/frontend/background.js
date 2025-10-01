@@ -1,4 +1,3 @@
-// 【關鍵修正點】: 版本號更新為 5.0，以符合新架構。
 /**
  * @file background.js
  * @author [yuforfun]
@@ -6,7 +5,8 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 5.0.0 (Stable & Transparent)
+ * Version: 1.6.0 目前版本使用自動擷取字幕可以順利進行
+ * 待處理問題 暫存 UI 字幕列表 log區
  */
 'use strict';
 
@@ -18,8 +18,11 @@ const sessionData = {
 // output: 供 content.js 和 popup.js 讀取。
 // 其他補充: lastPlayerData 作為一個「信箱」，解決了 injector.js 和 content.js 之間因載入時序不同而造成的通訊問題。
     lastPlayerData: {},
-    availableLangs: {} // 【關鍵修正點】: 新增用於儲存每個 Tab 可用語言的結構
+    availableLangs: {}, // 【關鍵修正點】: 新增用於儲存每個 Tab 可用語言的結構
+    sessionCache: {} // 【關鍵修正點】: 新增用於儲存影片翻譯暫存的結構    
 };
+
+
 
 const defaultSettings = {
 // 區塊: defaultSettings
@@ -99,27 +102,31 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     switch (request.action) {
         case 'STORE_ERROR_LOG':
-            // 功能: 接收來自 content.js 的錯誤日誌並存入 chrome.storage。
+            // 功能: (已修改) 接收來自 content.js 的錯誤日誌並存入 chrome.storage.session。
             // input from: content.js -> setPersistentError 函式
             // output to: content.js (透過 sendResponse 確認收到)
-            // 其他補充: 用於在「診斷與日誌」頁面顯示持續性錯誤，方便除錯。最多儲存20筆。
+            // 其他補充: 用於在「診斷與日誌」頁面顯示持續性錯誤，最多儲存20筆。
             isAsync = true;
-            chrome.storage.local.get({ 'errorLogs': [] }, (result) => {
+            // 【關鍵修正點】: 改用 chrome.storage.session
+            chrome.storage.session.get({ 'errorLogs': [] }, (result) => {
                 const logs = result.errorLogs;
                 logs.push(request.payload);
                 if (logs.length > 20) logs.shift(); 
                 
-                chrome.storage.local.set({ 'errorLogs': logs }, () => {
+                // 【關鍵修正點】: 改用 chrome.storage.session
+                chrome.storage.session.set({ 'errorLogs': logs }, () => {
                     sendResponse({ success: true });
                 });
             });
             break;
+            
         case 'getErrorLogs': 
-            // 功能: 從 chrome.storage 讀取所有已儲存的錯誤日誌。
+            // 功能: (已修改) 從 chrome.storage.session 讀取所有已儲存的錯誤日誌。
             // input from: popup.js (options.html) -> loadErrorLogs 函式
             // output to: popup.js (透過 sendResponse 回傳日誌陣列)
             isAsync = true;
-            chrome.storage.local.get({ 'errorLogs': [] }, (result) => {
+            // 【關鍵修正點】: 改用 chrome.storage.session
+            chrome.storage.session.get({ 'errorLogs': [] }, (result) => {
                 sendResponse({ success: true, data: result.errorLogs });
             });
             break;
@@ -130,12 +137,67 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             // output to: popup.js (透過 sendResponse 確認完成)
             // 其他補充: 用於重置擴充功能狀態，方便開發和除錯。
             isAsync = true;
-            sessionData.lastPlayerData = {};
-            sessionData.availableLangs = {};
-            chrome.storage.local.set({ 'errorLogs': [] }, () => {
-                 sendResponse({ success: true, count: 0 });
+            // 【關鍵修正點】: 核心修正 - 清理 chrome.storage.local 中的所有影片暫存
+            chrome.storage.local.get(null, (items) => {
+                const cacheKeysToRemove = Object.keys(items).filter(key => key.startsWith('yt-enhancer-cache-'));
+                
+                // 同時也清除錯誤日誌
+                cacheKeysToRemove.push('errorLogs');
+                
+                chrome.storage.local.remove(cacheKeysToRemove, () => {
+                    // 清理 session 記憶體中的資料
+                    sessionData.lastPlayerData = {};
+                    sessionData.availableLangs = {};
+                    // sessionData.sessionCache 已不再使用，但為求乾淨一併清除
+                    sessionData.sessionCache = {}; 
+                    
+                    const clearedCount = cacheKeysToRemove.filter(k => k.startsWith('yt-enhancer-cache-')).length;
+                    console.log(`[Background] 成功清除了 ${clearedCount} 個影片的暫存與所有日誌。`);
+                    sendResponse({ success: true, count: clearedCount });
+                });
             });
             break;
+
+        case 'getCache':
+            // 功能: (已修改) 從 chrome.storage.local 獲取指定 key 的暫存資料。
+            // input: key (字串) - 暫存鍵值。
+            // output: (物件 | null) - 暫存的資料或 null。
+            isAsync = true;
+            const cacheKeyGet = request.key;
+            if (tabId && cacheKeyGet) {
+                // 【關鍵修正點】: 從 chrome.storage.local 非同步讀取資料
+                chrome.storage.local.get([cacheKeyGet], (result) => {
+                    sendResponse({ success: true, data: result[cacheKeyGet] || null });
+                });
+            } else {
+                sendResponse({ success: false, data: null });
+            }
+            break;
+
+        case 'setCache':
+            // 功能: (已修改) 將資料透過 chrome.storage.local 存入指定 key 的暫存。
+            // input: key (字串) - 暫存鍵值。
+            //        data (物件) - 要暫存的資料。
+            // output: 無
+            isAsync = true; // 【關鍵修正點】: 由於 storage 操作是非同步的，必須設為 true
+            const { key: cacheKeySet, data } = request;
+            if (tabId && cacheKeySet) {
+                if (data === null || data === undefined) {
+                    // 【關鍵修正點】: 如果資料為空，則從 storage 中移除該項目
+                    chrome.storage.local.remove(cacheKeySet, () => {
+                        sendResponse({ success: true });
+                    });
+                } else {
+                    // 【關鍵修正點】: 否則，將資料存入 storage
+                    chrome.storage.local.set({ [cacheKeySet]: data }, () => {
+                        sendResponse({ success: true });
+                    });
+                }
+            } else {
+                sendResponse({ success: false });
+            }
+            break;
+
 
         case 'getSettings':
             // 功能: 從 chrome.storage 讀取使用者設定，若無則回傳預設值。
@@ -165,30 +227,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     isEnabled: result.ytEnhancerSettings.isEnabled 
                 });
             });
-            break;
-
-        case 'STORE_PLAYER_DATA': 
-            // 功能: 將從 injector.js 獲取的原始字幕清單資料 (PLAYER_DATA) 暫存到記憶體的「信箱」中。
-            // input from: injector.js (在舊版架構中)
-            // output to: injector.js (透過 sendResponse 確認收到)
-            // 其他補充: 這是解決 injector.js 和 content.js 載入時序問題的關鍵機制。在新版 v6.0 架構中，此功能的重要性降低，但仍可作為備援。
-            if (tabId && request.payload) {
-                sessionData.lastPlayerData[tabId] = request.payload;
-                sendResponse({ success: true });
-            } else {
-                sendResponse({ success: false });
-            }
-            break;
-
-        case 'GET_STORED_PLAYER_DATA': 
-            // 功能: 讓 content.js 從「信箱」中讀取一次性的 PLAYER_DATA。
-            // input from: content.js
-            // output to: content.js (透過 sendResponse 回傳 PLAYER_DATA)
-            // 其他補充: 讀取後會立刻從信箱中刪除該資料，確保每個頁面只處理一次。
-            isAsync = true;
-            const data = tabId ? sessionData.lastPlayerData[tabId] : null;
-            if (tabId) delete sessionData.lastPlayerData[tabId];
-            sendResponse({ success: true, payload: data || null });
             break;
 
         case 'STORE_AVAILABLE_LANGS': 
