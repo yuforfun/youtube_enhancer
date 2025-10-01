@@ -46,14 +46,12 @@
 
         
         init() {
-            // 功能: 整個 injector 腳本的啟動入口，只負責註冊所有監聽器。
+            // 功能: (已修改) 整個 injector 腳本的啟動入口，現在只設定攔截器和唯一的導航完成監聽器。
             // input: 無
             // output: 無
-            // 其他補充: 在 v6.2 架構中，此函式不再主動執行 main 流程，而是等待 content.js 的指令。
-            this.log('v6.2 (現場特工) 已就位，等待指揮中心指令。');
-            // 【關鍵修正點】: 不再主動呼叫 this.main()，改為被動監聽。
+            this.log('v6.3 (現場特工) 已就位，等待導航事件...');
             this.setupInterceptors();
-            this.setupVariableListener();
+            // 【關鍵修正點】: 移除 setupVariableListener，不再嘗試攔截變數。
             document.addEventListener('yt-navigate-finish', this.handleNavigation);
             window.addEventListener('message', this.handleContentMessage);
         }
@@ -195,50 +193,28 @@
 
 
         handleNavigation() {
-            // 功能: 處理 YouTube 的 'yt-navigate-finish' 事件（軟導航）。
+            // 功能: (已修改) 作為唯一的啟動入口，處理所有硬導航和軟導航。
             // input: (事件物件)
             // output: 無
-            // 其他補充: 在軟導航後，重置狀態，並主動讀取 playerResponse 來發送啟動信號。
-            this.log('偵測到 YouTube 頁面切換完成 (軟導航)，重設所有狀態。');
-            this.state = {
-                player: null,
-                settings: null,
-                isDataSent: false,
-                isCaptureSignalSent: false
-            };
+            // 其他補充: 在 yt-navigate-finish 觸發時，ytInitialPlayerResponse 已被證實是穩定存在的。
+            this.log('偵測到 YT 導航事件完成 (yt-navigate-finish)，重設狀態並捕獲資料...');
+            
+            // 【關鍵修正點】: 重置旗標，確保每次導航都能重新發送資料
+            this.state.isCaptureSignalSent = false;
+            this.state.isDataSent = false; 
 
-            // 【關鍵修正點】: 在軟導航後，主動讀取 window 變數並發送信號。
             const playerResponse = window.ytInitialPlayerResponse;
+
             if (playerResponse && !this.state.isCaptureSignalSent) {
-                this.log('【除錯追蹤 - 1.5/4】軟導航觸發：已捕獲 ytInitialPlayerResponse，內容如下：');
+                // 【關鍵修正點】: 統一使用此日誌，不再區分硬/軟導航觸發
+                this.log('【除錯追蹤 - 1/4】導航完成觸發：已捕獲 ytInitialPlayerResponse，內容如下：');
                 console.log(playerResponse);
 
                 this.sendMessageToContent('PLAYER_RESPONSE_CAPTURED', playerResponse);
                 this.state.isCaptureSignalSent = true;
+            } else if (!playerResponse) {
+                this.error('導航完成，但 ytInitialPlayerResponse 不存在。擴充功能可能無法啟動。');
             }
-        }
-
-        setupVariableListener() {
-            // 功能: 劫持 ytInitialPlayerResponse（硬載入），印出源頭資料，並立即轉發給 content.js。
-            // input: 無
-            // output: 無
-            // 其他補充: 這是應對首次載入、F5 重新整理等硬載入情境的主要機制。
-            let actualPlayerResponse = null;
-            Object.defineProperty(window, 'ytInitialPlayerResponse', {
-                configurable: true, enumerable: true,
-                get: () => actualPlayerResponse,
-                set: (value) => {
-                    actualPlayerResponse = value;
-                    if (value && !this.state.isCaptureSignalSent) {
-                        // 【關鍵修正點】: 加入日誌追蹤第一站 (硬載入)
-                        this.log('【除錯追蹤 - 1/4】硬載入觸發：已捕獲 ytInitialPlayerResponse，內容如下：');
-                        console.log(value); // 直接印出原始物件以供深入檢查
-
-                        this.sendMessageToContent('PLAYER_RESPONSE_CAPTURED', value);
-                        this.state.isCaptureSignalSent = true;
-                    }
-                }
-            });
         }
         
         setupInterceptors() {
