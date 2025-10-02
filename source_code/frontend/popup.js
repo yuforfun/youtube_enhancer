@@ -76,28 +76,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let settings = {};
 
     async function loadSettings() {
-        // 功能: 從 background.js 獲取儲存的設定，並更新到 UI 上。
-        // input from: background.js -> getSettings
-        // output: 更新 settings 全域變數，並呼叫 updateUI()
-        const response = await sendMessage({ action: 'getSettings' });
+        // 功能: (偵錯模式) 獲取設定，並將收到的原始資料和最終處理結果都印出來。
+        console.log('--- 開始載入設定 ---');
+        try {
+            const response = await sendMessage({ action: 'getSettings' });
+            
+            // 【關鍵偵錯點】 1: 印出從 background.js 收到的最原始的回應
+            console.log('1. 從 background.js 收到的原始 response:', response);
 
-        // 【關鍵修正點】: 提供最低限度的預設結構，以防止 updateUI 讀取不存在的屬性時崩潰
-        const minimumDefaults = {
-            fontSize: 22,
-            showOriginal: true,
-            showTranslated: true,
-            // 其他設置如果未用於 Popup UI 則可省略，但為求完整性，最好與 defaultSettings 一致
-        };
+            const minimumDefaults = {
+                fontSize: 22,
+                showOriginal: true,
+                showTranslated: true,
+            };
 
-        if (response?.success) {
-            // 如果成功，則合併（避免 settings 僅有部分內容）
-            settings = { ...minimumDefaults, ...response.data };
-            updateUI();
-        } else {
-            // 如果失敗，則使用最低限度預設值
-            settings = minimumDefaults;
-            updateUI();
+            if (response?.success) {
+                settings = { ...minimumDefaults, ...response.data };
+                
+                // 【關鍵偵錯點】 2: 印出即將用於更新 UI 的最終 settings 物件
+                console.log('2. 合併後的最終 settings 物件:', settings);
+
+                updateUI();
+            } else {
+                settings = minimumDefaults;
+                console.log('X. 載入失敗，使用預設 settings 物件:', settings);
+                updateUI();
+            }
+        } catch (e) {
+            console.error('loadSettings 函式發生嚴重錯誤:', e);
         }
+        console.log('--- 設定載入完畢 ---');
     }
 
     async function saveSettings(showToast = false) {
@@ -423,15 +431,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const overrideSelect = document.getElementById('overrideLanguageSelect');
-        overrideSelect.addEventListener('change', async (e) => {
-            if (e.target.value === 'auto') return;
-            const tab = await getActiveTab();
-            if (tab) {
-                chrome.tabs.sendMessage(tab.id, { action: 'translateWithOverride', language: e.target.value });
-            }
-            statusText.textContent = '語言覆蓋指令已發送...';
-            setTimeout(() => window.close(), 800);
-        });
+        // 【關鍵修正點】: 只有在 overrideSelect 元件存在時，才為它綁定事件
+        if (overrideSelect) {
+            overrideSelect.addEventListener('change', async (e) => {
+                if (e.target.value === 'auto') return;
+                const tab = await getActiveTab();
+                if (tab) {
+                    chrome.tabs.sendMessage(tab.id, { action: 'translateWithOverride', language: e.target.value });
+                }
+                statusText.textContent = '語言覆蓋指令已發送...';
+                setTimeout(() => window.close(), 800);
+            });
+        }
         
         async function loadAvailableLangs() {
             // 功能: 從 background.js 獲取當前影片可用的字幕語言，並動態生成到「自訂來源語言」的下拉選單中。
