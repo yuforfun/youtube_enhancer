@@ -10,7 +10,8 @@
         "scripting"
     ],
     "host_permissions": [
-        "https://www.youtube.com/*"
+        "https://www.youtube.com/*",
+        "http://127.0.0.1:5001/*"
     ],
     "action": {
         "default_popup": "popup.html",
