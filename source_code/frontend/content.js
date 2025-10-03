@@ -6,18 +6,20 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 1.7.2 (整合所有修正的最終版)
+ * Version: 1.7.2 (修正 content.js ([實現「狀態感知」反向握手 - 主動訊號員]))
  */
 class YouTubeSubtitleEnhancer {
     constructor() {
         // 功能: 初始化 class 實例。
         // input: 無
         // output: YouTubeSubtitleEnhancer 物件實例。
-        // 其他補充: 綁定 'this' 確保所有非同步函式和事件監聽器能正確存取 class 實例。
+        // 其他補充: 新增了反向握手所需的狀態。
         this.log = (message, ...args) => { console.log(`%c[指揮中心]`, 'color: #007bff; font-weight: bold;', message, ...args); };
         this.error = (message, ...args) => { console.error(`%c[指揮中心]`, 'color: #dc2626; font-weight: bold;', message, ...args); };
         this.currentVideoId = null;
         this.settings = {};
+        // 【關鍵修正點】: 新增請求輪詢的計時器ID
+        this.requestIntervalId = null; 
         this.resetState();
         this.onMessageFromInjector = this.onMessageFromInjector.bind(this);
         this.onMessageFromBackground = this.onMessageFromBackground.bind(this);
@@ -26,78 +28,103 @@ class YouTubeSubtitleEnhancer {
     }
 
     async initialSetup() {
-        // 功能: 整個 content.js 腳本的啟動入口。
+        // 功能: (反向握手版) 腳本總入口，在初始化後主動向 injector.js 請求資料。
         // input: 無
-        // output: 無 (設定監聽器並被動等待 injector 的啟動信號)。
-        // 其他補充: 負責獲取初始設定並建立通訊渠道。
-        this.log('v1.7.2 (指揮中心) 已啟動，等待現場特工回報關鍵數據...');
+        // output: 無
+        this.log('v1.8.0 (指揮中心) 已啟動，採用「反向握手」架構。');
         const response = await this.sendMessageToBackground({ action: 'getSettings' });
         this.settings = response?.data || {};
-        this.log('初始設定讀取完畢。');
+        this.log('初始設定讀取完畢，監聽器已設定。');
         window.addEventListener('message', this.onMessageFromInjector);
         chrome.runtime.onMessage.addListener(this.onMessageFromBackground);
+        
+        // 【關鍵修正點】: 在一切準備就緒後，開始主動請求資料
+        this.requestPlayerResponse();
+    }
+
+    requestPlayerResponse() {
+        // 功能: (反向握手版) 主動、重複地向 injector.js 請求資料，直到成功。
+        // input: 無
+        // output: 無
+        // 其他補充: 這是確保訊號不丟失的關鍵。
+        let attempts = 0;
+        const MAX_ATTEMPTS = 25; // 最多嘗試5秒 (25 * 200ms)
+        this.log('正在向現場特工請求核心資料...');
+
+        const sendRequest = () => {
+            // 如果在輪詢期間，資料已經被其他方式獲取，則停止輪詢
+            if (this.state.isInitialized) {
+                clearInterval(this.requestIntervalId);
+                return;
+            }
+            if (attempts >= MAX_ATTEMPTS) {
+                this.error('在5秒後仍未收到現場特工的回應，停止請求。');
+                clearInterval(this.requestIntervalId);
+                return;
+            }
+            window.postMessage({ from: 'YtEnhancerContent', type: 'REQUEST_PLAYER_RESPONSE' }, '*');
+            attempts++;
+        };
+
+        // 立即發送第一次，然後設定定時器
+        sendRequest();
+        this.requestIntervalId = setInterval(sendRequest, 200);
     }
 
     async start() {
-        // 功能: (最終版) 主流程入口，新增了對「等候區」的檢查。
+        // 功能: (最終版) 主流程入口，實現包含忽略檢查的四路徑決策邏輯。
+        // input: 無 (從 this.state 和 this.settings 讀取)
+        // output: 根據匹配結果，執行自動翻譯或顯示手動提示。
         if (!this.currentVideoId || !this.state.playerResponse) return;
+
+        // 【關鍵修正點】: 這是我們最終確認的完整決策邏輯
         const availableTracks = this.getAvailableLanguagesFromData(this.state.playerResponse, true);
         const availableLangs = availableTracks.map(t => t.languageCode);
         const { preferred_langs = [], ignored_langs = [] } = this.settings;
 
-        console.log('%c--- 語言匹配檢查 ---', 'color: green; font-weight: bold;');
-        this.log('當前使用的「偏好順序」:', preferred_langs);
-        this.log('此影片偵測到的「可用語言」:', availableLangs);
         const matchedLang = preferred_langs.find(pLang => availableLangs.includes(pLang));
-        this.log('根據以上設定，匹配到的「最終結果」是:', matchedLang || '無匹配');
-        console.log('%c--- 檢查完畢 ---', 'color: green; font-weight: bold;');
-        if (!matchedLang || ignored_langs.includes(matchedLang)) {
-            const reason = !matchedLang ? "未匹配到任何偏好語言" : `匹配到的語言 [${matchedLang}] 在忽略列表中`;
-            this.log(`啟動中止: ${reason}。`);
-            this.toggleNativeSubtitles(false);
-            return;
-        }
-        this.state.sourceLang = matchedLang;
-        const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
-        const cachedData = await this.getCache(cacheKey);
-        if (cachedData && cachedData.translatedTrack) {
-            this.log('發現有效暫存，直接載入。');
-            this.state.translatedTrack = cachedData.translatedTrack;
-            this.activate(cachedData.rawPayload);
-        } else {
-            this.log(`無暫存，匹配語言 [${matchedLang}]，命令特工啟用軌道...`);
-            const trackToEnable = availableTracks.find(t => t.languageCode === matchedLang);
-            if (trackToEnable) {
-                window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
-                
-                // 【關鍵修正點】: 在下達指令後，檢查「等候區」是否有我們需要的資料
-                if (this.state.pendingTimedText && this.state.pendingTimedText.lang === matchedLang) {
-                    this.log('✅ 在「等候區」發現匹配的字幕資料，立即使用！');
-                    if (this.state.hasActivated) return;
-                    this.log(`成功捕獲 [${this.getFriendlyLangName(matchedLang)}] 字幕，啟動翻譯。`);
-                    this.state.hasActivated = true;
-                    this.activate(this.state.pendingTimedText.payload);
-                    this.state.pendingTimedText = null; // 用完後清空
+
+        if (matchedLang && !ignored_langs.includes(matchedLang)) {
+            // --- 路徑一：匹配成功且非忽略 → 自動翻譯 ---
+            this.log(`匹配到偏好語言 [${matchedLang}] 且不在忽略清單，啟動自動翻譯。`);
+            this.state.sourceLang = matchedLang;
+            
+            const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
+            const cachedData = await this.getCache(cacheKey);
+
+            if (cachedData && cachedData.translatedTrack) {
+                this.log('發現有效暫存，直接載入。');
+                this.state.translatedTrack = cachedData.translatedTrack;
+                this.activate(cachedData.rawPayload);
+            } else {
+                this.log(`無暫存，命令特工啟用軌道 [${matchedLang}]...`);
+                const trackToEnable = availableTracks.find(t => t.languageCode === matchedLang);
+                if (trackToEnable) {
+                    window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
                 }
             }
+        } else {
+            // --- 路徑二 & 四：完全不匹配 或 匹配但被忽略 → 顯示手動提示 ---
+            if (matchedLang) {
+                this.log(`匹配到偏好語言 [${matchedLang}]，但其在忽略清單中，進入手動模式。`);
+            } else {
+                this.log(`未匹配到任何偏好語言，進入手動模式。`);
+            }
+            this.showManualActivationPrompt();
         }
     }
 
     async onMessageFromInjector(event) {
-        // 功能: (偵錯模式) 監聽來自 injector.js 的所有訊息，並在最開始打印日誌。
+        // 功能: (最終修正版) 監聽來自 injector.js 的核心資料，並具備語言切換時的自動重置能力。
         // input: event (MessageEvent)
-        // output: 無
-        // 其他補充: 這是檢查訊息是否成功被監聽到的關鍵。
-
-        // 【關鍵偵錯點】: 在進行任何過濾之前，先打印所有收到的 message 事件，確認「監聽」功能正常。
-        console.log(`%c[Content <- Injector] 監聽到 message 事件:`, 'color: purple;', event.data?.from, event.data?.type);
-        
+        // output: 根據訊息類型與當前狀態，觸發對應的核心流程。
+        // 其他補充: 這是解決狀態不同步 Bug 的核心。
         if (event.source !== window || !event.data || event.data.from !== 'YtEnhancerInjector') return;
+
         const { type, payload } = event.data;
         switch (type) {
             case 'PLAYER_RESPONSE_CAPTURED':
                 this.log('✅ 收到 PLAYER_RESPONSE_CAPTURED 信號。');
-                console.log('%c[LOG-DATA-1.5] content.js 收到的 playerResponse:', 'color: blue; font-weight: bold;', payload);
                 await this.cleanup();
                 this.state.playerResponse = payload;
                 this.currentVideoId = payload.videoDetails.videoId;
@@ -107,16 +134,36 @@ class YouTubeSubtitleEnhancer {
                     this.start();
                 }
                 break;
+            
             case 'TIMEDTEXT_DATA':
+                // 處理 timedtext 抵達時，主流程尚未就緒的競速問題
                 if (!this.state.isInitialized) {
                     this.log('主流程未就緒，暫存 timedtext 數據至「等候區」。');
                     this.state.pendingTimedText = payload;
                     return;
                 }
-                if (this.state.hasActivated || (payload.lang !== this.state.sourceLang && !this.state.isOverride)) return;
+
+                // 【關鍵修正點】: 全新的、包含自動重置的語言切換與啟動邏輯
+
+                // 情況一：如果已啟動，且新來的字幕語言與當前語言不同，則執行重置
+                if (this.state.hasActivated && payload.lang !== this.state.sourceLang) {
+                    this.log(`偵測到語言切換：從 [${this.state.sourceLang}] -> [${payload.lang}]。正在重置...`);
+                    await this.cleanup();
+                    // 重置後，旗標 hasActivated 會變回 false，流程會繼續往下走，如同首次啟動一樣
+                }
+
+                // 情況二：如果已經啟動，且語言也相同，代表是重複的數據塊，直接忽略
+                if (this.state.hasActivated) {
+                    return;
+                }
+                
+                // 情況三：首次啟動 (或重置後的啟動)
+                // 以當前收到的字幕語言為最終的翻譯來源語言
+                this.state.sourceLang = payload.lang;
+                
                 this.log(`成功捕獲 [${this.getFriendlyLangName(this.state.sourceLang)}] 字幕，啟動翻譯。`);
-                this.state.hasActivated = true;
-                this.activate(payload.payload);
+                this.state.hasActivated = true; // 設定啟動旗標
+                this.activate(payload.payload); // 啟動UI與翻譯流程
                 break;
         }
     }
@@ -242,15 +289,21 @@ class YouTubeSubtitleEnhancer {
     }
 
     async cleanup() {
-        // 功能: 清理所有由擴充功能產生的 UI 元件、事件監聽器，並重置狀態。
-        // input: 無。
-        // output: 無。
-        // 其他補充: 這是確保新舊影片狀態不互相干擾的關鍵函式。
+        // 功能: (反向握手版) 清理所有UI與狀態，並停止請求輪詢。
+        // input: 無
+        // output: 無
         this.log("正在執行徹底清理...");
         this.state.abortController?.abort();
+
+        // 【關鍵修正點】: 確保在清理時，停止任何正在進行的請求輪詢
+        if (this.requestIntervalId) {
+            clearInterval(this.requestIntervalId);
+            this.requestIntervalId = null;
+        }
+
         document.getElementById('enhancer-status-orb')?.remove();
         document.getElementById('enhancer-subtitle-container')?.remove();
-        this.removeGuidancePrompt();
+        document.getElementById('enhancer-manual-prompt')?.remove();
         if (this.state.videoElement) {
             this.state.videoElement.removeEventListener('timeupdate', this.handleTimeUpdate);
         }
@@ -492,6 +545,52 @@ class YouTubeSubtitleEnhancer {
         // input: 無。
         // output: 無。
         document.getElementById('enhancer-prompt-guide')?.remove();
+    }
+
+    showManualActivationPrompt() {
+        // 功能: 顯示一個5秒後自動消失的箭頭提示，引導使用者手動開啟字幕。
+        // input: 無
+        // output: 無 (操作 DOM)
+        // 其他補充: 這是路徑二和路徑四的統一 UI 行為。
+        if (document.getElementById('enhancer-manual-prompt')) return; // 防止重複創建
+
+        const playerContainer = document.getElementById('movie_player');
+        if (!playerContainer) return;
+
+        const promptContainer = document.createElement('div');
+        promptContainer.id = 'enhancer-manual-prompt';
+        promptContainer.className = 'enhancer-prompt-guide'; // 復用現有樣式基礎
+        
+        // 【關鍵修正點】: 創建使用者指定的 UI 內容
+        promptContainer.innerHTML = `
+            <div class="enhancer-prompt-box enhancer-manual-box">
+                可以手動開啟字幕進行翻譯
+            </div>
+        `;
+        
+        playerContainer.appendChild(promptContainer);
+
+        // 定位到 CC 按鈕附近 (如果找得到)
+        const ccButton = document.querySelector('.ytp-subtitles-button');
+        if (ccButton) {
+            const playerRect = playerContainer.getBoundingClientRect();
+            const ccRect = ccButton.getBoundingClientRect();
+            promptContainer.style.position = 'absolute';
+            promptContainer.style.left = `${ccRect.left - playerRect.left + (ccRect.width / 2)}px`;
+            promptContainer.style.bottom = `${playerRect.height - (ccRect.top - playerRect.top) + 15}px`;
+            promptContainer.style.transform = 'translateX(-50%)';
+        }
+
+        // 5秒後自動移除
+        setTimeout(() => {
+            promptContainer.style.opacity = '0';
+            setTimeout(() => promptContainer.remove(), 500); // 等待淡出動畫完成後移除DOM
+        }, 5000);
+        
+        // 為了讓元素出現時有淡入效果，延遲一小段時間再增加 opacity
+        setTimeout(() => {
+            promptContainer.style.opacity = '1';
+        }, 50);
     }
 
     getFriendlyLangName(langCode) {
