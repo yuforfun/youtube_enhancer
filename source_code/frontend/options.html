@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YT 字幕增強器 - 設定</title>
+    <link rel="stylesheet" href="popup.css">
+    <meta charset="UTF-8">
+</head>
+<body style="width: auto; max-width: 600px; margin: 0 auto; padding: 20px;">
+    
+    <div id="options-toast"></div>
+
+    <header class="header" style="margin-bottom: 20px;">
+        <h1>YT 字幕增強器 - 進階管理後台</h1>
+        <span class="version-badge">v2.0.0</span>
+    </header>
+
+    <div class="tab-nav">
+        <button class="tab-link active" data-tab="tab-main">主要設定</button>
+        <button class="tab-link" data-tab="tab-diag">診斷與日誌</button>
+    </div>
+
+    <div id="tab-main" class="tab-content active">
+        <div class="card">
+            <h2 class="card-title">語言偏好設定</h2>
+            <p class="card-hint">智慧匹配時，系統會從上到下檢查「偏好列表」，並跳過「忽略列表」中的語言。</p>
+            
+            <h3 class="card-subtitle">偏好語言列表 (可拖曳排序)</h3>
+            <ul id="preferred-lang-list" class="sortable-list"></ul>
+            
+            <h3 class="card-subtitle">忽略語言列表</h3>
+            <input type="text" id="ignored-lang-input" placeholder="參考下方清單，用逗號分隔代碼">
+
+            <details class="reference-details">
+                <summary>常用語言代碼參考 (點擊展開)</summary>
+                <ul class="reference-list">
+                    <li><code>ja</code> - 日文</li>
+                    <li><code>ko</code> - 韓文</li>
+                    <li><code>en</code> - 英文</li>
+                    <li><code>zh-Hant</code> - 繁體中文 (台灣、香港)</li>
+                    <li><code>zh-Hans</code> - 簡體中文 (中國、新加坡)</li>
+                    <li><code>vi</code> - 越南文</li>
+                    <li><code>th</code> - 泰文</li>
+                    <li><code>id</code> - 印尼文</li>
+                    <li><code>es</code> - 西班牙文</li>
+                    <li><code>fr</code> - 法文</li>
+                    <li><code>de</code> - 德文</li>
+                    <li><code>ru</code> - 俄文</li>
+                </ul>
+            </details>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">模型偏好設定 (可拖曳排序)</h2>
+            <p class="card-hint">點擊選取模型，使用箭頭按鈕在兩個列表間移動。僅「已選用模型」列表中的模型會被調用，您可以拖曳它們來調整嘗試順序。</p>
+            
+            <h3 class="card-subtitle">已選用模型 (會被調用)</h3>
+            <ul id="selected-models" class="model-list sortable-list"></ul>
+
+            <div class="model-controls">
+                <button id="add-model" title="新增選取">&#9650; (加入選用)</button>
+                <button id="remove-model" title="移除選取">&#9660; (移出選用)</button>
+            </div>
+
+            <h3 class="card-subtitle">可用模型</h3>
+            <ul id="available-models" class="model-list"></ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header-relative">
+                <h2 class="card-title">Prompt 自訂 (風格指南/對照表)</h2>
+                <button id="syncPromptExample" class="button-extra-small">同步範例</button>
+            </div>
+            <p class="card-hint">建議將自訂內容控制在 1000 字元內(不超過1500字元)。提醒：Prompt 越長，AI 處理時間越久且出錯可能增加。</p>
+            <div class="setting-row">
+                <label for="promptLanguageSelect">選擇語言</label>
+                <select id="promptLanguageSelect">
+                    <option value="ja">日文 (ja)</option>
+                    <option value="ko">韓文 (ko)</option>
+                    <option value="en">英文 (en)</option>
+                </select>
+            </div>
+            <textarea id="customPromptTextarea" rows="8" placeholder="在此輸入您的自訂風格指南和專有名詞對照表..."></textarea>
+            <div class="prompt-controls">
+                <button id="savePromptButton" class="button-primary">儲存 Prompt</button>
+                <button id="resetPromptButton" class="button-secondary">還原預設</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">進階外觀設定</h2>
+            <div class="setting-row">
+                <label for="fontFamilySelect">字體選擇</label>
+                <select id="fontFamilySelect">
+                     <optgroup label="通用">
+                        <option value="YouTube Noto, Roboto, sans-serif">YouTube 預設</option>
+                        <option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option>
+                    </optgroup>
+                    <optgroup label="Windows">
+                        <option value="Microsoft JhengHei, sans-serif">微軟正黑體 (預設)</option>
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tab-diag" class="tab-content">
+        <div class="card">
+            <h2 class="card-title">資料管理</h2>
+            <button id="clearCacheButton" class="button-secondary" style="width: 100%;">清除所有影片的翻譯暫存</button>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">API Key 診斷</h2>
+            <p class="card-hint">
+                此功能僅透過發送一個極小的測試請求來驗證金鑰的<b>基本有效性</b>（即金鑰是否存在且未被禁用）。
+                <br>
+                它<b>無法</b>檢測金鑰的剩餘用量或是否已達每日配額上限。
+            </p>
+            <button id="diagnoseKeysButton" class="button-primary" style="width: 100%;">開始診斷</button>
+            <div id="diagnose-results"></div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">狀態日誌 (僅顯示當前分頁的持續性錯誤)</h2>
+            <div id="error-log-container">
+                <p class="log-placeholder">目前沒有持續性錯誤紀錄。</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

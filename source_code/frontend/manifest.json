@@ -1,14 +1,17 @@
 {
     "manifest_version": 3,
     "name": "YouTube 字幕增強器",
-    "version": "1.0.0",
-    "description": "即時攔截並翻譯 YouTube 日文字幕。",
+    "version": "2.0.0",
+    "description": "即時攔截並翻譯 YouTube 字幕，提供智慧匹配、雙語顯示與高度客製化選項。",
     "permissions": [
         "storage",
+        "tabs",
+        "webNavigation",
         "scripting"
     ],
     "host_permissions": [
-        "https://www.youtube.com/*"
+        "https://www.youtube.com/*",
+        "http://127.0.0.1:5001/*"
     ],
     "action": {
         "default_popup": "popup.html",
@@ -28,7 +31,7 @@
             "matches": ["https://www.youtube.com/*"],
             "js": ["content.js"],
             "css": ["style.css"],
-            "run_at": "document_idle"
+            "run_at": "document_start"
         }
     ],
     "background": {
@@ -39,5 +42,9 @@
             "resources": ["injector.js"],
             "matches": ["https://www.youtube.com/*"]
         }
-    ]
+    ],
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    }
 }

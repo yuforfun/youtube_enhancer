@@ -1,193 +1,461 @@
 # ==============================================================================
-# YT Subtitle Enhancer - Backend with System Tray (v1.0.0 )
-# Copyright (c) 2025 [yuforfun]
+# YT Subtitle Enhancer - Backend
+#
+# @file backend.py
+# @author [yuforfun]
+# @copyright 2025 [yuforfun]
+# @license MIT
 #
 # This program is free software distributed under the MIT License.
-# You can find a copy of the license in the LICENSE file that should be
-# distributed with this software.
-#
-# This version runs the Flask server in a background thread and provides a
-# system tray icon for easy management and shutdown.
+# Version: 2.0.0
+# 待處理問題：語言選擇、log區 無實際功能
 # ==============================================================================
-
-# --- 核心函式庫 ---
-import sys
-import os
-import json
-import time
-import threading
+import sys, os, json, time, threading
+from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
-# --- 系統匣圖示相關 ---
 from pystray import MenuItem as item, Icon as icon
 from PIL import Image
-
-# --- Google Gemini API ---
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import ctypes # 【關鍵修正點】
+from ctypes import wintypes # 【關鍵修正點】
 
+def get_base_path():
+    # 功能: (最終修正版) 獲取應用程式執行的基礎路徑（.py 或 .exe 所在的目錄）。
+    # input: 無
+    # output: (字串) 基礎路徑
+    # 其他補充: 此函式現在專門用於定位外部檔案，例如 api_keys.txt。
+    if getattr(sys, 'frozen', False):
+        # 【關鍵修正點】: 在打包後的環境中，返回 .exe 檔案所在的目錄
+        return os.path.dirname(sys.executable)
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
 
-# --- 1. Flask App (伺服器核心邏輯) ---
+def set_hidden_attribute(file_path):
+    # 功能: 為指定的檔案路徑在 Windows 系統上設定「隱藏」屬性。
+    # input: file_path (字串) - 要設定為隱藏的檔案完整路徑。
+    # output: 無 (直接操作檔案系統)
+    # 其他補充: 使用 ctypes 直接呼叫 Windows Kernel32 API 來實現，主要用於自動建立的設定檔，使其不干擾使用者。
+    try:
+        # FILE_ATTRIBUTE_HIDDEN 的值為 0x2
+        attribute = 0x2
+        ret = ctypes.windll.kernel32.SetFileAttributesW(wintypes.LPWSTR(file_path), attribute)
+        if ret:
+            print(f"   -> 成功將 '{os.path.basename(file_path)}' 設定為隱藏檔案。", flush=True)
+        # 如果檔案本來就是隱藏的，ret 會是 0，但 GetLastError() 會是 183 (ERROR_ALREADY_EXISTS)，這是正常的
+        elif ctypes.windll.kernel32.GetLastError() != 183:
+            print(f"   -> 警告：無法設定 '{os.path.basename(file_path)}' 的隱藏屬性。", flush=True)
+    except Exception as e:
+        print(f"   -> 警告：設定隱藏屬性時發生錯誤: {e}", flush=True)
+
+# 區塊: DEFAULT_CORE_PROMPT_TEMPLATE
+# 功能: 定義一個給 Gemini AI 的核心指令模板。
+#      此模板包含了對 AI 角色的設定、任務描述、輸出格式範例，以及最終的執行指令。
+# input: 無 (靜態字串)
+# output: (字串) 包含佔位符 ({source_lang}, {json_input_text}) 的 Prompt 模板。
+# 其他補充: 這是整個翻譯功能的核心 Prompt，後續會與使用者自訂的 Prompt 結合使用。
+DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的使用者翻譯 YouTube 影片的自動字幕。
+你收到的{source_lang}原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。
+
+你的核心任務:
+發揮你的推理能力，理解原文的真實意圖，並直接翻譯成最自然、口語化的繁體中文。
+
+範例:
+- 輸入: ["こんにちは世界", "お元気ですか？"]
+- 你的輸出應為: ["哈囉世界", "你好嗎？"]
+
+執行指令:
+請嚴格遵循以上所有指南與對照表，**「逐句翻譯」**以下 JSON 陣列中的每一句{source_lang}，並將翻譯結果以**相同順序、相同數量的 JSON 陣列格式**回傳。
+
+{json_input_text}"""
+
+# 區塊: custom_prompts
+# 功能: 定義一個預設的使用者自訂 Prompt 字典。
+#      使用者可以透過編輯 custom_prompts.json 檔案，為不同語言（ja, ko, en）添加特定的風格指南或專有名詞對照表。
+# input: 無 (靜態字典)
+# output: (字典) 包含各語言預設提示內容的字典。
+custom_prompts = {
+    "ja": """**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者(日本偶像)的情感語氣。
+
+**人名/專有名詞對照表 (優先級最高):**
+無論上下文如何，只要看到左側的原文或讀音，就必須嚴格地翻譯為右側的詞彙。
+- まちだ / まち田 / まちだ けいた -> 町田啟太
+- さとう たける -> 佐藤健
+- しそん じゅん -> 志尊淳
+- しろたゆう -> 城田優
+- みやざき ゆう -> 宮崎優
+- 天ブランク -> TENBLANK
+- グラスハート -> 玻璃之心
+- Fujitani Naoki -> 藤谷直季
+- Takaoka Sho -> 高岡尚
+- Sakamoto Kazushi -> 坂本一志
+- 西條朱音 -> 西條朱音
+- 菅田將暉 -> 菅田將暉
+- ノブ -> ノブ
+""",
+    "ko": "--- 韓文自訂 Prompt (請在此輸入風格與對照表) ---",
+    "en": "--- 英文自訂 Prompt (請在此輸入風格與對照表) ---"
+}
 
 def load_config():
-    """載入與 exe 同目錄的 config.json 檔案"""
+    # 功能: 載入擴充功能的設定檔案，主要包含 API Keys 和自訂 Prompts。
+    # input: 無 (讀取 api_keys.txt 和 AppData 中的 custom_prompts.json)
+    # output: (字典) 包含設定的物件。
+    # 其他補充: API Keys 從程式目錄讀取，而使用者自訂的 Prompts 從 AppData 目錄讀取，以避免權限問題。
+    global custom_prompts
+    base_path = get_base_path()
+    config = {}
+
+    # 【關鍵修正點】: 定義 AppData 的儲存路徑
+    app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+    # 【關鍵修正點】: 如果路徑不存在，則建立它
+    os.makedirs(app_data_dir, exist_ok=True)
+    custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
+    
+    # --- API Key 載入邏輯 (維持不變) ---
+    test_keys_path = os.path.join(base_path, 'api_keys_test.txt')
+    default_keys_path = os.path.join(base_path, 'api_keys.txt')
+    keys_path_to_use = None
+
+    if os.path.exists(test_keys_path):
+        keys_path_to_use = test_keys_path
+        print("   -> 偵測到 'api_keys_test.txt'，將使用個人金鑰進行載入。", flush=True)
+    elif os.path.exists(default_keys_path):
+        keys_path_to_use = default_keys_path
+        print("   -> 未找到個人金鑰檔案，將使用 'api_keys.txt' (公開範本) 進行載入。", flush=True)
+    
     try:
-        # 確定 config.json 的路徑，對 .py 和 .exe 均有效
-        if getattr(sys, 'frozen', False):
-            base_path = os.path.dirname(sys.executable)
+        api_keys = []
+        if keys_path_to_use:
+            with open(keys_path_to_use, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        parts = line.split(',', 1)
+                        if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+                            api_keys.append({"name": parts[0].strip(), "key": parts[1].strip()})
         else:
-            base_path = os.path.dirname(os.path.abspath(__file__))
+            print("   -> 警告：找不到 'api_keys_test.txt' 或 'api_keys.txt'。API 金鑰為空。", flush=True)
+
+        config['GEMINI_API_KEYS'] = api_keys
+        config['KEYS_PATH_USED'] = keys_path_to_use
         
-        config_path = os.path.join(base_path, 'config.json')
-        
-        with open(config_path, 'r', encoding='utf-8') as f:
-            print(f"-> 正在從 {config_path} 載入設定...", flush=True)
-            return json.load(f)
+        # --- Custom Prompts 載入邏輯 (使用新的 AppData 路徑) ---
+        if os.path.exists(custom_prompts_path):
+            with open(custom_prompts_path, 'r', encoding='utf-8') as f:
+                loaded_prompts = json.load(f)
+                custom_prompts.update(loaded_prompts)
+            print(f"   -> 成功從 AppData 載入自訂 Prompt 檔案。", flush=True)
+        else:
+            print(f"   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔於 AppData。", flush=True)
+            with open(custom_prompts_path, 'w', encoding='utf-8') as f:
+                json.dump(custom_prompts, f, ensure_ascii=False, indent=2)
+            # 在 AppData 中，不需要特別設定為隱藏
+
+        if api_keys:
+            print(f"   -> 成功載入 {len(api_keys)} 個 API Key。", flush=True)
+        else:
+            print(f"   -> 警告：在設定檔中未找到任何有效的 API Key。", flush=True)
+        return config
+
     except Exception as e:
-        print(f"錯誤：載入設定檔時發生錯誤: {e}", flush=True)
+        print(f"錯誤：載入設定檔時發生未知錯誤: {e}", flush=True)
         return None
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "https://www.youtube.com"}})
-config = load_config()
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# 全域變數
-API_KEY_COOLDOWN_SECONDS = 60 
+config = None
+API_KEY_COOLDOWN_SECONDS = 60
 exhausted_key_timestamps = {}
 gemini_initialized_successfully = False
 
 def initialize_gemini():
-    """驗證 config.json 中至少有一個有效的 Gemini API Key"""
+    # 功能: 使用載入的 API Keys 逐一嘗試初始化並驗證 Google Gemini 服務。
+    # input: 無 (讀取全域變數 config)
+    # output: (布林值) 成功初始化任何一個 Key 則回傳 True，否則回傳 False。
+    # 其他補充: 只有成功通過此驗證，後端的翻譯 API 才會啟用。這能防止因無效金鑰導致的持續性錯誤。
     global gemini_initialized_successfully
     if not config: return False
-    
     api_keys = config.get('GEMINI_API_KEYS', [])
+    keys_path_to_use = config.get('KEYS_PATH_USED')
+
+    if not api_keys:
+        print("\n錯誤: 在設定檔中未找到任何有效的 API Key。", flush=True)
+        return False
+        
+    print("\n[API Key 驗證流程開始]", flush=True)
     for idx, key_info in enumerate(api_keys):
         key = key_info.get("key")
         name = key_info.get("name", f"Key #{idx + 1}")
-        if key and "在這裡貼上" not in key:
+        if key and "XXX" not in key:
             try:
                 print(f"-> 正在使用 API Key: '{name}' 進行啟動驗證...", flush=True)
                 genai.configure(api_key=key)
-                genai.list_models()
-                print("   -> 啟動驗證成功！", flush=True)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                model.generate_content("test", generation_config={"response_mime_type": "text/plain"})
+                print("   -> 啟動驗證成功！ Gemini 服務已就緒。", flush=True)
                 gemini_initialized_successfully = True
                 return True
             except Exception as e:
                 print(f"   -> API Key '{name}' 驗證失敗: {e}", flush=True)
                 continue
     
-    print("錯誤: config.json 中沒有任何一個有效的 Gemini API Key 可供啟動。", flush=True)
+    if keys_path_to_use:
+        print(f"\n錯誤: 在 '{os.path.basename(keys_path_to_use)}' 中沒有任何一個 API Key 能通過啟動驗證。", flush=True)
+    else:
+        print(f"\n錯誤: 在設定檔中沒有任何一個 API Key 能通過啟動驗證。", flush=True)
     gemini_initialized_successfully = False
     return False
 
 def _extract_strings_from_response(data, expected_len):
-    """從 AI 的回應中智慧提取字串列表"""
-    if not isinstance(data, list) or len(data) != expected_len: return None
-    if all(isinstance(item, str) for item in data): return data
-    if all(isinstance(item, dict) for item in data):
-        keys_to_try = ['translation', 'text', 'translatedText', 'output']
-        for key in keys_to_try:
-            if all(key in item for item in data):
-                try:
-                    extracted_list = [str(item[key]) for item in data]
-                    if all(isinstance(s, str) for s in extracted_list):
-                        return extracted_list
-                except Exception: continue
+    # 功能: 一個輔助函式，用於安全地從 Gemini API 的回應中提取翻譯結果。
+    # input: data (任意格式) - 從 API 回應解析出的 JSON 物件。
+    #        expected_len (整數) - 預期應有的句子數量。
+    # output: (列表) 如果 data 是格式正確的字串列表且長度相符，則回傳該列表；否則回傳 None。
+    # 其他補充: 這是確保 AI 回應格式正確性的重要防護措施。
+    if not isinstance(data, list) or len(data) != expected_len:
+        return None
+    if all(isinstance(item, str) for item in data):
+        return data
     return None
 
 @app.route('/api/translate', methods=['POST'])
 def translate():
-    """處理來自前端的翻譯請求"""
+    # 功能: 提供翻譯服務的核心 API 端點。
+    # input from: content.js -> sendBatchForTranslation 函式 (透過 HTTP POST 請求)
+    # output to: content.js -> sendBatchForTranslation 函式的回應 (以 HTTP JSON 格式)
+    # 其他補充: 此函式會遍歷所有可用的 API Keys 和使用者偏好的模型，直到成功翻譯或全部失敗為止。它也包含了對 API 用量超額的冷卻機制。
     global exhausted_key_timestamps
-    if not gemini_initialized_successfully: 
-        return jsonify({"error": "Gemini 後端未成功初始化"}), 500
+    if not gemini_initialized_successfully:
+        return jsonify({"error": "後端服務未成功初始化，請檢查 API Key 設定。"}), 500
+    try:
+        data = request.get_json()
+        texts = data.get('texts', [])
+        models_preference = data.get('models_preference', [])
+        source_lang_code = data.get('source_lang', 'ja')
+    except Exception as e:
+        return jsonify({"error": f"請求格式錯誤: {e}"}), 400
         
-    data = request.json
-    texts = data.get('texts', [])
     if not texts: return jsonify([])
     
+    if not models_preference:
+        models_preference = [
+            'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro',
+            'gemini-2.0-flash-lite', 'gemini-2.0-flash'
+        ]
+    
+    lang_map = {'ja': '日文', 'ko': '韓文', 'en': '英文'}
+    source_lang_name = lang_map.get(source_lang_code, '原文')
+    core_prompt = DEFAULT_CORE_PROMPT_TEMPLATE.format(source_lang=source_lang_name, json_input_text="{json_input_text}")
+    custom_prompt_part = custom_prompts.get(source_lang_code, "")
+    full_prompt_template = f"{custom_prompt_part}\n\n{core_prompt}"
     json_input = json.dumps(texts, ensure_ascii=False)
-    generation_config = {"response_mime_type": "application/json", "response_schema": {"type": "ARRAY", "items": {"type": "STRING"}}}
+    prompt = full_prompt_template.format(json_input_text=json_input)
+    
+    generation_config = {"response_mime_type": "application/json"}
     api_keys = config.get('GEMINI_API_KEYS', [])
-    model_preference = config.get('MODEL_PREFERENCE', [])
-    prompt_lines = config.get('GEMINI_PROMPT_TEMPLATE_LINES', [])
-    prompt_template = "\n".join(prompt_lines)
+    safety_settings = [
+        {"category": c, "threshold": HarmBlockThreshold.BLOCK_NONE}
+        for c in [
+            HarmCategory.HARM_CATEGORY_HARASSMENT, HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT
+        ]
+    ]
+    encountered_errors = set()
+    
+    print(f"\n[翻譯請求開始] - 語言: {source_lang_name}, 文本數: {len(texts)}, 模型偏好: {models_preference}", flush=True)
 
-    for key_index, key_info in enumerate(api_keys):
-        # ... (此處省略了與之前版本相同的 key 輪詢和翻譯邏輯) ...
-        # ... (請確保您貼上完整的函式) ...
-        key_name = key_info.get('name', f"Key #{key_index+1}")
-        if key_index in exhausted_key_timestamps and time.time() < exhausted_key_timestamps[key_index] + API_KEY_COOLDOWN_SECONDS:
+    for key_info in api_keys:
+        key_name = key_info.get('name', "未命名 Key")
+        current_key = key_info.get("key")
+        if current_key in exhausted_key_timestamps and time.time() < exhausted_key_timestamps[current_key] + API_KEY_COOLDOWN_SECONDS:
             continue
-        exhausted_key_timestamps.pop(key_index, None)
-        genai.configure(api_key=key_info.get("key"))
-        for model_name in model_preference:
+        exhausted_key_timestamps.pop(current_key, None)
+        genai.configure(api_key=current_key)
+        for model_name in models_preference:
+            print(f"-> 嘗試使用 Key: '{key_name}' 與 模型: '{model_name}'", flush=True)
             try:
                 model = genai.GenerativeModel(model_name)
-                prompt = prompt_template.format(json_input_text=json_input)
-                response = model.generate_content(prompt, generation_config=generation_config)
+                response = model.generate_content(prompt, generation_config=generation_config, safety_settings=safety_settings)
                 final_list = _extract_strings_from_response(json.loads(response.text), len(texts))
                 if final_list is not None:
+                    print(f"   -> 成功！使用 Key: '{key_name}', 模型: '{model_name}' 完成翻譯。", flush=True)
                     return jsonify(final_list)
                 else:
-                    raise ValueError("AI 回傳格式無法解析")
-            except Exception as e:
-                if "quota" in str(e).lower():
-                    exhausted_key_timestamps[key_index] = time.time()
-                    break
-                else:
+                    encountered_errors.add(f"模型 '{model_name}' 回傳格式錯誤。")
                     continue
-    return jsonify({"error": "所有 API Key 當前均不可用。"}), 503
+            except Exception as e:
+                error_str = str(e)
+                if "quota" in error_str.lower() or "billing" in error_str.lower():
+                    msg = f"[ACCOUNT_ISSUE] API Key '{key_name}' 已達用量上限或帳戶計費設置無效。"
+                    print(f"   -> {msg}", flush=True)
+                    encountered_errors.add(msg)
+                    exhausted_key_timestamps[current_key] = time.time()
+                    break 
+                else:
+                    msg = f"模型 '{model_name}' 發生錯誤: {error_str}"
+                    print(f"   -> {msg}", flush=True)
+                    encountered_errors.add(msg)
+                    continue 
+                    
+    error_summary = "； ".join(encountered_errors) if encountered_errors else "未知原因"
+    print(f"錯誤: 所有模型與 API Key 均嘗試失敗。原因: {error_summary}", flush=True)
+    return jsonify({"error": f"所有模型與 API Key 均嘗試失敗。原因: {error_summary}"}), 503
 
-# --- 2. 系統匣圖示邏輯 ---
+@app.route('/api/prompts/custom', methods=['GET'])
+def get_custom_prompts():
+    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能獲取當前儲存的自訂 Prompts。
+    # input from: options.html -> loadCustomPrompts 函式 (透過 HTTP GET 請求)
+    # output to: options.html -> loadCustomPrompts 函式的回應
+    print("[API 請求] GET /api/prompts/custom", flush=True)
+    return jsonify(custom_prompts)
+
+@app.route('/api/prompts/custom', methods=['POST'])
+def set_custom_prompts():
+    # 功能: 提供一個 API 端點，讓設定頁面能儲存更新後的自訂 Prompts。
+    # input: 來自 options.html 的 HTTP POST 請求。
+    # output: HTTP JSON 回應。
+    # 其他補充: 儲存時會覆寫 AppData 中的 custom_prompts.json 檔案。
+    global custom_prompts
+    try:
+        data = request.get_json()
+        if not data or not isinstance(data, dict): return jsonify({"error": "請求格式錯誤"}), 400
+        
+        valid_langs = {"ja", "ko", "en"}
+        if not all(key in valid_langs and isinstance(value, str) for key, value in data.items()):
+            return jsonify({"error": "無效的語言代碼或內容格式"}), 400
+            
+        # 【關鍵修正點】: 使用與 load_config 中一致的 AppData 路徑
+        app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+        os.makedirs(app_data_dir, exist_ok=True) # 再次確保目錄存在
+        custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
+        
+        with open(custom_prompts_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        custom_prompts.update(data)
+        print("[API 請求] POST /api/prompts/custom - 成功儲存至 AppData。", flush=True)
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"錯誤：更新自訂 Prompt 失敗。原因: {e}", flush=True)
+        return jsonify({"error": f"伺服器錯誤: {e}"}), 500
+
+@app.route('/api/keys/diagnose', methods=['POST'])
+def diagnose_api_keys():
+    # 功能: 提供一個 API 端點，讓設定頁面 (options.html) 能診斷所有 API Keys 的基本有效性。
+    # input from: options.html -> diagnoseKeysButton 的點擊事件 (透過 HTTP POST 請求)
+    # output to: options.html -> diagnoseKeysButton 事件的回應
+    # 其他補充: 此功能不會檢測金鑰的剩餘配額。
+    print("[API 請求] POST /api/keys/diagnose", flush=True)
+    try:
+        keys_to_test = config.get('GEMINI_API_KEYS', [])
+        if not keys_to_test:
+            return jsonify([{"name": "無", "status": "skipped", "error": "後端設定檔中未找到任何 API Keys"}])
+        results = []
+        for key_info in keys_to_test:
+            key = key_info.get("key")
+            name = key_info.get("name", "未命名 Key")
+            if not key or "XXX" in key:
+                results.append({"name": name, "status": "skipped", "error": "金鑰為空或包含預留位置"})
+                continue
+            try:
+                genai.configure(api_key=key)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                model.generate_content("test", generation_config={"response_mime_type": "text/plain"})
+                results.append({"name": name, "status": "valid"})
+            except Exception as e:
+                results.append({"name": name, "status": "invalid", "error": str(e)})
+        return jsonify(results)
+    except Exception as e:
+        print(f"錯誤：API Key 診斷失敗。原因: {e}", flush=True)
+        return jsonify({"error": f"伺服器錯誤: {e}"}), 500
 
 def quit_action(icon, item):
-    """點擊「結束」選單時觸發的動作"""
-    print("-> 收到關閉指令，正在關閉伺服器...", flush=True)
+    # 功能: 定義系統匣圖示中「結束」按鈕的行為。
+    # input: icon, item - 由 pystray 函式庫傳入的物件。
+    # output: 無 (直接結束程式)
+    print("\n-> 收到關閉指令，正在關閉伺服器...", flush=True)
     icon.stop()
-    os._exit(0) # 強制結束所有執行緒
+    os._exit(0)
 
 def run_tray_icon():
-    """建立並運行系統匣圖示"""
-    if getattr(sys, 'frozen', False):
-        base_path = os.path.dirname(sys.executable)
-    else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
+    # 功能: (最終修正版) 建立並執行系統匣圖示，並使用正確的路徑邏輯尋找圖示。
+    # input: 無
+    # output: 無
+    # 其他補充: 它現在擁有獨立的路徑判斷邏輯，專門用於尋找被打包進來的內部資源。
     
-    image_path = os.path.join(base_path, 'server_icon.png')
+    # 【關鍵修正點】: 針對被打包的內部資源，使用 sys._MEIPASS
+    if getattr(sys, 'frozen', False):
+        # 在 .exe 環境中，圖示位於解壓縮後的暫存資料夾
+        image_path = os.path.join(sys._MEIPASS, 'server_icon.png')
+    else:
+        # 在 .py 環境中，圖示與腳本在同一目錄
+        base_path = get_base_path()
+        image_path = os.path.join(base_path, 'server_icon.png')
 
     try:
         image = Image.open(image_path)
     except FileNotFoundError:
-        print(f"錯誤：找不到系統匣圖示檔案 'server_icon.png'！系統匣功能將無法啟用。", flush=True)
+        print(f"錯誤：找不到系統匣圖示檔案 'server_icon.png'！", flush=True)
+        # 在 .exe 模式下，如果找不到圖示，用彈出視窗提示，防止程式閃退
+        if getattr(sys, 'frozen', False):
+            ctypes.windll.user32.MessageBoxW(0, "找不到必要的圖示檔案 'server_icon.png'，程式無法啟動。", "YT 字幕增強器後端 - 致命錯誤", 0x10)
         return
 
     menu = (item('結束 (Quit)', quit_action),)
     tray_icon = icon("YT_Subtitle_Backend", image, "YT 字幕增強器後端", menu)
-    
     print("-> 系統匣圖示已建立，程式在背景運行中。", flush=True)
     tray_icon.run()
 
-# --- 3. 主執行區塊 ---
-
 if __name__ == '__main__':
+    # 功能: 整個後端服務的啟動入口點。
+    # input: 無
+    # output: 無
+    # 其他補充: 增加了對 windowed 模式下啟動失敗的圖形化錯誤提示。
     print("="*50, flush=True)
-    print("YT 字幕增強器後端 v1.0.0", flush=True)
+    print("YT 字幕增強器後端 v1.7.0", flush=True)
     print("="*50, flush=True)
-
+    config = load_config()
+    
     if not config or not initialize_gemini():
-        # 在 GUI 模式下，print 可能看不到，所以 input 更為可靠
-        input("初始化失敗，請檢查 config.json 與 API Key 後按 Enter 結束...")
+        # 【關鍵修正點】: 這是修正 stdin 錯誤的核心邏輯
+        error_title = "YT 字幕增強器後端 - 啟動失敗"
+        error_message_console = (
+            "\n[!] 初始化失敗，後端服務無法啟動。\n"
+            "請檢查：\n"
+            "  1. 'api_keys_test.txt' 或 'api_keys.txt' 檔案是否存在且格式正確 (名稱,金鑰)。\n"
+            "  2. API 金鑰是否有效且有足夠的配額。\n"
+            "  3. 電腦的網路連線是否正常。"
+        )
+        print(error_message_console, flush=True)
+
+        # 判斷是否在打包後的 .exe 環境中執行
+        if getattr(sys, 'frozen', False):
+            # 在 .exe 環境中，彈出圖形化視窗
+            error_message_gui = (
+                "初始化失敗，後端服務無法啟動。\n\n"
+                "請檢查：\n"
+                "  • 'api_keys.txt' 檔案是否存在且格式正確。\n"
+                "  • API 金鑰是否有效且有足夠的配額。\n"
+                "  • 電腦的網路連線是否正常。\n\n"
+                "程式即將結束。"
+            )
+            # MB_OK = 0x0, MB_ICONERROR = 0x10
+            ctypes.windll.user32.MessageBoxW(0, error_message_gui, error_title, 0x10)
+        else:
+            # 在 .py 開發環境中，維持主控台暫停
+            input("\n請按 Enter 鍵結束程式...")
+        
         sys.exit(1)
+    
+    def run_flask_server():
+        app.run(host='127.0.0.1', port=5001, debug=False, use_reloader=False)
 
-    # 將 Flask 伺服器放到一個背景執行緒中
-    flask_thread = threading.Thread(
-        target=lambda: app.run(host='127.0.0.1', port=5001), 
-        daemon=True
-    )
+    flask_thread = threading.Thread(target=run_flask_server, daemon=True)
     flask_thread.start()
-    print("-> 後端 Flask 伺服器已在背景執行緒啟動 (http://127.0.0.1:5001)。", flush=True)
 
-    # 在主執行緒中運行系統匣圖示
+    print("\n-> 後端 Flask 伺服器已在背景執行緒啟動 (http://127.0.0.1:5001)。", flush=True)
     run_tray_icon()

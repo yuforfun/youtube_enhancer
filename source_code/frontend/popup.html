@@ -2,55 +2,50 @@
 <html>
 <head>
     <title>YT 字幕增強器</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="popup.css">
     <meta charset="UTF-8">
 </head>
 <body>
-
-    <div class="header">
+    <header class="header">
         <h1>YT 字幕增強器</h1>
-        <span class="version-badge">v1.0.0</span>
-    </div>
-
-    <div class="card">
-        <div class="card-title">顯示設定</div>
-        <div class="setting-row">
-            <label for="fontSizeSlider">字體大小</label>
-            <input type="range" id="fontSizeSlider" min="14" max="40" step="1" value="22">
-            <span id="fontSizeValue">22px</span>
-        </div>
-        <div class="setting-row">
-            <label for="fontFamilySelect">字幕字體</label>
-            <select id="fontFamilySelect">
-                <option value='"YouTube Noto", Roboto, "Arial Unicode Ms", Arial, Helvetica, Verdana, "PT Sans Caption", sans-serif'>YouTube 預設</option>
-                <option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option>
-                <option value="Noto Serif TC, serif">思源宋體 (推薦/網路)</option>
-                <option value="Microsoft JhengHei, sans-serif">微軟正黑體 (Windows 預設)</option>
-                <option value="KaiTi, serif">標楷體 (需本機安裝且名稱匹配)</option>
-            </select>
-        </div>
-        <div class="setting-row">
-            <label>顯示模式</label>
-            <div class="checkbox-group">
-                <input type="checkbox" id="showOriginal" checked>
-                <label for="showOriginal">原文</label>
-                <input type="checkbox" id="showTranslated" checked>
-                <label for="showTranslated">翻譯</label>
-            </div>
-        </div>
-    </div>
+        <span class="version-badge">v2.0.0</span>
+    </header>
 
     <div class="card">
         <button id="toggleButton">讀取中...</button>
-        <div id="status">未知</div>
+        <div id="status" class="status-text">未知</div>
     </div>
 
     <div class="card">
-        <button id="clearCacheButton" class="secondary">清除所有暫存</button>
+        <button id="forceRerunButton" class="button-secondary">重新翻譯當前影片</button>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">即時設定</h2>
+        <!--
+        <div class="setting-row">
+             <label for="overrideLanguageSelect" title="手動指定本次翻譯要使用的來源語言，會覆蓋智慧匹配的結果。">自訂來源語言</label>
+            <select id="overrideLanguageSelect">
+                <option value="auto">自動 (推薦)</option>
+                </select>
+        </div>
+        -->
+        <div class="setting-row">
+            <label>顯示模式</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showOriginal"><label for="showOriginal">原文</label>
+                <input type="checkbox" id="showTranslated"><label for="showTranslated">翻譯</label>
+            </div>
+        </div>
+         <div class="setting-row">
+            <label for="fontSizeSlider">字體大小</label>
+            <input type="range" id="fontSizeSlider" min="14" max="40" step="1">
+            <span id="fontSizeValue" class="value-display">22px</span>
+        </div>
+    </div>
+    
+    <div class="card" style="padding: 8px;">
+        <button id="openOptionsButton" class="button-secondary" style="width: 100%; margin: 0;">進階管理後台</button>
     </div>
     
     <script src="popup.js"></script>

@@ -1,4 +1,14 @@
-/* 【核心修改】讓容器預設不攔截滑鼠事件，讓點擊可以“穿透” */
+/**
+ * @file style.css
+ * @author [yuforfun]
+ * @copyright 2025 [yuforfun]
+ * @license MIT
+ *
+ * This program is free software distributed under the MIT License.
+ * Version: 2.0.0
+ */
+
+/* 字幕容器 */
 #enhancer-subtitle-container {
     position: absolute;
     bottom: 2%;
@@ -6,11 +16,11 @@
     transform: translateX(-50%);
     color: white;
     font-size: 22px;
-    font-family: "YouTube Noto", Roboto, "Arial Unicode Ms", Arial, Helvetica, Verdana, "PT Sans Caption", sans-serif;
+    font-family: "YouTube Noto", Roboto, sans-serif;
     text-shadow: 2px 2px 3px #000, -2px -2px 3px #000, 2px -2px 3px #000, -2px 2px 3px #000;
     text-align: center;
     width: 80%;
-    pointer-events: none; /* <--- 關鍵修改點：從 auto 改為 none */
+    pointer-events: none;
     z-index: 2147483647;
     line-height: 1.4;
     display: flex;
@@ -25,50 +35,185 @@
     display: inline-block;
     margin-bottom: 4px;
     white-space: pre-wrap;
-    /* 這個 pointer-events: none; 現在可以繼承自父級，但保留也無妨 */
 }
 
-/* 【核心修改】只讓重試連結可以被點擊 */
-.enhancer-retry-link {
-    font-weight: bold;
-    color: #ffadad;
-    text-decoration: underline;
-    cursor: pointer;
-    pointer-events: auto; /* <--- 關鍵修改點：明確設定為 auto，覆蓋父級的 none */
-}
-
-.enhancer-retry-link:hover {
-    color: #ff7575;
-}
-
-
-.enhancer-ja-line {
+.enhancer-original-line {
     opacity: 0.85;
     font-size: 0.85em;
 }
 
-.enhancer-zh-line {
+.enhancer-translated-line {
     font-weight: bold;
 }
 
-#enhancer-toast {
+.enhancer-placeholder {
+    color: #b0b0b0;
+    font-style: italic;
+}
+
+/* 錯誤/重試行 */
+.enhancer-error-line {
+    background-color: rgba(180, 40, 40, 0.8);
+    color: #fff;
+}
+.enhancer-error-line a {
+    font-weight: bold;
+    color: #ffdddd;
+    text-decoration: underline;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.enhancer-error-line a:hover {
+    color: #ffffff;
+}
+
+/* 【關鍵修正點】: 新增在地化引導提示框樣式 */
+#enhancer-prompt-guide {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    z-index: 2147483647;
-    font-size: 16px;
-    font-family: sans-serif;
+    /* 初始定位在播放器最上方，後續會被 JS 調整到 CC 按鈕上方 */
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2147483647; /* 確保在最上層 */
+    pointer-events: none; /* 讓點擊能穿透到下方的 CC 按鈕 */
+    text-align: center;
     opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
+    transition: opacity 0.5s ease-in-out;
+}
+
+#enhancer-prompt-guide.show {
+    opacity: 1;
+}
+
+.enhancer-prompt-box {
+    background-color: #fce7f3; /* 淺粉色背景，吸引注意力 */
+    color: #9d174d; /* 深紅色文字 */
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    display: inline-block;
+    margin-bottom: 15px; /* 為箭頭留出空間 */
+}
+
+/* 提示框下方的向下箭頭 */
+.enhancer-prompt-box::after {
+    content: '';
+    position: absolute;
+    bottom: -10px; /* 定位在框底部 */
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0;
+    border-style: solid;
+    border-color: #fce7f3 transparent transparent transparent; /* 匹配背景色 */
+}
+
+.enhancer-prompt-arrow {
+    display: block;
+    font-size: 24px;
+    line-height: 0.5;
+    color: #9d174d;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* --- 狀態圓環 (右上角) --- */
+/* 【關鍵修正點】: 加大圓圈尺寸並移除旋轉相關的樣式 */
+#enhancer-status-orb {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 42px; /* 修正: 加大到 42px 以容納 100% */
+    height: 42px; /* 修正: 加大到 42px */
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.8); /* 略微加深背景 */
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+    color: white;
+    font-weight: bold;
+    cursor: default;
+    transition: opacity 0.5s, transform 0.3s;
+    overflow: hidden; 
+}
+
+#enhancer-status-orb div {
+    font-size: 16px; 
+    line-height: normal; 
+}
+
+/* 【關鍵修正點】: 徹底移除 @keyframes spin 的定義。 */
+
+
+/* 針對有數字進度的狀態，縮小字體 */
+#enhancer-status-orb.state-translating.progress div {
+    font-size: 14px;
+}
+
+/* 成功/暫存狀態: 綠色 */
+#enhancer-status-orb.state-success,
+#enhancer-status-orb.state-cached {
+    background-color: #28a745;
+}
+#enhancer-status-orb.fade-out {
+    opacity: 0;
     pointer-events: none;
 }
 
-#enhancer-toast.show {
-    opacity: 1;
-    visibility: visible;
+/* 錯誤狀態: 紅色, 可點擊 */
+#enhancer-status-orb.state-error {
+    background-color: #dc3545;
+    cursor: pointer;
+    transform: scale(1.0);
+}
+#enhancer-status-orb.state-error:hover {
+    transform: scale(1.1);
+}
+/* 【關鍵修正點】: 新增最高優先級的原生字幕隱藏規則 */
+/* 當 #movie_player 元素擁有 .yt-enhancer-active 這個 class 時，
+   強制將其內部的原生字幕容器隱藏，!important 確保不會被 YT 的 JS 覆蓋。*/
+#movie_player.yt-enhancer-active .ytp-caption-window-container {
+    display: none !important;
+}
+/* --- 手動啟用提示 (5秒箭頭) --- */
+#enhancer-manual-prompt {
+    /* 初始狀態為透明，透過 JS 修改 opacity 來觸發淡入效果 */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 2147483647;
+    pointer-events: none;
+    text-align: center;
+}
+
+.enhancer-manual-box {
+    background-color: #181818;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+/* 提示框下方的向下箭頭 */
+.enhancer-manual-box::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; /* 箭頭位置 */
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px 8px 0;
+    border-style: solid;
+    border-color: #181818 transparent transparent transparent;
 }
