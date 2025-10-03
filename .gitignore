@@ -17,6 +17,7 @@ api_keys_test.txt
 __pycache__/
 *.pyc
 
+
 # 忽略 Conda/Venv 環境資料夾 (如果未來有的話)
 /envs/
 /venv/
@@ -25,3 +26,15 @@ __pycache__/
 # 忽略敏感資訊檔
 .env
 *.env
+
+# ==================================
+# PyInstaller build artifacts
+# ==================================
+# 忽略所有名為 build 的資料夾
+build/
+
+# 忽略所有名為 dist 的資料夾 (PyInstaller 的輸出目錄)
+dist/
+
+# 忽略所有以 .spec 結尾的檔案
+*.spec

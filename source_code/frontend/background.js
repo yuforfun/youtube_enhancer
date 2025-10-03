@@ -5,8 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 1.6.0 目前版本使用自動擷取字幕可以順利進行
- * 待處理問題 暫存 UI 字幕列表 log區
+ * Version: 2.0.0
  */
 'use strict';
 
@@ -40,7 +39,7 @@ const defaultSettings = {
     showOriginal: true,
     showTranslated: true,
     preferred_langs: ['ja', 'ko', 'en'],
-    ignored_langs: ['zh-Hant', 'zh-Hans', 'zh-CN', 'zh-TW']
+    ignored_langs: ['zh-Hant']
 };
 
 

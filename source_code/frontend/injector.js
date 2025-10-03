@@ -6,7 +6,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 7.3 (修正 injector.js ([實現「狀態感知」反向握手 - 資料守門員]))
+ * Version: 2.0.0
  */
 (function() {
     'use strict';

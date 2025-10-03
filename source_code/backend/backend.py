@@ -7,7 +7,8 @@
 # @license MIT
 #
 # This program is free software distributed under the MIT License.
-# Version: 1.6.0
+# Version: 2.0.0
+# 待處理問題：語言選擇、log區 無實際功能
 # ==============================================================================
 import sys, os, json, time, threading
 from datetime import datetime
@@ -21,13 +22,12 @@ import ctypes # 【關鍵修正點】
 from ctypes import wintypes # 【關鍵修正點】
 
 def get_base_path():
-    # 功能: 獲取應用程式執行的基礎路徑。
-    #      在正常執行 .py 檔案時，回傳腳本所在目錄；
-    #      在被 PyInstaller 打包成 .exe 後執行時，回傳 .exe 所在目錄。
-    # input: 無 (讀取系統變數)
+    # 功能: (最終修正版) 獲取應用程式執行的基礎路徑（.py 或 .exe 所在的目錄）。
+    # input: 無
     # output: (字串) 基礎路徑
-    # 其他補充: 這是確保無論開發或部署環境，都能正確找到相依檔案 (如設定檔、圖示) 的關鍵函式。
+    # 其他補充: 此函式現在專門用於定位外部檔案，例如 api_keys.txt。
     if getattr(sys, 'frozen', False):
+        # 【關鍵修正點】: 在打包後的環境中，返回 .exe 檔案所在的目錄
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +55,7 @@ def set_hidden_attribute(file_path):
 # input: 無 (靜態字串)
 # output: (字串) 包含佔位符 ({source_lang}, {json_input_text}) 的 Prompt 模板。
 # 其他補充: 這是整個翻譯功能的核心 Prompt，後續會與使用者自訂的 Prompt 結合使用。
-DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的粉絲翻譯 YouTube 影片的自動字幕。
+DEFAULT_CORE_PROMPT_TEMPLATE = """你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的使用者翻譯 YouTube 影片的自動字幕。
 你收到的{source_lang}原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。
 
 你的核心任務:
@@ -382,38 +382,73 @@ def quit_action(icon, item):
     os._exit(0)
 
 def run_tray_icon():
-    # 功能: 建立並執行一個 Windows 系統匣的背景圖示，讓使用者可以手動關閉後端服務。
+    # 功能: (最終修正版) 建立並執行系統匣圖示，並使用正確的路徑邏輯尋找圖示。
     # input: 無
-    # output: 無 (顯示一個系統匣圖示)
-    base_path = get_base_path()
-    image_path = os.path.join(base_path, 'server_icon.png')
+    # output: 無
+    # 其他補充: 它現在擁有獨立的路徑判斷邏輯，專門用於尋找被打包進來的內部資源。
+    
+    # 【關鍵修正點】: 針對被打包的內部資源，使用 sys._MEIPASS
+    if getattr(sys, 'frozen', False):
+        # 在 .exe 環境中，圖示位於解壓縮後的暫存資料夾
+        image_path = os.path.join(sys._MEIPASS, 'server_icon.png')
+    else:
+        # 在 .py 環境中，圖示與腳本在同一目錄
+        base_path = get_base_path()
+        image_path = os.path.join(base_path, 'server_icon.png')
+
     try:
         image = Image.open(image_path)
     except FileNotFoundError:
         print(f"錯誤：找不到系統匣圖示檔案 'server_icon.png'！", flush=True)
+        # 在 .exe 模式下，如果找不到圖示，用彈出視窗提示，防止程式閃退
+        if getattr(sys, 'frozen', False):
+            ctypes.windll.user32.MessageBoxW(0, "找不到必要的圖示檔案 'server_icon.png'，程式無法啟動。", "YT 字幕增強器後端 - 致命錯誤", 0x10)
         return
+
     menu = (item('結束 (Quit)', quit_action),)
     tray_icon = icon("YT_Subtitle_Backend", image, "YT 字幕增強器後端", menu)
     print("-> 系統匣圖示已建立，程式在背景運行中。", flush=True)
     tray_icon.run()
 
 if __name__ == '__main__':
-# 功能: 整個後端服務的啟動入口點。
-# input: 無
-# output: 無
-# 其他補充: 依序執行設定載入、Gemini 初始化、啟動 Flask 伺服器執行緒，以及建立系統匣圖示。若初始化失敗，會提示使用者檢查設定並結束程式。
+    # 功能: 整個後端服務的啟動入口點。
+    # input: 無
+    # output: 無
+    # 其他補充: 增加了對 windowed 模式下啟動失敗的圖形化錯誤提示。
     print("="*50, flush=True)
     print("YT 字幕增強器後端 v1.7.0", flush=True)
     print("="*50, flush=True)
     config = load_config()
     
     if not config or not initialize_gemini():
-        print("\n[!] 初始化失敗，後端服務無法啟動。")
-        print("請檢查：")
-        print("  1. 'api_keys_test.txt' 或 'api_keys.txt' 檔案是否存在且格式正確 (名稱,金鑰)。")
-        print("  2. API 金鑰是否有效且有足夠的配額。")
-        print("  3. 電腦的網路連線是否正常。")
-        input("\n請按 Enter 鍵結束程式...")
+        # 【關鍵修正點】: 這是修正 stdin 錯誤的核心邏輯
+        error_title = "YT 字幕增強器後端 - 啟動失敗"
+        error_message_console = (
+            "\n[!] 初始化失敗，後端服務無法啟動。\n"
+            "請檢查：\n"
+            "  1. 'api_keys_test.txt' 或 'api_keys.txt' 檔案是否存在且格式正確 (名稱,金鑰)。\n"
+            "  2. API 金鑰是否有效且有足夠的配額。\n"
+            "  3. 電腦的網路連線是否正常。"
+        )
+        print(error_message_console, flush=True)
+
+        # 判斷是否在打包後的 .exe 環境中執行
+        if getattr(sys, 'frozen', False):
+            # 在 .exe 環境中，彈出圖形化視窗
+            error_message_gui = (
+                "初始化失敗，後端服務無法啟動。\n\n"
+                "請檢查：\n"
+                "  • 'api_keys.txt' 檔案是否存在且格式正確。\n"
+                "  • API 金鑰是否有效且有足夠的配額。\n"
+                "  • 電腦的網路連線是否正常。\n\n"
+                "程式即將結束。"
+            )
+            # MB_OK = 0x0, MB_ICONERROR = 0x10
+            ctypes.windll.user32.MessageBoxW(0, error_message_gui, error_title, 0x10)
+        else:
+            # 在 .py 開發環境中，維持主控台暫停
+            input("\n請按 Enter 鍵結束程式...")
+        
         sys.exit(1)
     
     def run_flask_server():

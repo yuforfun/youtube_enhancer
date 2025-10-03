@@ -5,7 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 1.6.0
+ * Version: 2.0.0
  *
  * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
 - 保留說話者（例如：偶像、實況主）活潑或溫柔的語氣。
 
 **人名/專有名詞對照表 (優先級最高):**
-- しそん じゅん -> 志尊 淳
-- さとう たける -> 佐藤 健
-- まちだ けいた -> 町田 啟太
+- しそん じゅん -> 志尊淳
+- さとう たける -> 佐藤健
+- まちだ けいた -> 町田啟太
 `;
 
     // --- 通用函數 ---
