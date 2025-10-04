@@ -34,6 +34,7 @@ jobs:
           pip install -r source_code/backend/requirements.txt
 
       - name: Create api_keys.txt from secret
+        # 【關鍵修正點】: 修正第 37 行的語法
         if: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
           echo "CI_KEY,${{ secrets.GEMINI_API_KEY }}" > source_code/backend/api_keys.txt
@@ -73,8 +74,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r source_code/backend/requirements.txt
       
-      # 【關鍵修正點】: 為 Linux 任務也加上相同的步驟
       - name: Create api_keys.txt from secret
+        # 【關鍵修正點】: 修正第 78 行的語法
         if: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
           echo "CI_KEY,${{ secrets.GEMINI_API_KEY }}" > source_code/backend/api_keys.txt
