@@ -1,0 +1,92 @@
+# .github/workflows/macos-test.yml
+
+# 工作流程的名稱
+name: Cross-Platform Backend Startup Test
+
+# 這個自動化任務的觸發條件
+on:
+  push:
+    branches: [ "development", "feature/**" ] # 當推送到 development 或 feature/ 開頭的分支時觸發
+  pull_request:
+    branches: [ "development" ] # 當有 PR 指向 development 分支時觸發
+  workflow_dispatch: # 允許手動觸發
+
+jobs:
+  # ===============================================
+  # 任務一：在 macOS 環境中進行測試
+  # ===============================================
+  build-and-test-on-macos:
+    # 任務的顯示名稱
+    name: Test on macOS
+    # 指定要運行的作業系統
+    runs-on: macos-latest
+
+    steps:
+      # 第一步：將您倉庫中的程式碼下載到虛擬機中
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 第二步：設定 Python 3.9 環境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # 第三步：安裝後端所需的相依套件
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r source_code/backend/requirements.txt
+      
+      # 第四步：嘗試啟動後端程式 (關鍵測試)
+      - name: Run backend script for a short time to check for startup errors
+        run: |
+          echo "Attempting to start backend.py in the background..."
+          python source_code/backend/backend.py &
+          PID=$!
+          sleep 5
+          if kill -0 $PID 2>/dev/null; then
+            echo "SUCCESS: The backend process is still running after 5 seconds."
+            kill $PID # 成功後，手動結束測試
+          else
+            echo "FAILURE: The backend process crashed on startup."
+            exit 1
+          fi
+
+  # ===============================================
+  # 【關鍵修正點】: 新增的 Linux 測試任務
+  # ===============================================
+  build-and-test-on-linux:
+    # 任務的顯示名稱
+    name: Test on Linux
+    # 指定要運行的作業系統 (使用標準的 Ubuntu 環境)
+    runs-on: ubuntu-latest
+
+    steps:
+      # 所有步驟都和 macOS 完全一樣，因為我們的腳本是跨平台的
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r source_code/backend/requirements.txt
+      
+      - name: Run backend script for a short time to check for startup errors
+        run: |
+          echo "Attempting to start backend.py in the background..."
+          python source_code/backend/backend.py &
+          PID=$!
+          sleep 5
+          if kill -0 $PID 2>/dev/null; then
+            echo "SUCCESS: The backend process is still running after 5 seconds."
+            kill $PID
+          else
+            echo "FAILURE: The backend process crashed on startup."
+            exit 1
+          fi

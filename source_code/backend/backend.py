@@ -7,19 +7,22 @@
 # @license MIT
 #
 # This program is free software distributed under the MIT License.
-# Version: 2.0.0
+# Version: 2.1.0 (Cross-Platform)
 # 待處理問題：語言選擇、log區 無實際功能
 # ==============================================================================
 import sys, os, json, time, threading
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from pystray import MenuItem as item, Icon as icon
-from PIL import Image
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-import ctypes # 【關鍵修正點】
-from ctypes import wintypes # 【關鍵修正點】
+
+# 【關鍵修正點】: 根據作業系統決定是否載入 Windows 專用模組
+if sys.platform == 'win32':
+    from pystray import MenuItem as item, Icon as icon
+    from PIL import Image
+    import ctypes
+    from ctypes import wintypes
 
 def get_base_path():
     # 功能: (最終修正版) 獲取應用程式執行的基礎路徑（.py 或 .exe 所在的目錄）。
@@ -27,7 +30,6 @@ def get_base_path():
     # output: (字串) 基礎路徑
     # 其他補充: 此函式現在專門用於定位外部檔案，例如 api_keys.txt。
     if getattr(sys, 'frozen', False):
-        # 【關鍵修正點】: 在打包後的環境中，返回 .exe 檔案所在的目錄
         return os.path.dirname(sys.executable)
     else:
         return os.path.dirname(os.path.abspath(__file__))
@@ -38,16 +40,18 @@ def set_hidden_attribute(file_path):
     # output: 無 (直接操作檔案系統)
     # 其他補充: 使用 ctypes 直接呼叫 Windows Kernel32 API 來實現，主要用於自動建立的設定檔，使其不干擾使用者。
     try:
-        # FILE_ATTRIBUTE_HIDDEN 的值為 0x2
+        # 【關鍵修正點】: 確保此函式只在 Windows 上執行
+        if sys.platform != 'win32':
+            return
         attribute = 0x2
         ret = ctypes.windll.kernel32.SetFileAttributesW(wintypes.LPWSTR(file_path), attribute)
         if ret:
             print(f"   -> 成功將 '{os.path.basename(file_path)}' 設定為隱藏檔案。", flush=True)
-        # 如果檔案本來就是隱藏的，ret 會是 0，但 GetLastError() 會是 183 (ERROR_ALREADY_EXISTS)，這是正常的
         elif ctypes.windll.kernel32.GetLastError() != 183:
             print(f"   -> 警告：無法設定 '{os.path.basename(file_path)}' 的隱藏屬性。", flush=True)
     except Exception as e:
         print(f"   -> 警告：設定隱藏屬性時發生錯誤: {e}", flush=True)
+
 
 # 區塊: DEFAULT_CORE_PROMPT_TEMPLATE
 # 功能: 定義一個給 Gemini AI 的核心指令模板。
@@ -108,13 +112,10 @@ def load_config():
     base_path = get_base_path()
     config = {}
 
-    # 【關鍵修正點】: 定義 AppData 的儲存路徑
     app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
-    # 【關鍵修正點】: 如果路徑不存在，則建立它
     os.makedirs(app_data_dir, exist_ok=True)
     custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
     
-    # --- API Key 載入邏輯 (維持不變) ---
     test_keys_path = os.path.join(base_path, 'api_keys_test.txt')
     default_keys_path = os.path.join(base_path, 'api_keys.txt')
     keys_path_to_use = None
@@ -142,7 +143,6 @@ def load_config():
         config['GEMINI_API_KEYS'] = api_keys
         config['KEYS_PATH_USED'] = keys_path_to_use
         
-        # --- Custom Prompts 載入邏輯 (使用新的 AppData 路徑) ---
         if os.path.exists(custom_prompts_path):
             with open(custom_prompts_path, 'r', encoding='utf-8') as f:
                 loaded_prompts = json.load(f)
@@ -152,7 +152,6 @@ def load_config():
             print(f"   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔於 AppData。", flush=True)
             with open(custom_prompts_path, 'w', encoding='utf-8') as f:
                 json.dump(custom_prompts, f, ensure_ascii=False, indent=2)
-            # 在 AppData 中，不需要特別設定為隱藏
 
         if api_keys:
             print(f"   -> 成功載入 {len(api_keys)} 個 API Key。", flush=True)
@@ -382,17 +381,13 @@ def quit_action(icon, item):
     os._exit(0)
 
 def run_tray_icon():
-    # 功能: (最終修正版) 建立並執行系統匣圖示，並使用正確的路徑邏輯尋找圖示。
+    # 功能: (Windows 限定) 建立並執行系統匣圖示。
     # input: 無
     # output: 無
-    # 其他補充: 它現在擁有獨立的路徑判斷邏輯，專門用於尋找被打包進來的內部資源。
-    
-    # 【關鍵修正點】: 針對被打包的內部資源，使用 sys._MEIPASS
+    # 其他補充: 此函式只應在 Windows 環境下被呼叫。
     if getattr(sys, 'frozen', False):
-        # 在 .exe 環境中，圖示位於解壓縮後的暫存資料夾
         image_path = os.path.join(sys._MEIPASS, 'server_icon.png')
     else:
-        # 在 .py 環境中，圖示與腳本在同一目錄
         base_path = get_base_path()
         image_path = os.path.join(base_path, 'server_icon.png')
 
@@ -400,7 +395,6 @@ def run_tray_icon():
         image = Image.open(image_path)
     except FileNotFoundError:
         print(f"錯誤：找不到系統匣圖示檔案 'server_icon.png'！", flush=True)
-        # 在 .exe 模式下，如果找不到圖示，用彈出視窗提示，防止程式閃退
         if getattr(sys, 'frozen', False):
             ctypes.windll.user32.MessageBoxW(0, "找不到必要的圖示檔案 'server_icon.png'，程式無法啟動。", "YT 字幕增強器後端 - 致命錯誤", 0x10)
         return
@@ -414,48 +408,53 @@ if __name__ == '__main__':
     # 功能: 整個後端服務的啟動入口點。
     # input: 無
     # output: 無
-    # 其他補充: 增加了對 windowed 模式下啟動失敗的圖形化錯誤提示。
+    # 其他補充: 增加了對不同作業系統的啟動邏輯判斷。
     print("="*50, flush=True)
-    print("YT 字幕增強器後端 v1.7.0", flush=True)
+    print("YT 字幕增強器後端 v2.1.0", flush=True)
     print("="*50, flush=True)
     config = load_config()
     
     if not config or not initialize_gemini():
-        # 【關鍵修正點】: 這是修正 stdin 錯誤的核心邏輯
-        error_title = "YT 字幕增強器後端 - 啟動失敗"
-        error_message_console = (
+        error_message = (
             "\n[!] 初始化失敗，後端服務無法啟動。\n"
             "請檢查：\n"
-            "  1. 'api_keys_test.txt' 或 'api_keys.txt' 檔案是否存在且格式正確 (名稱,金鑰)。\n"
+            "  1. 'api_keys.txt' 檔案是否存在且格式正確 (名稱,金鑰)。\n"
             "  2. API 金鑰是否有效且有足夠的配額。\n"
             "  3. 電腦的網路連線是否正常。"
         )
-        print(error_message_console, flush=True)
+        print(error_message, flush=True)
 
-        # 判斷是否在打包後的 .exe 環境中執行
-        if getattr(sys, 'frozen', False):
-            # 在 .exe 環境中，彈出圖形化視窗
+        # 【關鍵修正點】: 判斷作業系統，只在打包後的 Windows 環境顯示圖形化錯誤
+        if sys.platform == 'win32' and getattr(sys, 'frozen', False):
+            error_title = "YT 字幕增強器後端 - 啟動失敗"
             error_message_gui = (
                 "初始化失敗，後端服務無法啟動。\n\n"
-                "請檢查：\n"
-                "  • 'api_keys.txt' 檔案是否存在且格式正確。\n"
-                "  • API 金鑰是否有效且有足夠的配額。\n"
-                "  • 電腦的網路連線是否正常。\n\n"
-                "程式即將結束。"
+                "請檢查 'api_keys.txt' 設定與網路連線。\n\n"
+                "詳細錯誤請見命令提示字元視窗。"
             )
-            # MB_OK = 0x0, MB_ICONERROR = 0x10
             ctypes.windll.user32.MessageBoxW(0, error_message_gui, error_title, 0x10)
         else:
-            # 在 .py 開發環境中，維持主控台暫停
+            # 在開發環境或非 Windows 系統中，維持主控台提示
             input("\n請按 Enter 鍵結束程式...")
         
         sys.exit(1)
     
     def run_flask_server():
+        # 功能: 執行 Flask 伺服器。
+        # input: 無
+        # output: 無
+        # 其他補充: debug=False 和 use_reloader=False 是打包和穩定運行的重要設定。
         app.run(host='127.0.0.1', port=5001, debug=False, use_reloader=False)
 
-    flask_thread = threading.Thread(target=run_flask_server, daemon=True)
-    flask_thread.start()
-
-    print("\n-> 後端 Flask 伺服器已在背景執行緒啟動 (http://127.0.0.1:5001)。", flush=True)
-    run_tray_icon()
+    # 【關鍵修正點】: 根據作業系統決定啟動方式
+    if sys.platform == 'win32':
+        # Windows: 使用背景執行緒 + 系統匣圖示
+        flask_thread = threading.Thread(target=run_flask_server, daemon=True)
+        flask_thread.start()
+        print("\n-> 後端 Flask 伺服器已在背景執行緒啟動 (http://127.0.0.1:5001)。", flush=True)
+        run_tray_icon()
+    else:
+        # macOS / Linux: 直接在前景色執行伺服器
+        print("\n-> 後端 Flask 伺服器正在啟動 (http://127.0.0.1:5001)...", flush=True)
+        print("   若要關閉伺服器，請在此視窗按下 Ctrl+C", flush=True)
+        run_flask_server()
