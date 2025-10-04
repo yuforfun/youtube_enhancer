@@ -434,7 +434,6 @@ if __name__ == '__main__':
         )
         print(error_message, flush=True)
 
-        # 【關鍵修正點】: 判斷作業系統，只在打包後的 Windows 環境顯示圖形化錯誤
         if sys.platform == 'win32' and getattr(sys, 'frozen', False):
             error_title = "YT 字幕增強器後端 - 啟動失敗"
             error_message_gui = (
@@ -444,8 +443,14 @@ if __name__ == '__main__':
             )
             ctypes.windll.user32.MessageBoxW(0, error_message_gui, error_title, 0x10)
         else:
-            # 在開發環境或非 Windows 系統中，維持主控台提示
-            input("\n請按 Enter 鍵結束程式...")
+            # 【關鍵修正點】: 判斷是否在互動式終端中執行
+            # sys.stdout.isatty() 在 CI/CD 或背景執行時會是 False
+            if sys.stdout.isatty():
+                # 在開發環境或非 Windows 系統中，維持主控台提示
+                input("\n請按 Enter 鍵結束程式...")
+            else:
+                # 在非互動式環境中 (如 CI)，僅印出訊息後退出
+                print("\n程式在非互動式環境中結束。", flush=True)
         
         sys.exit(1)
     
@@ -456,7 +461,6 @@ if __name__ == '__main__':
         # 其他補充: debug=False 和 use_reloader=False 是打包和穩定運行的重要設定。
         app.run(host='127.0.0.1', port=5001, debug=False, use_reloader=False)
 
-    # 【關鍵修正點】: 根據作業系統決定啟動方式
     if sys.platform == 'win32':
         # Windows: 使用背景執行緒 + 系統匣圖示
         flask_thread = threading.Thread(target=run_flask_server, daemon=True)
