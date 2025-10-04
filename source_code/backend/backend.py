@@ -112,7 +112,17 @@ def load_config():
     base_path = get_base_path()
     config = {}
 
-    app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+    # 【關鍵修正點】: 使用跨平台的方式取得應用程式設定資料夾路徑
+    if sys.platform == 'win32':
+        # Windows: %APPDATA%\YtSubtitleEnhancer
+        app_data_dir = os.path.join(os.getenv('APPDATA'), 'YtSubtitleEnhancer')
+    elif sys.platform == 'darwin':
+        # macOS: ~/Library/Application Support/YtSubtitleEnhancer
+        app_data_dir = os.path.join(os.path.expanduser('~'), 'Library', 'Application Support', 'YtSubtitleEnhancer')
+    else:
+        # Linux and other OSes: ~/.config/YtSubtitleEnhancer
+        app_data_dir = os.path.join(os.path.expanduser('~'), '.config', 'YtSubtitleEnhancer')
+    
     os.makedirs(app_data_dir, exist_ok=True)
     custom_prompts_path = os.path.join(app_data_dir, 'custom_prompts.json')
     
@@ -147,9 +157,9 @@ def load_config():
             with open(custom_prompts_path, 'r', encoding='utf-8') as f:
                 loaded_prompts = json.load(f)
                 custom_prompts.update(loaded_prompts)
-            print(f"   -> 成功從 AppData 載入自訂 Prompt 檔案。", flush=True)
+            print(f"   -> 成功從 {app_data_dir} 載入自訂 Prompt 檔案。", flush=True)
         else:
-            print(f"   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔於 AppData。", flush=True)
+            print(f"   -> 未找到自訂 Prompt 檔案，將使用預設值並自動建立新檔於 {app_data_dir}。", flush=True)
             with open(custom_prompts_path, 'w', encoding='utf-8') as f:
                 json.dump(custom_prompts, f, ensure_ascii=False, indent=2)
 
