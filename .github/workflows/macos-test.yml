@@ -1,9 +1,7 @@
 # .github/workflows/macos-test.yml
 
-# 工作流程的名稱
 name: Cross-Platform Backend Startup Test
 
-# 這個自動化任務的觸發條件
 on:
   push:
     branches: [ "development", "feature/**" ]
@@ -12,33 +10,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ===============================================
-  # 任務一：在 macOS 環境中進行測試
-  # ===============================================
   build-and-test-on-macos:
     name: Test on macOS
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r source_code/backend/requirements.txt
-
       - name: Create api_keys.txt from secret
-        # 【關鍵修正點】: 修正第 37 行的語法
-        if: ${{ secrets.GEMINI_API_KEY != '' }}
+        # 【關鍵修正點】: 暫時將 if 條件註解掉，進行除錯
+        # if: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
+          echo "DEBUG: Temporarily running this step without the 'if' condition."
           echo "CI_KEY,${{ secrets.GEMINI_API_KEY }}" > source_code/backend/api_keys.txt
-
       - name: Run backend script for a short time to check for startup errors
         run: |
           echo "Attempting to start backend.py in the background..."
@@ -53,33 +44,26 @@ jobs:
             exit 1
           fi
 
-  # ===============================================
-  # 任務二：在 Linux 環境中進行測試
-  # ===============================================
   build-and-test-on-linux:
     name: Test on Linux
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r source_code/backend/requirements.txt
-      
       - name: Create api_keys.txt from secret
-        # 【關鍵修正點】: 修正第 78 行的語法
-        if: ${{ secrets.GEMINI_API_KEY != '' }}
+        # 【關鍵修正點】: 暫時將 if 條件註解掉，進行除錯
+        # if: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
+          echo "DEBUG: Temporarily running this step without the 'if' condition."
           echo "CI_KEY,${{ secrets.GEMINI_API_KEY }}" > source_code/backend/api_keys.txt
-
       - name: Run backend script for a short time to check for startup errors
         run: |
           echo "Attempting to start backend.py in the background..."
