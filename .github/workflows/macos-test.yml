@@ -1,5 +1,3 @@
-# .github/workflows/macos-test.yml
-
 name: Cross-Platform Backend Startup Test
 
 on:
@@ -25,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r source_code/backend/requirements.txt
       - name: Create api_keys.txt from secret
-        if: ${{ secrets.GEMINI_API_KEY != ''}}
+        if: ${{ secrets.GEMINI_API_KEY != '' }}
         run: |
           echo "CI_KEY,${{ secrets.GEMINI_API_KEY }}" > source_code/backend/api_keys.txt
       - name: Run backend script for a short time to check for startup errors
