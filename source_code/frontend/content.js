@@ -6,7 +6,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 2.0.0
+ * Version: 2.1.0
  * 待處理問題：語言選擇、log區 無實際功能
  */
 class YouTubeSubtitleEnhancer {
@@ -32,7 +32,7 @@ class YouTubeSubtitleEnhancer {
         // 功能: (反向握手版) 腳本總入口，在初始化後主動向 injector.js 請求資料。
         // input: 無
         // output: 無
-        this.log('v2.0.0');
+        this.log('v2.1.0');
         const response = await this.sendMessageToBackground({ action: 'getSettings' });
         this.settings = response?.data || {};
         this.log('初始設定讀取完畢，監聽器已設定。');
