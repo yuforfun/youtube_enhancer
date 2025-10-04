@@ -5,7 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 2.0.0
+ * Version: 2.1.0
  *
  * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
