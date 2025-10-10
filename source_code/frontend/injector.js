@@ -186,28 +186,57 @@
             debugLog('[系統] Fetch 和 XHR 雙攔截器已啟動。');
         }
 
-        // 功能: (vssId 最終修正版) 統一處理 timedtext 回應，確保 vssId 永不為 null。
-        // input: responsePromise (Promise), requestUrl (可選的字串)。
-        // output: 發送包含 vssId 的 TIMEDTEXT_DATA 訊息給 content.js。
+        /**
+         * 功能: 統一處理 timedtext 回應，並增加對無效回應的防禦性處理。
+         * input: 
+         * - responsePromise (Promise): Fetch 或 XHR 回應的 Promise 物件。
+         * - requestUrl (String | null): 可選的請求 URL 字串。
+         * output: 條件滿足時，發送 TIMEDTEXT_DATA 訊息給 content.js。
+         * 其他補充: 這是確保系統穩健性的關鍵函式，能夠過濾掉 YouTube 發出的無效或空的 timedtext 請求。
+         */
         handleTimedTextRequest(responsePromise, requestUrl = null) {
+            // 功能: (vssId 最終修正版) 統一處理 timedtext 回應，確保 vssId 永不為 null。
+            // input: responsePromise (Promise), requestUrl (可選的字串)。
+            // output: 發送包含 vssId 的 TIMEDTEXT_DATA 訊息給 content.js。
             responsePromise.then(response => {
                 if (!response.ok) return;
+
                 const urlString = requestUrl || response.url;
                 if (!urlString) {
                     debugLog('❌ [攔截器] 無法獲取 timedtext 的請求 URL。');
                     return;
                 }
+
                 const url = new URL(urlString);
                 const lang = url.searchParams.get('lang') || 'unknown';
-                // 【關鍵修正點】: 確保 vssId 若不存在，則回傳空字串而非 null
                 const vssId = url.searchParams.get('vssId') || '';
 
                 const clonedResponse = response.clone();
-                clonedResponse.json().then(data => {
-                    debugLog(`[攔截器] 捕獲到語言 [${lang}] (vssId: ${vssId || 'N/A'}) 的字幕，準備發送至指揮中心。`);
-                    this.sendMessageToContent('TIMEDTEXT_DATA', { payload: data, lang, vssId });
-                }).catch(err => debugLog('❌ [攔截器] 解析 timedtext 時出錯:', err));
+
+                clonedResponse.json()
+                    .then(data => {
+                        // 確保 data 和 events 存在，避免後續錯誤
+                        if (!data || !data.events) {
+                            debugLog(`🟡 [攔截器] 偵測到 timedtext 回應內容有效但缺少 events 欄位，已忽略。語言: [${lang}]`);
+                            return;
+                        }
+                        debugLog(`✅ [攔截器] 成功捕獲並解析語言 [${lang}] (vssId: ${vssId || 'N/A'}) 的字幕，準備發送至指揮中心。`);
+                        this.sendMessageToContent('TIMEDTEXT_DATA', { payload: data, lang, vssId });
+                    })
+                    // 【關鍵修正點】開始: 增強 catch 區塊的日誌清晰度
+                    .catch(err => {
+                        // 這個 catch 區塊至關重要。它能處理 YouTube 返回空回應或無效 JSON 的情況。
+                        // 我們不把這個視為致命錯誤，而是將其記錄為一個被「過濾掉」的事件，
+                        // 讓系統繼續等待由我們的 setOption() 指令觸發的下一個、可能有效的 timedtext 請求。
+                        if (err instanceof SyntaxError) {
+                            debugLog(`🟡 [攔截器] 偵測到無效/空的 timedtext JSON 回應並已忽略。語言: [${lang}]`, err.message);
+                        } else {
+                            debugLog(`❌ [攔截器] 處理 timedtext 時發生非預期錯誤:`, err);
+                        }
+                    });
+                    // 【關鍵修正點】結束
             });
+            // 保持返回原始 promise 以維持 promise chain
             return responsePromise;
         }
 

@@ -127,14 +127,13 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 修正 [content.js] 區塊 A: onMessageFromInjector ([onMessageFromInjector] 函式)
-    // 修正原因：目前的 vssId 檢查過於嚴格，導致自動啟用必定失敗。新邏輯將在 vssId 不存在時，退一步比對語言代碼，以兼容 YouTube 的實際行為。
-    // 替換/新增指示：替換現有的 onMessageFromInjector 整個函式。
+    /**
+     * 功能: 處理來自 injector.js 的所有訊息，包含修復後的語言切換邏輯。
+     * input: event (MessageEvent) - 來自 injector.js 的訊息事件。
+     * output: 根據訊息類型觸發對應的核心流程。
+     * 其他補充: 這是擴充功能邏輯的核心中樞，處理導航、資料接收和字幕處理。
+     */
     async onMessageFromInjector(event) {
-        // 功能: (最終 Bug 修正版) 修正訊息解析 Bug，安全地處理所有不同結構的訊息。
-        // input: event (MessageEvent)
-        // output: 根據訊息類型觸發對應的核心流程。
-        // 其他補充:
         if (event.source !== window || !event.data || event.data.from !== 'YtEnhancerInjector') return;
 
         const { type, payload } = event.data;
@@ -164,17 +163,14 @@ class YouTubeSubtitleEnhancer {
                 }
                 break;
 
+            // 【關鍵修正點】開始: 重構整個 TIMEDTEXT_DATA 處理邏輯，以正確處理語言切換
             case 'TIMEDTEXT_DATA':
                 const { payload: timedTextPayload, lang, vssId } = payload;
-
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
 
-                // 【關鍵修正點】開始：放寬字幕軌道驗證邏輯
-                // 檢查點 1: 檢查看門狗是否存在。如果不存在，表示我們不在自動啟用流程中，可以直接處理字幕。
-                // 檢查點 2: 如果看門狗存在（我們正在等待特定字幕），則進行驗證。
+                // 步驟 1: 處理與看門狗相關的初始啟用驗證
                 if (this.state.activationWatchdog) {
                     const isVssIdMatch = this.state.targetVssId && vssId === this.state.targetVssId;
-                    // 檢查點 3: 如果 vssId 不存在 (vssId 為空字串)，則退一步檢查語言是否匹配。
                     const isLangMatchWithoutVssId = !vssId && lang === this.state.sourceLang;
 
                     if (!isVssIdMatch && !isLangMatchWithoutVssId) {
@@ -182,10 +178,6 @@ class YouTubeSubtitleEnhancer {
                         return;
                     }
                     this._log(`[驗證成功] 收到的字幕符合預期 (vssId 匹配或 lang 匹配)。`);
-                }
-                // 【關鍵修正點】結束
-
-                if (this.state.activationWatchdog) {
                     clearTimeout(this.state.activationWatchdog);
                     this.state.activationWatchdog = null;
                     this._log('[看門狗] 成功收到目標字幕，看門狗已解除。');
@@ -193,27 +185,36 @@ class YouTubeSubtitleEnhancer {
                 // 清除 targetVssId，避免影響後續的手動切換操作
                 this.state.targetVssId = null;
 
-                if (this.state.hasActivated && lang !== this.state.sourceLang) {
-                    this._log(`偵測到語言切換：從 [${this.state.sourceLang}] -> [${lang}]。正在溫和重置...`);
-                    this.state.abortController?.abort();
-                    this.state.translatedTrack = null;
-                    this.state.isProcessing = false;
-                    this.state.hasActivated = false;
-                    if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
-                    this._log('溫和重置完成。');
+                // 步驟 2: 判斷是「首次激活」、「語言切換」還是「重複數據」
+                if (this.state.hasActivated) {
+                    // 如果已激活，判斷語言是否變化
+                    if (lang !== this.state.sourceLang) {
+                        // 語言發生變化，執行「溫和重置」
+                        this._log(`[語言切換] 偵測到語言從 [${this.state.sourceLang}] -> [${lang}]。執行溫和重置...`);
+                        this.state.abortController?.abort();
+                        this.state.translatedTrack = null;
+                        this.state.isProcessing = false;
+                        this.state.hasActivated = false; // 重置激活狀態，這是讓後續流程能繼續的關鍵
+                        if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
+                        this._log('溫和重置完成。');
+                        // 注意：這裡不 return，讓程式碼繼續往下執行，以激活新的語言
+                    } else {
+                        // 語言未變，是重複數據，直接忽略
+                        this._log('語言相同，忽略重複的 timedtext 數據。');
+                        return;
+                    }
                 }
 
-                if (this.state.hasActivated) {
-                    this._log('已啟動且語言相同，忽略重複的 timedtext 數據。');
-                    return;
+                // 步驟 3: 執行激活流程 (適用於首次激活或語言切換後的再激活)
+                if (!this.state.hasActivated) { // 再次檢查，確保只有在未激活狀態下才執行
+                    this.state.sourceLang = lang;
+                    this._log(`成功捕獲 [${this.getFriendlyLangName(this.state.sourceLang)}] 字幕，啟動翻譯流程。`);
+                    this.state.hasActivated = true;
+                    this._log(`狀態更新: hasActivated -> true`);
+                    this.activate(timedTextPayload);
                 }
-                
-                this.state.sourceLang = lang;
-                this._log(`成功捕獲 [${this.getFriendlyLangName(this.state.sourceLang)}] 字幕，啟動翻譯流程。`);
-                this.state.hasActivated = true;
-                this._log(`狀態更新: hasActivated -> true`);
-                this.activate(timedTextPayload);
                 break;
+            // 【關鍵修正點】結束
         }
     }
 
