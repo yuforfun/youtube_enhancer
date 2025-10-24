@@ -36,6 +36,8 @@ const SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
 ];
+// 【關鍵修正點】 v1.2: 還原 backend.py 中的金鑰冷卻時間
+const API_KEY_COOLDOWN_SECONDS = 60; // 金鑰因配額失敗後的冷卻時間（秒）
 // 【關鍵修正點】: v1.1 - 從 backend.py 遷移預設 Prompts
 const DEFAULT_CUSTOM_PROMPTS = {
     "ja": `**風格指南:**
@@ -154,10 +156,30 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     switch (request.action) {
         
         // 【關鍵修正點】: v1.1 - 更新 'translateBatch' 以載入自訂 Prompts
+        // 【關鍵修正點】: v1.2 - 完整還原 backend.py 的金鑰冷卻機制
         case 'translateBatch':
+            // 功能: (v3.1.2 補丁) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
+            // input: request.texts (字串陣列), request.source_lang (字串), request.models_preference (字串陣列)
+            // output: (成功) { data: [...] }
+            //         (失敗) { error: 'TEMPORARY_FAILURE', retryDelay: X }
+            //         (失敗) { error: 'PERMANENT_FAILURE', message: '...' }
+            //         (失敗) { error: 'BATCH_FAILURE', message: '...' }
+            // 其他補充: 實作金鑰/模型迴圈、冷卻機制，以及智慧錯誤分類。
             isAsync = true; 
             
             (async () => {
+                // 【關鍵修正點】: v3.1.0 - 初始化錯誤統計物件
+                let errorStats = { temporary: 0, permanent: 0, batch: 0, totalAttempts: 0 };
+                // 【關鍵修正點】: v3.1.2 - 新增冷卻狀態追蹤
+                let keysInCooldown = 0;
+                let shortestRetryDelay = API_KEY_COOLDOWN_SECONDS + 1; // 初始化為比最大值稍大
+
+                // 【關鍵修正點】 v1.2: 載入金鑰冷卻列表
+                const now = Date.now();
+                const cooldownResult = await chrome.storage.session.get({ 'apiKeyCooldowns': {} });
+                const cooldowns = cooldownResult.apiKeyCooldowns;
+                let cooldownsUpdated = false; // 追蹤是否有冷卻期滿的金鑰被移除
+
                 const { texts, source_lang, models_preference } = request; 
                 if (!texts || texts.length === 0) {
                     sendResponse({ data: [] });
@@ -170,7 +192,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                 if (apiKeys.length === 0) { 
                     await writeToLog('ERROR', '翻譯失敗：未設定 API Key', null, '請至「診斷與日誌」分頁新增您的 API Key。'); 
-                    sendResponse({ error: '翻譯失敗：未設定 API Key。' }); 
+                    // 【關鍵修正點】: v3.1.0 - 回報永久性錯誤
+                    sendResponse({ error: 'PERMANENT_FAILURE', message: '翻譯失敗：未設定 API Key。' }); 
                     return;
                 }
 
@@ -197,8 +220,29 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                 // 3. 執行「金鑰-模型」雙重迴圈
                 for (const keyInfo of apiKeys) { 
+                    
+                    // 【關鍵修正點】 v1.2: 檢查金鑰是否處於冷卻中
+                    const keyId = keyInfo.id;
                     const keyName = keyInfo.name || '未命名金鑰';
                     const currentKey = keyInfo.key;
+                    const cooldownTimestamp = cooldowns[keyId];
+    
+                    if (cooldownTimestamp && now < cooldownTimestamp + (API_KEY_COOLDOWN_SECONDS * 1000)) {
+                        // 【關鍵修正點】: v3.1.2 - 追蹤冷卻狀態
+                        keysInCooldown++;
+                        // 計算剩餘冷卻秒數 (無條件進位)
+                        const remainingTime = Math.ceil((cooldownTimestamp + (API_KEY_COOLDOWN_SECONDS * 1000) - now) / 1000);
+                        if (remainingTime < shortestRetryDelay) {
+                            shortestRetryDelay = remainingTime; // 找到最短的剩餘時間
+                        }
+                        
+                        await writeToLog('INFO', `金鑰 '${keyName}' 仍在冷卻中 (剩餘 ${remainingTime}秒)，已跳過。`);
+                        continue; // 嘗試下一個金鑰
+                    } else if (cooldownTimestamp) {
+                        // 2. 金鑰冷卻期已過，將其從列表移除
+                        delete cooldowns[keyId];
+                        cooldownsUpdated = true; // 標記稍後需要儲存
+                    }
 
                     for (const modelName of models_preference) { 
                         
@@ -230,22 +274,88 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                                 throw new Error('模型回傳格式錯誤 (陣列長度或型別不符)');
                             }
 
+                        // 【關鍵修正點】: v3.1.1 - 修正錯誤分類順序
                         } catch (e) {
+
                             const errorStr = String(e.message).toLowerCase();
-                            if (errorStr.includes('quota') || errorStr.includes('billing')) { 
-                                await writeToLog('WARN', `金鑰 '${keyName}' 已達用量上限或帳戶無效。`, e.message, '系統將自動嘗試下一個金鑰。'); 
-                                break; 
+                            errorStats.totalAttempts++; // 統計嘗試次數
+
+                            if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('503') || errorStr.includes('overloaded')) {
+                                // 暫時性錯誤 (配額/過載) - 優先判斷
+                                errorStats.temporary++;
+                                await writeToLog('WARN', `金鑰 '${keyName}' 遭遇暫時性錯誤 (Quota/Overload)，將冷卻 ${API_KEY_COOLDOWN_SECONDS} 秒。`, e.message, '系統將自動嘗試下一個金鑰。');
+                                
+                                cooldowns[keyId] = Date.now(); // 保留冷卻邏輯
+                                await chrome.storage.session.set({ apiKeyCooldowns: cooldowns }); 
+                                
+                                break; // 跳出模型迴圈，嘗試下一個金鑰
+
+                            } else if (errorStr.includes('billing') || errorStr.includes('api key not valid')) {
+                                // 永久性錯誤 (金鑰級)
+                                errorStats.permanent++;
+                                await writeToLog('ERROR', `金鑰 '${keyName}' 驗證失敗 (Billing/Invalid)，將永久跳過此金鑰。`, e.message, '請更換金鑰。');
+                                break; // 跳出模型迴圈，嘗試下一個金鑰
+
                             } else {
-                                await writeToLog('WARN', `金鑰 '${keyName}' 呼叫模型 '${modelName}' 失敗。`, e.message, '系統將自動嘗試下一個模型。'); 
-                                continue; 
+                                // 批次錯誤 (模型級)
+                                errorStats.batch++;
+                                await writeToLog('WARN', `金鑰 '${keyName}' 呼叫模型 '${modelName}' 失敗 (可能為格式/內容錯誤)。`, e.message, '系統將自動嘗試下一個模型。'); 
+                                continue; // 嘗試下一個模型
                             }
                         }
+                        // 【關鍵修正點】: 結束
                     } // (結束 模型 迴圈)
                 } // (結束 金鑰 迴圈)
 
-                // 5. 所有嘗試均失敗
-                await writeToLog('ERROR', '所有 API Key 與模型均嘗試失敗。', '請檢查日誌中的詳細錯誤。', '請確認金鑰有效性、用量配額與網路連線。'); 
-                sendResponse({ error: '所有模型與 API Key 均嘗試失敗。' }); 
+                // 5. 根據錯誤統計，回傳結構化錯誤
+                // 【關鍵修正點】 v1.2: 儲存因冷卻期滿而被移除的金鑰列表 (保留)
+                if (cooldownsUpdated) {
+                    await chrome.storage.session.set({ apiKeyCooldowns: cooldowns });
+                }
+                
+                // 【關鍵修正點】: v3.1.2 - 新增「全冷卻中」檢查
+                if (keysInCooldown > 0 && keysInCooldown === apiKeys.length) {
+                    // 情境零：所有金鑰都在冷卻中
+                    const retryDelay = shortestRetryDelay < 1 ? 1 : shortestRetryDelay; // 確保至少 1 秒
+                    await writeToLog('WARN', `所有金鑰均在冷卻中，將於 ${retryDelay} 秒後重試。`);
+                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
+                    return; // *** 關鍵：在此處停止 ***
+                }
+
+                // 【關鍵修正點】: v3.1.0 - 智慧錯誤回報
+                if (errorStats.temporary > 0) {
+                    // 情境一：只要有一次是 429/503，就優先回報為可重試的暫時錯誤
+                    const result = await chrome.storage.session.get({ 'errorLogs': [] });
+                    const lastTemporaryError = result.errorLogs[0]; // 剛剛才寫入的日誌
+                    let retryDelay = 10; // 預設 10 秒
+                    
+                    if (lastTemporaryError && lastTemporaryError.context) {
+                        // 嘗試從 'retryDelay": "10s"' 中解析
+                        const match = lastTemporaryError.context.match(/retryDelay": "(\d+)/);
+                        if (match && match[1]) {
+                            // API 回傳秒數，我們也使用秒
+                            retryDelay = parseInt(match[1], 10);
+                        }
+                    }
+                    await writeToLog('WARN', `所有金鑰/模型均暫時不可用，將於 ${retryDelay} 秒後重試。`);
+                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
+
+                } else if (errorStats.permanent > 0 && errorStats.permanent === errorStats.totalAttempts) {
+                    // 情境二：所有嘗試均為永久性金鑰錯誤
+                    await writeToLog('ERROR', '所有 API Key 均失效 (Billing/Invalid)。', '翻譯流程已停止。', '請檢查並更換您的 API Key。');
+                    sendResponse({ error: 'PERMANENT_FAILURE', message: '所有 API Key 均失效 (Billing/Invalid)。' });
+
+                } else if (errorStats.batch > 0) {
+                    // 情境三：沒有暫時性或永久性金鑰錯誤，但模型無法處理內容
+                    await writeToLog('WARN', '模型無法處理此批次內容。', '可能為格式或內容錯誤。', '前端將標記此批次為可點擊重試。');
+                    sendResponse({ error: 'BATCH_FAILURE', message: '模型無法處理此批次內容。' });
+                    
+                } else {
+                    // 兜底：其他未知情況 (例如，沒有金鑰，或 totalAttempts = 0)
+                    await writeToLog('ERROR', '所有 API Key 與模型均嘗試失敗 (未知原因)。', '請檢查日誌。', '請確認金鑰有效性、用量配額與網路連線。');
+                    sendResponse({ error: '所有模型與 API Key 均嘗試失敗。' });
+                }
+                // 【關鍵修正點】: 結束
 
             })(); // 立即執行 async 函式
             break;

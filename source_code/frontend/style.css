@@ -177,6 +177,14 @@
 #enhancer-status-orb.state-error:hover {
     transform: scale(1.1);
 }
+
+/* 【關鍵修正點】: v3.1.0 - 修改為黑底黃框 */
+#enhancer-status-orb.state-retrying {
+    background-color: rgba(0, 0, 0, 0.8); /* 黑底 */
+    border: 2px solid #f59e0b; /* 黃色外框 (Amber 600) */
+    box-sizing: border-box; /* 確保邊框不會撐大圓圈 */
+    cursor: default;
+}
 /* 【關鍵修正點】: 新增最高優先級的原生字幕隱藏規則 */
 /* 當 #movie_player 元素擁有 .yt-enhancer-active 這個 class 時，
    強制將其內部的原生字幕容器隱藏，!important 確保不會被 YT 的 JS 覆蓋。*/

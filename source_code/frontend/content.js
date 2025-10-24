@@ -296,7 +296,7 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 功能: (vssId 驗證版) 重置狀態，增加目標 vssId 鎖定。
+    // 功能: (v3.1.2 修改) 重置狀態，增加目標 vssId 鎖定與重試監聽旗標。
     resetState() {
         this._log('[狀態] resetState() 執行，所有狀態還原為初始值。');
         this.state = {
@@ -306,7 +306,8 @@ class YouTubeSubtitleEnhancer {
             isInitialized: false,
             pendingTimedText: null,
             activationWatchdog: null,
-            targetVssId: null // 【關鍵修正點】: 新增目標 vssId 鎖定
+            targetVssId: null, // 【關鍵修正點】: 新增目標 vssId 鎖定
+            hasRetryListener: false // 【關鍵修正點】: v3.1.0 - 新增批次重試監聽旗標
         };
     }
 
@@ -330,7 +331,7 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 功能: (最終偵錯版) 清理所有UI與狀態，確保停止看門狗計時器。
+    // 功能: (v3.1.2 修改) 清理所有UI與狀態，確保停止看門狗並移除重試監聽。
     async cleanup() {
         this._log('--- 🧹 cleanup() 開始 ---');
         this.state.abortController?.abort();
@@ -346,7 +347,14 @@ class YouTubeSubtitleEnhancer {
             clearInterval(this.requestIntervalId);
             this.requestIntervalId = null;
         }
-        // ... (後續清理DOM的程式碼保持不變) ...
+        
+        // 【關鍵修正點】: v3.1.0 - 移除批次重試點擊監聽器
+        if (this.state.subtitleContainer && this.state.hasRetryListener) {
+            this.state.subtitleContainer.removeEventListener('click', this.handleRetryBatchClick);
+            this._log('已移除批次重試點擊監聽器。');
+            this.state.hasRetryListener = false;
+        }
+        
         document.getElementById('enhancer-status-orb')?.remove();
         document.getElementById('enhancer-subtitle-container')?.remove();
         document.getElementById('enhancer-manual-prompt')?.remove();
@@ -413,7 +421,10 @@ class YouTubeSubtitleEnhancer {
     }
 
     async parseAndTranslate(payload) {
-        // 功能: 解析字幕並啟動分批翻譯的總流程。
+        // 功能: (v3.1.1 補丁) 解析字幕並啟動分批翻譯的總流程。
+        // input: payload (timedtext 物件)
+        // output: 無 (啟動 processNextBatch 遞迴)
+        // 其他補充: 【關鍵修正點】 移除了函式結尾的 this.state.isProcessing = false;
         if (this.state.isProcessing) return;
         this.state.isProcessing = true;
         if (!this.state.translatedTrack) {
@@ -422,7 +433,7 @@ class YouTubeSubtitleEnhancer {
         if (!this.state.translatedTrack.length) {
             this._log("解析後無有效字幕句段，停止翻譯。");
             this.setOrbState('error', '無有效字幕內容');
-            this.state.isProcessing = false;
+            this.state.isProcessing = false; // (此處為 '無字幕' 的出口，是正確的)
             return;
         }
         this.state.translationProgress = {
@@ -431,16 +442,23 @@ class YouTubeSubtitleEnhancer {
         };
         this.beginDisplay();
         await this.processNextBatch();
-        this.state.isProcessing = false;
+        
+        // 【關鍵修正點】: (v3.1.1 補丁)
+        // 移除: this.state.isProcessing = false;
+        // 說明: isProcessing 旗標的關閉，將交由 processNextBatch 內部
+        //       在「真正成功」或「永久失敗」時自行處理，以確保 setTimeout 得以正常運作。
     }
 
     async processNextBatch() {
-        // 功能: 處理下一個批次的翻譯，直到所有句子都翻譯完成。
+        // 功能: (v3.1.1 補丁) 處理翻譯批次，並在正確的出口管理 isProcessing 旗標。
+        // input: 無 (從 this.state.translatedTrack 讀取)
+        // output: (遞迴呼叫) 或 (觸發錯誤 UI)
+        // 其他補充: 【關鍵修正點】 在 3 個流程終點新增 this.state.isProcessing = false;
         const BATCH_SIZE = 30;
         const segmentsToTranslate = [];
         const indicesToUpdate = [];
         for (let i = 0; i < this.state.translatedTrack.length; i++) {
-            if (!this.state.translatedTrack[i].translatedText) {
+            if (!this.state.translatedTrack[i].translatedText && !this.state.translatedTrack[i].tempFailed) { // 確保不重試 tempFailed
                 segmentsToTranslate.push(this.state.translatedTrack[i].text);
                 indicesToUpdate.push(i);
                 if (segmentsToTranslate.length >= BATCH_SIZE) break;
@@ -449,6 +467,7 @@ class YouTubeSubtitleEnhancer {
         if (segmentsToTranslate.length === 0) {
             this._log("所有翻譯批次處理完成！");
             this.setOrbState('success');
+            this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 1. 成功出口
             return;
         }
         const alreadyDone = this.state.translatedTrack.filter(t => t.translatedText).length;
@@ -475,12 +494,66 @@ class YouTubeSubtitleEnhancer {
                 this._log(`批次完成 (${currentDoneCount}/${this.state.translationProgress.total})，進度已暫存。`);
             }
             await this.processNextBatch();
+
+        // 【關鍵修正點】: v3.1.0 - 重構 catch 區塊以響應智慧錯誤
         } catch (e) {
-            if (e.name !== 'AbortError') {
-                this._log("❌ 翻譯批次失敗:", e);
+            const errorMsg = String(e.message);
+
+            // 1. (v1.2 Bug 修正) 處理 AbortError
+            if (errorMsg.includes('AbortError')) {
+                this._log("翻譯任務已中止 (AbortError)，此為正常操作。");
+                // (注意: AbortError 也算 'isProcessing = false'，但通常由 cleanup 觸發)
+                this.state.isProcessing = false;
+                return; // 結束，不重試
+            }
+
+            this._log("❌ 翻譯批次失敗:", e);
+
+            // 2. 響應 v3.1.0 智慧錯誤
+            if (errorMsg.includes('TEMPORARY_FAILURE')) {
+                // 情境一：暫時性錯誤 (429/503)
+                // (流程仍在繼續，*不*設定 isProcessing = false)
+                const retryDelayMatch = errorMsg.match(/retryDelay: (\d+)/);
+                const retryDelay = (retryDelayMatch && retryDelayMatch[1]) ? parseInt(retryDelayMatch[1], 10) : 10;
+                const retryDelayMs = (retryDelay + 1) * 1000;
+                
+                this._log(`偵測到模型暫時性過載，${retryDelay} 秒後重試...`);
+                this.setOrbState('retrying'); // 顯示黃色狀態 (階段 3 會優化 UI)
+                
+                setTimeout(() => {
+                    // 檢查狀態，如果使用者已導航離開，則不重試
+                    // (v3.1.1 補丁: 移除 isProcessing 檢查，因為它會被 parseAndTranslate 錯誤地關閉)
+                    // (v3.1.2 補丁: 恢復 isProcessing 檢查，因為 parseAndTranslate 已修復)
+                    if (this.state.isProcessing && this.state.abortController) { 
+                         this.processNextBatch();
+                    }
+                }, retryDelayMs); // 使用 API 建議的延遲 + 1s 緩衝
+
+            } else if (errorMsg.includes('PERMANENT_FAILURE')) {
+                // 情境二：永久性金鑰錯誤
+                this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 2. 永久失敗出口
+                this.handleTranslationError("所有 API Key 均失效或帳單錯誤，翻譯已停止。");
+            
+            } else if (errorMsg.includes('BATCH_FAILURE')) {
+                // 情境三：模型無法處理此批次
+                // (流程仍在繼續，*不*設定 isProcessing = false)
+                this._log("此批次翻譯失敗，標記為可重試。");
+                indicesToUpdate.forEach(index => {
+                    if (this.state.translatedTrack[index]) {
+                        // 標記為臨時失敗，但不儲存 translatedText: null
+                        this.state.translatedTrack[index].tempFailed = true; 
+                    }
+                });
+                // 關鍵：繼續執行下一批次，以推進進度條
+                await this.processNextBatch(); 
+
+            } else {
+                // 兜底：處理其他永久性錯誤 (例如 "未設定金鑰" 或舊的錯誤)
+                this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 3. 兜底失敗出口
                 this.handleTranslationError(e.message);
             }
         }
+        // 【關鍵修正點】: 結束
     }
 
     handleCriticalFailure(source, message, data = {}) {
@@ -490,9 +563,10 @@ class YouTubeSubtitleEnhancer {
     }
 
     async sendBatchForTranslation(texts, signal) {
-        // 功能: (已修改) 將一個批次的文字發送到 background.js 進行翻譯。
-        // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch 127.0.0.1，
-        //           改為使用 chrome.runtime.sendMessage 呼叫 'translateBatch'。
+        // 功能: (v3.1.0 修改) 將批次文字發送到 background.js，並拋出結構化的錯誤。
+        // input: texts (字串陣列), signal (AbortSignal)
+        // output: (Promise) 翻譯後的字串陣列
+        // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch 127.0.0.1
         try {
             const response = await this.sendMessageToBackground({
                 action: 'translateBatch', //
@@ -505,9 +579,15 @@ class YouTubeSubtitleEnhancer {
                 throw new Error('AbortError'); // 模擬 AbortError
             }
 
+            // 【關鍵修正點】: v3.1.0 - 組合並拋出結構化錯誤
             if (response?.error) {
-                // 如果 background.js 處理失敗 (例如所有金鑰都失效)
-                throw new Error(response.error); //
+                // 如果 background.js 處理失敗 (例如 TEMPORARY_FAILURE)
+                // 將包含 retryDelay 的完整錯誤訊息拋出
+                let structuredError = response.error;
+                if (response.retryDelay) {
+                    structuredError += ` (retryDelay: ${response.retryDelay})`;
+                }
+                throw new Error(structuredError); // 拋出 "TEMPORARY_FAILURE (retryDelay: 22)"
             }
 
             if (response?.data && Array.isArray(response.data)) {
@@ -522,25 +602,30 @@ class YouTubeSubtitleEnhancer {
             if (e.message.includes("Receiving end does not exist")) {
                  throw new Error('無法連線至擴充功能背景服務。');
             }
-            throw e; // 將錯誤 (例如 AbortError 或 '所有金鑰均失敗') 拋給 processNextBatch
+            throw e; // 將錯誤 (例如 "TEMPORARY_FAILURE (retryDelay: 22)") 拋給 processNextBatch
         }
     }
 
     handleTranslationError(errorMessage) {
         // 功能: 處理翻譯過程中的錯誤。
         // 其他補充: 【關鍵修正點】 v1.1 - 移除 tempErrorCount 邏輯。
-        //           現在任何翻譯錯誤都會*立即*被記錄為持續性錯誤，
-        //           以便在 "狀態日誌" 中顯示。
-        this.setPersistentError(errorMessage);
+        // 【關鍵修正點】 v1.2 (討論): 將 logThisError 設為 false，
+        //           因為 background.js (日誌 1) 已經記錄了這個錯誤的根本原因。
+        this.setPersistentError(errorMessage, false);
     }
 
-    setPersistentError(message) {
+    setPersistentError(message, logThisError = true) {
         // 功能: 顯示一個永久性的錯誤圖示，並將錯誤記錄到 background。
         this.state.persistentError = message;
-        this.sendMessageToBackground({
-            action: 'STORE_ERROR_LOG',
-            payload: { message, timestamp: Date.now() }
-        }).catch(e => this._log('❌ 無法儲存錯誤日誌:', e));
+
+        // 【關鍵修正點】 v1.2 (討論): 增加 logThisError 參數，避免 background.js 和 content.js 重複記錄日誌 (日誌 2)
+        if (logThisError) {
+            this.sendMessageToBackground({
+                action: 'STORE_ERROR_LOG',
+                payload: { message, timestamp: Date.now() }
+            }).catch(e => this._log('❌ 無法儲存錯誤日誌:', e));
+        }
+        
         if (!this.state.statusOrb || !document.body.contains(this.state.statusOrb)) {
             const playerContainer = document.getElementById('movie_player');
             if (playerContainer) this.createStatusOrb(playerContainer);
@@ -567,17 +652,43 @@ class YouTubeSubtitleEnhancer {
     }
 
     handleTimeUpdate() {
-        // 功能: 根據影片當前播放時間，更新字幕畫面。
+        // 功能: (v3.1.0 修改) 根據影片當前播放時間，更新字幕畫面。
+        // input: 無 (從 this.state 讀取)
+        // output: 呼叫 updateSubtitleDisplay
+        // 其他補充: 移除傳遞參數，因為 updateSubtitleDisplay 已被修改為自行處理。
         const { videoElement, translatedTrack, subtitleContainer } = this.state;
         if (!videoElement || !translatedTrack || !subtitleContainer) return;
-        const currentTime = videoElement.currentTime * 1000;
-        const currentSub = translatedTrack.find(sub => currentTime >= sub.start && currentTime < sub.end);
-        this.updateSubtitleDisplay(currentSub?.text, currentSub?.translatedText);
+        
+        // 【關鍵修正點】: v3.1.0 - 不再傳遞參數
+        this.updateSubtitleDisplay();
     }
 
-    updateSubtitleDisplay(originalText, translatedText) {
-        // 功能: 將原文和譯文渲染到自訂的字幕容器中。
-        if (!this.state.subtitleContainer) return;
+    updateSubtitleDisplay() {
+        // 功能: (v3.1.0 修改) 將原文/譯文/批次失敗UI 渲染到自訂的字幕容器中。
+        // input: 無 (自行從 this.state 獲取)
+        // output: (DOM 操作)
+        // 其他補充: 檢查 tempFailed 旗標以顯示「點擊重試」按鈕。
+        if (!this.state.subtitleContainer || !this.state.videoElement || !this.state.translatedTrack) return;
+
+        const currentTime = this.state.videoElement.currentTime * 1000;
+        const currentSub = this.state.translatedTrack.find(sub => currentTime >= sub.start && currentTime < sub.end);
+
+        // 【關鍵修正點】: v3.1.0 - 新增情境三 (批次失敗) UI 邏輯
+        if (currentSub && currentSub.tempFailed) {
+            // 1. 渲染批次失敗 UI
+            const html = `<div class="enhancer-line enhancer-error-line" data-start-ms="${currentSub.start}">此批次翻譯失敗，<a class="retry-link" role="button" tabindex="0">點擊重試</a></div>`;
+            if (this.state.subtitleContainer.innerHTML !== html) {
+                this.state.subtitleContainer.innerHTML = html;
+            }
+            this.addRetryClickListener(); // 確保監聽器已綁定
+            return; // 結束此函式
+        }
+        
+        // 2. 渲染正常翻譯 UI
+        const originalText = currentSub?.text;
+        const translatedText = currentSub?.translatedText;
+        // 【關鍵修正點】: v3.1.0 - 結束
+
         const { showOriginal, showTranslated } = this.settings;
         let html = '';
         if (showOriginal && originalText) html += `<div class="enhancer-line enhancer-original-line">${originalText}</div>`;
@@ -586,9 +697,98 @@ class YouTubeSubtitleEnhancer {
             const placeholderClass = translatedText ? '' : 'enhancer-placeholder';
             html += `<div class="enhancer-line enhancer-translated-line ${placeholderClass}">${displayText}</div>`;
         }
-        this.state.subtitleContainer.innerHTML = html;
+        
+        if (this.state.subtitleContainer.innerHTML !== html) {
+            this.state.subtitleContainer.innerHTML = html;
+        }
     }
 
+    addRetryClickListener() {
+        // 功能: 為字幕容器綁定「點擊重試」的事件監聽器。
+        // input: 無
+        // output: (DOM 事件綁定)
+        // 其他補充: 使用 hasRetryListener 旗標確保只綁定一次。
+        if (this.state.hasRetryListener || !this.state.subtitleContainer) return;
+        
+        // 綁定 'handleRetryBatchClick'，並確保 this 上下文正確
+        this.handleRetryBatchClick = this.handleRetryBatchClick.bind(this);
+        
+        this.state.subtitleContainer.addEventListener('click', this.handleRetryBatchClick);
+        this.state.hasRetryListener = true;
+        this._log('[重試] 批次重試監聽器已綁定。');
+    }
+
+    // 【關鍵修正點】: v3.1.0 - 新增函式
+    async handleRetryBatchClick(e) {
+        // 功能: 處理「點擊重試」事件，執行插隊翻譯。
+        // input: e (ClickEvent)
+        // output: (API 呼叫)
+        // 其他補充: 找出所有 tempFailed 的句子並發送一次性翻譯請求。
+        if (!e.target.classList.contains('retry-link')) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const line = e.target.closest('.enhancer-error-line');
+        if (!line) return;
+
+        this._log(`[插隊重試] 收到點擊，重試所有 'tempFailed' 批次...`);
+
+        // 1. 找出所有標記為 tempFailed 的句子
+        const segmentsToRetry = [];
+        const indicesToUpdate = [];
+        this.state.translatedTrack.forEach((sub, i) => {
+            if (sub.tempFailed) {
+                segmentsToRetry.push(sub.text);
+                indicesToUpdate.push(i);
+            }
+        });
+
+        if (segmentsToRetry.length === 0) {
+            this._log('[插隊重試] 未找到標記為失敗的句子。');
+            return;
+        }
+
+        e.target.textContent = '翻譯中...';
+        e.target.style.pointerEvents = 'none'; // 防止重複點擊
+
+        // 2. 執行一次性的翻譯請求
+        try {
+            const translatedTexts = await this.sendBatchForTranslation(
+                segmentsToRetry, 
+                new AbortController().signal // 使用一個新 signal
+            );
+
+            if (translatedTexts.length !== segmentsToRetry.length) {
+                throw new Error("翻譯回傳的句數與請求不符。");
+            }
+
+            // 3. 更新數據
+            translatedTexts.forEach((text, i) => {
+                const trackIndex = indicesToUpdate[i];
+                if (this.state.translatedTrack[trackIndex]) {
+                    this.state.translatedTrack[trackIndex].translatedText = text;
+                    this.state.translatedTrack[trackIndex].tempFailed = false; // 清除旗標
+                }
+            });
+
+            // 4. 儲存快取並立即刷新 UI
+            await this.setCache(`yt-enhancer-cache-${this.currentVideoId}`, {
+                translatedTrack: this.state.translatedTrack,
+                rawPayload: this.state.rawPayload
+            });
+            this.handleTimeUpdate(); // 立即刷新當前字幕
+            this._log('[插隊重試] 成功，快取已更新。');
+
+        } catch (error) {
+            this._log('❌ [插隊重試] 失敗:', error);
+            if (e.target) {
+                e.target.textContent = '重試失敗!';
+                e.target.style.pointerEvents = 'auto';
+            }
+            // 讓使用者可以再次嘗試
+        }
+    }
     createStatusOrb(container) {
         // 功能: 建立右上角的狀態圓環 UI 元件。
         if (document.getElementById('enhancer-status-orb')) return;
@@ -641,7 +841,10 @@ class YouTubeSubtitleEnhancer {
     }
 
     setOrbState(state, errorMsg = '') {
-        // 功能: 控制右上角狀態圓環的顯示狀態。
+        // 功能: (v3.1.0 修改) 控制右上角狀態圓環的顯示狀態。
+        // input: state (字串), errorMsg (可選字串)
+        // output: (DOM 操作)
+        // 其他補充: 【關鍵修正點】 v3.1.0 - 修改 'retrying' 狀態的 UI。
         const orb = this.state.statusOrb;
         if (!orb) return;
         orb.className = 'enhancer-status-orb';
@@ -664,6 +867,19 @@ class YouTubeSubtitleEnhancer {
                 orb.title = '翻譯成功';
                 setTimeout(() => orb?.classList.add('fade-out'), 1500);
                 break;
+            
+            // 【關鍵修正點】 v3.1.0: 修改 "重試中" 狀態
+            case 'retrying':
+                if (progress && progress.total > 0) {
+                    const percent = Math.round((progress.done / progress.total) * 100);
+                    orb.innerHTML = `<div>${percent}%</div>`; // 顯示進度 %
+                    orb.title = `模型暫時過載，自動重試中... (${progress.done}/${progress.total})`;
+                } else {
+                    orb.innerHTML = '<div>%</div>'; // Fallback
+                    orb.title = '模型暫時過載，自動重試中...';
+                }
+                break;
+                
             case 'error':
                 orb.innerHTML = '<div>!</div>';
                 orb.title = `發生錯誤: ${errorMsg}`;
