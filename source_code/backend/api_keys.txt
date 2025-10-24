@@ -1,4 +1,0 @@
-# 請在此處填寫您的 API Keys 有幾個就填幾個
-# 1行填寫一個，如果有多個依照下一行的格式
-# 金鑰名字,從網站取得的key
-金鑰1,AIzXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

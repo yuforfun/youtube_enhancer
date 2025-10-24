@@ -105,6 +105,25 @@
     
     <div id="tab-diag" class="tab-content">
         <div class="card">
+            <h2 class="card-title">Google API 金鑰管理</h2>
+            <p class="card-hint">
+                您的金鑰將安全儲存在瀏覽器本地，絕不會上傳至任何伺服器。
+                <br>
+                您可以新增多個金鑰作為備援，系統會依照列表順序嘗試使用。
+            </p>
+            
+            <h3 class="card-subtitle" style="margin-top: 0;">新增金鑰</h3>
+            <div class="api-key-form">
+                <input type="text" id="apiKeyNameInput" placeholder="金鑰名稱 (例如: 個人金鑰)" style="flex-grow: 1;">
+                <input type="password" id="apiKeyInput" placeholder="請在此貼上您的 Google API Key" style="flex-grow: 2; margin-left: 8px;">
+                <button id="addApiKeyButton" class="button-primary" style="width: auto; margin-left: 8px;">新增</button>
+            </div>
+
+            <h3 class="card-subtitle">已儲存的金鑰</h3>
+            <ul id="apiKeyList" class="api-key-list">
+                </ul>
+        </div>
+        <div class="card">
             <h2 class="card-title">資料管理</h2>
             <button id="clearCacheButton" class="button-secondary" style="width: 100%;">清除所有影片的翻譯暫存</button>
         </div>
@@ -116,7 +135,7 @@
                 <br>
                 它<b>無法</b>檢測金鑰的剩餘用量或是否已達每日配額上限。
             </p>
-            <button id="diagnoseKeysButton" class="button-primary" style="width: 100%;">開始診斷</button>
+            <button id="diagnoseKeysButton" class="button-primary" style="width: 100%;">開始診斷所有金鑰</button>
             <div id="diagnose-results"></div>
         </div>
         

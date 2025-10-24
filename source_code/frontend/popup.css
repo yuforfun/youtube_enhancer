@@ -206,11 +206,126 @@ textarea { resize: vertical; margin-top: 12px; }
 .diag-result { padding: 8px; border-radius: 4px; margin-bottom: 4px; font-size: 13px; }
 .diag-result.status-valid { background-color: #f0fdf4; color: #15803d; }
 .diag-result.status-invalid { background-color: #fef2f2; color: var(--danger-color); }
-.log-entry { display: flex; padding: 8px; border-bottom: 1px solid #f4f4f5; font-size: 13px; }
-.log-entry:last-child { border-bottom: none; }
-.log-time { color: var(--text-light-color); margin-right: 12px; flex-shrink: 0; }
-.log-message { word-break: break-all; }
+
+/* 【關鍵修正點】: v1.1 - 替換為新的豐富日誌樣式 */
+.log-entry {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    line-height: 1.5;
+}
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+/* 根據日誌級別上色 */
+.log-level-error { background-color: #fef2f2; }
+.log-level-warn { background-color: #fffbeb; }
+.log-level-info { background-color: #f9fafb; }
+
+.log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.log-time {
+    color: var(--text-light-color);
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.log-message {
+    font-weight: 500;
+    word-break: break-all;
+}
+.log-level-error .log-message { color: var(--danger-color); }
+.log-level-warn .log-message { color: #b45309; }
+.log-level-info .log-message { color: #374151; }
+
+.log-details {
+    margin-top: 6px;
+    padding-left: 65px; /* 對齊時間戳 + 訊息圖示的寬度 */
+    font-size: 12px;
+    color: var(--text-light-color);
+    word-break: break-all;
+}
+.log-details strong {
+    color: var(--text-color);
+    font-weight: 600;
+    margin-right: 4px;
+}
+.log-details div {
+    margin-top: 2px;
+}
+/* 【關鍵修正點】: 以上為替換區塊 */
+
 .log-placeholder { padding: 16px; text-align: center; color: var(--text-light-color); font-style: italic; }
+
+/* API Key Management (from 1.A) */
+.api-key-form {
+    display: flex;
+    gap: 8px; /* 保持間距一致性 */
+    margin-top: 8px;
+}
+
+.api-key-form input {
+    margin: 0; /* 覆蓋預設 margin */
+}
+
+.api-key-form .button-primary {
+    padding: 6px 16px; /* 讓按鈕高度與輸入框一致 */
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.api-key-list {
+    list-style: none;
+    margin: 8px 0 0 0;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: #fafafa;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.api-key-list li {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.api-key-list li:last-child {
+    border-bottom: none;
+}
+
+.api-key-list .api-key-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.api-key-list .delete-key {
+    background-color: #fef2f2;
+    color: var(--danger-color);
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.api-key-list .delete-key:hover {
+    background-color: #fee2e2;
+    border-color: #fca5a5;
+}
+/* 【關鍵修正點】: 以上為新增區塊 */
+
 
 /* Toast */
 #options-toast {
@@ -220,3 +335,4 @@ textarea { resize: vertical; margin-top: 12px; }
     visibility: hidden; transition: all 0.3s; pointer-events: none;
 }
 #options-toast.show { opacity: 1; visibility: visible; top: 30px; }
+

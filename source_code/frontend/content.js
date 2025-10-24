@@ -490,25 +490,48 @@ class YouTubeSubtitleEnhancer {
     }
 
     async sendBatchForTranslation(texts, signal) {
-        // 功能: 將一個批次的文字發送到本地後端進行翻譯。
-        const response = await fetch('http://127.0.0.1:5001/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texts, source_lang: this.state.sourceLang, models_preference: this.settings.models_preference }),
-            signal
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `伺服器錯誤 ${response.status}`);
+        // 功能: (已修改) 將一個批次的文字發送到 background.js 進行翻譯。
+        // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch 127.0.0.1，
+        //           改為使用 chrome.runtime.sendMessage 呼叫 'translateBatch'。
+        try {
+            const response = await this.sendMessageToBackground({
+                action: 'translateBatch', //
+                texts: texts,
+                source_lang: this.state.sourceLang,
+                models_preference: this.settings.models_preference
+            });
+
+            if (signal.aborted) {
+                throw new Error('AbortError'); // 模擬 AbortError
+            }
+
+            if (response?.error) {
+                // 如果 background.js 處理失敗 (例如所有金鑰都失效)
+                throw new Error(response.error); //
+            }
+
+            if (response?.data && Array.isArray(response.data)) {
+                return response.data;
+            }
+
+            // 未知的成功回應格式
+            throw new Error('來自背景服務的回應格式不正確。');
+            
+        } catch (e) {
+            // 捕獲 sendMessage 本身的錯誤 或 background.js 回傳的錯誤
+            if (e.message.includes("Receiving end does not exist")) {
+                 throw new Error('無法連線至擴充功能背景服務。');
+            }
+            throw e; // 將錯誤 (例如 AbortError 或 '所有金鑰均失敗') 拋給 processNextBatch
         }
-        return await response.json();
     }
 
     handleTranslationError(errorMessage) {
         // 功能: 處理翻譯過程中的錯誤。
-        this.state.tempErrorCount = (this.state.tempErrorCount || 0) + 1;
-        if (this.state.tempErrorCount >= 2) this.setPersistentError(errorMessage);
-        else this.showTemporaryError(errorMessage);
+        // 其他補充: 【關鍵修正點】 v1.1 - 移除 tempErrorCount 邏輯。
+        //           現在任何翻譯錯誤都會*立即*被記錄為持續性錯誤，
+        //           以便在 "狀態日誌" 中顯示。
+        this.setPersistentError(errorMessage);
     }
 
     setPersistentError(message) {
@@ -526,21 +549,13 @@ class YouTubeSubtitleEnhancer {
     }
 
     showTemporaryError(message) {
-        // 功能: 在字幕區域顯示一個帶有重試按鈕的臨時錯誤訊息。
-        if (!this.state.subtitleContainer || !this.state.videoElement) return;
-        const currentTime = this.state.videoElement.currentTime * 1000;
-        const currentSub = this.state.translatedTrack?.find(sub => currentTime >= sub.start && currentTime < sub.end);
-        let html = '';
-        if (this.settings.showOriginal && currentSub) html += `<div class="enhancer-line enhancer-original-line">${currentSub.text}</div>`;
-        html += `<div class="enhancer-line enhancer-error-line">${message} <a href="#" id="enhancer-retry-link">點此重試</a></div>`;
-        this.state.subtitleContainer.innerHTML = html;
-        document.getElementById('enhancer-retry-link')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            this._log("點擊重試...");
-            this.state.subtitleContainer.innerHTML = '';
-            this.setOrbState('translating');
-            this.processNextBatch();
-        });
+        // 功能: (已修改) 在字幕區域顯示一個帶有重試按鈕的臨時錯誤訊息。
+        // 其他補充: 【關鍵修正點】 v1.1 - 此功能已廢除。
+        //           所有錯誤現在都由 setPersistentError 處理，
+        //           並顯示在右上角的狀態圓環 (orb) 中，
+        //           不再於字幕區域 顯示錯誤訊息。
+        
+        // (原函式內容 已被清空)
     }
 
     beginDisplay() {

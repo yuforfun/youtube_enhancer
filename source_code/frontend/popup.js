@@ -43,6 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
 - まちだ けいた -> 町田啟太
 `;
 
+    // 【關鍵修正點】: v1.1 - 從 backend.py 遷移預設 Prompts
+    const DEFAULT_CUSTOM_PROMPTS = {
+        "ja": `**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者(日本偶像)的情感語氣。
+
+**人名/專有名詞對照表 (優先級最高):**
+無論上下文如何，只要看到左側的原文或讀音，就必須嚴格地翻譯為右側的詞彙。
+- まちだ / まち田 / まちだ けいた -> 町田啟太
+- さとう たける -> 佐藤健
+- しそん じゅん -> 志尊淳
+- しろたゆう -> 城田優
+- みやざき ゆう -> 宮崎優
+- 天ブランク -> TENBLANK
+- グラスハート -> 玻璃之心
+- Fujitani Naoki -> 藤谷直季
+- Takaoka Sho -> 高岡尚
+- Sakamoto Kazushi -> 坂本一志
+- 西條朱音 -> 西條朱音
+- 菅田將暉 -> 菅田將暉
+- ノブ -> ノブ
+`,
+        "ko": "--- 韓文自訂 Prompt (請在此輸入風格與對照表) ---",
+        "en": "--- 英文自訂 Prompt (請在此輸入風格與對照表) ---"
+    };
+
     // --- 通用函數 ---
     const sendMessage = (message) => chrome.runtime.sendMessage(message);
         // 功能: 向 background.js 發送訊息的簡化輔助函式。
@@ -245,19 +270,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let allCustomPrompts = {};
         const promptSelect = document.getElementById('promptLanguageSelect');
         async function loadCustomPrompts() {
-            // 功能: 從後端獲取已儲存的自訂 Prompts 並顯示在編輯區。
+            // 功能: (已修改) 從 chrome.storage.local 獲取已儲存的自訂 Prompts
+            // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch，改用 chrome.storage.local.get
             try {
-                const response = await fetch('http://127.0.0.1:5001/api/prompts/custom');
-                if (!response.ok) {
-                    throw new Error(response.statusText || '後端連線失敗');
-                }
-                allCustomPrompts = await response.json();
+                const result = await chrome.storage.local.get(['customPrompts']); //
+                // 如果 storage 為空，則使用從 backend.py 移植過來的預設值
+                allCustomPrompts = result.customPrompts || DEFAULT_CUSTOM_PROMPTS; //
                 updatePromptTextarea();
             } catch (e) {
-                promptTextarea.value = '無法載入 Prompt，請確認後端伺服器是否已啟動。';
+                console.error('無法載入自訂 Prompts:', e);
+                promptTextarea.value = '無法從瀏覽器儲存區載入 Prompts。';
                 promptTextarea.disabled = true;
-                const userFriendlyError = translateToFriendlyError(e.message);
-                showOptionsToast(userFriendlyError, 5000);
+                showOptionsToast(`載入 Prompts 失敗：${e.message}`, 5000);
             }
         }
         const updatePromptTextarea = () => {
@@ -266,21 +290,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         promptSelect.addEventListener('change', updatePromptTextarea);
         document.getElementById('savePromptButton').addEventListener('click', async (e) => {
+            // 功能: (已修改) 儲存自訂 Prompts 到 chrome.storage.local
+            // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch，改用 chrome.storage.local.set
             const button = e.target;
             button.disabled = true;
             button.textContent = '儲存中...';
             allCustomPrompts[promptSelect.value] = promptTextarea.value;
             try {
-                const response = await fetch('http://127.0.0.1:5001/api/prompts/custom', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(allCustomPrompts)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP 錯誤: ${response.status}`);
-                }
-                showOptionsToast('Prompt 已成功儲存！');
+                await chrome.storage.local.set({ customPrompts: allCustomPrompts }); //
+                showOptionsToast('Prompt 已成功儲存！'); //
             } catch (err) {
                 const userFriendlyError = translateToFriendlyError(err.message);
                 showOptionsToast(`儲存 Prompt 失敗：${userFriendlyError}`, 5000);
@@ -313,59 +331,223 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSettings(true);
         });
 
+        // 【關鍵修正點】: 根據規格 1.A，新增 API 金鑰管理邏輯
+        // 功能: 讀取 userApiKeys 陣列並將其渲染到 UI 列表
+        // input: 無 (從 chrome.storage.local 讀取)
+        // output: (DOM 操作) 更新 #apiKeyList
+        // 其他補充: [規格 1.A] 的核心 UI 渲染函式
+        async function loadAndRenderApiKeys() {
+            const listElement = document.getElementById('apiKeyList');
+            if (!listElement) return;
+
+            try {
+                const result = await chrome.storage.local.get(['userApiKeys']);
+                const keys = result.userApiKeys || [];
+
+                listElement.innerHTML = ''; // 清空現有列表
+
+                if (keys.length === 0) {
+                    listElement.innerHTML = '<li style="color: var(--text-light-color); justify-content: center;">尚無金鑰</li>';
+                    return;
+                }
+
+                keys.forEach(key => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="api-key-name">${key.name || '未命名金鑰'}</span>
+                        <button class="delete-key" data-id="${key.id}">刪除</button>
+                    `;
+                    listElement.appendChild(li);
+                });
+            } catch (e) {
+                console.error('無法載入 API Keys:', e);
+                listElement.innerHTML = '<li style="color: var(--danger-color);">載入金鑰失敗</li>';
+            }
+        }
+
+        // 功能: 綁定金鑰管理區塊 (新增/刪除) 的所有事件監聽器
+        // input: 無 (DOM 事件)
+        // output: (chrome.storage.local 操作)
+        // 其他補充: [規格 1.A] 的核心邏輯函式
+        function setupApiKeyListeners() {
+            const nameInput = document.getElementById('apiKeyNameInput');
+            const keyInput = document.getElementById('apiKeyInput');
+            const addButton = document.getElementById('addApiKeyButton');
+            const listElement = document.getElementById('apiKeyList');
+
+            if (!nameInput || !keyInput || !addButton || !listElement) return;
+
+            // 1. 新增按鈕的邏輯
+            addButton.addEventListener('click', async () => {
+                const name = nameInput.value.trim();
+                const key = keyInput.value.trim();
+
+                if (!name || !key) {
+                    showOptionsToast('金鑰名稱和 API Key 皆不可為空', 4000);
+                    return;
+                }
+
+                if (!key.startsWith('AIzaSy')) {
+                     showOptionsToast('金鑰格式似乎不正確，請再次確認。', 4000);
+                     // 不阻擋，僅提示
+                }
+
+                try {
+                    addButton.disabled = true;
+                    addButton.textContent = '新增中...';
+                    
+                    const result = await chrome.storage.local.get(['userApiKeys']);
+                    const keys = result.userApiKeys || [];
+                    
+                    const newKey = {
+                        id: crypto.randomUUID(), //
+                        name: name,
+                        key: key
+                    };
+
+                    keys.push(newKey); //
+
+                    await chrome.storage.local.set({ userApiKeys: keys }); //
+
+                    nameInput.value = '';
+                    keyInput.value = '';
+                    showOptionsToast(`金鑰 "${name}" 已成功新增！`);
+                    await loadAndRenderApiKeys(); //
+
+                } catch (e) {
+                    console.error('新增 API Key 失敗:', e);
+                    showOptionsToast('新增金鑰時發生錯誤，請檢查控制台日誌。', 5000);
+                } finally {
+                    addButton.disabled = false;
+                    addButton.textContent = '新增';
+                }
+            });
+
+            // 2. 刪除按鈕的邏輯 (使用事件委派)
+            listElement.addEventListener('click', async (e) => {
+                if (!e.target.classList.contains('delete-key')) return;
+
+                const button = e.target;
+                const keyId = button.dataset.id; //
+                if (!keyId) return;
+                
+                if (!confirm('您確定要刪除此 API Key 嗎？')) {
+                    return;
+                }
+
+                try {
+                    button.disabled = true;
+                    button.textContent = '刪除中...';
+
+                    const result = await chrome.storage.local.get(['userApiKeys']);
+                    let keys = result.userApiKeys || [];
+
+                    // 使用 filter 過濾掉要刪除的金鑰
+                    keys = keys.filter(key => key.id !== keyId); 
+
+                    await chrome.storage.local.set({ userApiKeys: keys }); //
+
+                    showOptionsToast('金鑰已成功刪除。');
+                    await loadAndRenderApiKeys(); //
+
+                } catch (e) {
+                    console.error('刪除 API Key 失敗:', e);
+                    showOptionsToast('刪除金鑰時發生錯誤，請檢查控制台日誌。', 5000);
+                    button.disabled = false;
+                    button.textContent = '刪除';
+                }
+            });
+        }
+
+        // --- 立即執行 API 金鑰管理 ---
+        loadAndRenderApiKeys();
+        setupApiKeyListeners();
+        // 【關鍵修正點】: 以上為新增區塊
+
         // 診斷與日誌
         document.getElementById('clearCacheButton').addEventListener('click', async () => {
             const res = await sendMessage({ action: 'clearAllCache' });
             showOptionsToast(`成功清除了 ${res.count} 個影片的暫存！`);
         });
+        // 【關鍵修正點】: v1.1 - 遷移金鑰診斷邏輯
         document.getElementById('diagnoseKeysButton').addEventListener('click', async (e) => {
+            // 功能: (已修改) 呼叫 background.js 診斷所有儲存的金鑰
+            // 其他補充: 移除 fetch，改用 sendMessage
             e.target.disabled = true;
             e.target.textContent = '診斷中...';
             const resultsContainer = document.getElementById('diagnose-results');
             resultsContainer.innerHTML = '';
             
             try {
-                 const response = await fetch('http://127.0.0.1:5001/api/keys/diagnose', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                if (!response.ok) {
-                    throw new Error(response.statusText || "請求診斷 API 失敗");
-                }
-                const results = await response.json();
-                resultsContainer.innerHTML = ''; 
-                if (results.length === 0) {
-                    resultsContainer.innerHTML = `<div class="diag-result status-invalid">未在後端找到可診斷的 API Key。</div>`;
-                } else {
-                    results.forEach(res => {
+                 // 【關鍵修正點】: 呼叫 background.js 的 'diagnoseAllKeys' 動作
+                 const results = await sendMessage({ action: 'diagnoseAllKeys' }); //
+
+                 if (!results) {
+                     throw new Error('背景服務未回傳診斷結果。');
+                 }
+
+                 resultsContainer.innerHTML = ''; 
+                 if (results.length === 0) {
+                     // 此處的判斷邏輯保持不變
+                     resultsContainer.innerHTML = `<div class="diag-result status-invalid">未在瀏覽器儲存區找到可診斷的 API Key。</div>`;
+                 } else {
+                     // 重用舊的 UI 渲染邏輯，因為回傳格式相同
+                     results.forEach(res => {
                         const resultEl = document.createElement('div');
                         resultEl.className = `diag-result status-${res.status}`;
-                        resultEl.innerHTML = `<strong>${res.name}:</strong> ${res.status === 'valid' ? '有效' : '無效或已達配額'}`;
-                        if(res.error) resultEl.title = res.error;
+                        resultEl.innerHTML = `<strong>${res.name}:</strong> ${res.status === 'valid' ? '有效' : '無效'}`; //
+                        if(res.error) {
+                            resultEl.title = res.error; //
+                            resultEl.innerHTML += ` - ${res.error.substring(0, 50)}...`;
+                        }
                         resultsContainer.appendChild(resultEl);
                     });
-                }
+                 }
             } catch(err) {
                  const userFriendlyError = translateToFriendlyError(err.message);
                  resultsContainer.innerHTML = `<div class="diag-result status-invalid">診斷失敗：${userFriendlyError}</div>`;
             } finally {
                 e.target.disabled = false;
-                e.target.textContent = '開始診斷';
+                e.target.textContent = '開始診斷所有金鑰'; //
             }
         });
         async function loadErrorLogs() {
-            // 功能: 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
+            // 功能: (已修改) 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
+            // input from: (自動執行)
+            // output to: (DOM 操作) #error-log-container
+            // 其他補充: 【關鍵修正點】 v1.1 - 重寫以渲染豐富的 LogEntry 物件
             const logContainer = document.getElementById('error-log-container');
-            const response = await sendMessage({ action: 'getErrorLogs' });
-            if (response.success && response.data.length > 0) {
-                logContainer.innerHTML = response.data.map(log => 
-                    `<div class="log-entry">
-                        <span class="log-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
-                        <span class="log-message">${log.message}</span>
-                    </div>`
-                ).join('');
+            if (!logContainer) return;
+
+            const response = await sendMessage({ action: 'getErrorLogs' }); //
+
+            if (response.success && response.data && response.data.length > 0) {
+                logContainer.innerHTML = ''; // 清空 placeholder
+                response.data.forEach(log => {
+                    const entryEl = document.createElement('div');
+                    entryEl.className = `log-entry log-level-${log.level.toLowerCase()}`; //
+
+                    // 處理詳細資訊
+                    let detailsHtml = '';
+                    if (log.context) { //
+                        detailsHtml += `<div><strong>[原始錯誤]</strong> ${log.context}</div>`;
+                    }
+                    if (log.solution) { //
+                        detailsHtml += `<div><strong>[建議]</strong> ${log.solution}</div>`;
+                    }
+
+                    // 組合 HTML
+                    entryEl.innerHTML = `
+                        <div class="log-header">
+                            <span class="log-time">[${new Date(log.timestamp).toLocaleTimeString()}]</span>
+                            <span class="log-message">${log.message}</span>
+                        </div>
+                        ${detailsHtml ? `<div class="log-details">${detailsHtml}</div>` : ''}
+                    `;
+                    logContainer.appendChild(entryEl);
+                });
             } else {
-                 logContainer.innerHTML = '<p class="log-placeholder">目前沒有持續性錯誤紀錄。</p>';
+                 logContainer.innerHTML = '<p class="log-placeholder">目前沒有持續性錯誤紀錄。</p>'; //
             }
         }
         loadErrorLogs();
