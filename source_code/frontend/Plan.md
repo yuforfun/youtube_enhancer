@@ -114,7 +114,8 @@
 
 * **`#tab-main` 區塊 (替換)：**
     * **修正原因：** 部署全新的 Tier 1 和 Tier 2 UI 介面。
-    * **替換指示：** 刪除 `id="tab-main"` 內部現有的所有 `<div class="card">` (包含「語言偏好設定」、「模型偏好設定」、「Prompt 自訂」、「進階外觀設定」)。
+    * **替換指示：** 刪除 id="tab-main" 內部舊的「語言偏好設定」卡片。刪除 id="tab-main" 內部舊的「Prompt 自訂」卡片。
+    
     * **新增內容 (結構示意)：**
         ```html
         <div id="tab-main" class="tab-content active">
@@ -528,3 +529,58 @@ Textarea 已預填充預設 Prompt 範本
 ✅ 預填充：Prompt 編輯區預填充精心設計的範本
 ✅ 單一展開：同時只能展開一個項目，避免混淆
 ✅ Toast 提示：每次操作都有清晰的視覺反饋
+
+
+
+剛剛完成了 v2.0 語言決策引擎的階段一（後端）和階段二（管理後台）。
+
+這兩個階段的實作過程，特別是我們一起經歷的除錯，確實產生了幾個非常關鍵的決策、歷史包袱與護欄。
+
+以下是階段一與階段二的總結：
+
+### 1. 關鍵決策 (Key Decisions)
+
+在階段一和二中，我們做出的最核心的決策是：
+
+1.  **資料庫遷移 (Database Migration) 的實作：**
+    * **決策：** 我們決定**不**拋棄 v1.x 使用者的舊設定（`preferred_langs`, `customPrompts`），而是選擇在 `popup.js` 的 `loadSettings` 函式中實作一個「自動遷移」邏輯。
+    * **原因：** 這是為了確保未來上架時，所有舊使用者的資料（特別是您精心撰寫的日文 Prompt）都能被**無痛繼承**到 v2.0 的新資料結構（`auto_translate_priority_list`）中，而不是被清空。
+
+2.  **Prompt 繼承邏輯 (Merge Logic)：**
+    * **決策：** 在遷移過程中，我們最終採用了 `const mergedPrompts = { ...DEFAULT_CUSTOM_PROMPTS, ...userPrompts };` 的合併策略。
+    * **原因：** 這是我們在測試中發現的關鍵錯誤。此決策確保了儲存在 `storage` 中的使用者自訂 Prompt（例如您測試用的 `ko`），其**優先級高於**寫死在程式碼中的 `DEFAULT_CUSTOM_PROMPTS`，成功解決了遷移資料被覆蓋的問題。
+
+3.  **UI 介面 (Popover Search) 的採用：**
+    * **決策：** 我們為 Tier 1 和 Tier 2 實作了「語言搜尋 Popover」介面，並建立了一個 `LANGUAGE_DATABASE` 常數。
+    * **原因：** 這解決了 v1.x 最大的痛點之一：使用者（您）不再需要記憶或手動輸入 `ja`, `ko` 等語言代碼，而是可以透過「日文」、「韓文」等友善名稱進行搜尋。
+
+4.  **新舊 UI (Card) 的保留：**
+    * **決策：** 我們修正了藍圖，保留了「模型偏好設定」和「API 金鑰管理」等卡片。
+    * **原因：** 澄清了 v2.0 語言引擎是**功能擴充**，而非取代。金鑰管理、模型排序與語言決策是三項獨立的功能，必須共存。
+
+### 2. 歷史包袱 (Historical Baggage)
+
+實作完成後，我們現在也背負了一些「歷史包袱」，未來需要注意：
+
+1.  **`DEFAULT_CUSTOM_PROMPTS` 常數：**
+    * **包袱：** 這個在 `popup.js` 頂部的常數（包含詳細的日文 Prompt），其**唯一**存在的理由就是為了服務「v1.x -> v2.0 資料庫遷移」。
+    * **影響：** 對於 v2.0 的新使用者（或您未來新增的「法文」），系統會改用 `NEW_LANGUAGE_PROMPN_TEMPLATE`。這個舊常數未來在 v3.0 時或可被移除，但目前是遷移所必需的。
+
+2.  **`loadSettings` 內的遷移區塊：**
+    * **包袱：** `loadSettings` 函式中，那段檢查 `if (currentSettings.preferred_langs)` 的遷移程式碼，對於任何已升級到 v2.0 的使用者（包含您）來說，都只會執行**一次**。
+    * **影響：** 它會永遠存在於程式碼中，作為保護未來可能出現的 v1.x 使用者的「防禦性程式碼」。
+
+### 3. 關鍵護欄 (Guard Rails)
+
+在我們共同除錯的過程中，我們確立了兩個未來開發**絕對不能違反**的關鍵護欄：
+
+1.  **[護欄 1] `popup.js` 是共享腳本 (最重要)：**
+    * **規則：** `popup.js` 同時被 `popup.html`（小彈窗）和 `options.html`（管理後台）共用。
+    * **教訓：** 任何**只存在於** `options.html` 的 DOM 元素（例如 `tier-1-card`, `apiKeyList`），在 `popup.js` 中存取它之前，**必須**使用 `if (isOptionsPage)` 或 `if (element)` 進行嚴格的 `null` 檢查。
+    * **後果：** 如果違反此護欄（例如直接呼叫 `document.getElementById('apiKeyList')`），將導致 `popup.html`（小彈窗）**立即崩潰**。
+
+2.  **[護欄 2] `DOMContentLoaded` 是執行起點：**
+    * **規則：** **所有** `popup.js` 的頂層執行邏輯（包含事件綁定、函式呼叫）都**必須**被包裹在 `document.addEventListener('DOMContentLoaded', () => { ... });` 內部。
+    * **教訓：** 這是我們在 [步驟 2.C] 遇到的核心錯誤。如果在 DOM 載入完成前嘗試存取任何元素（`getElementById`），都會因取到 `null` 而導致**整個腳本崩潰**，進而引發「遷移失敗」、「UI 假死」、「金鑰功能失效」等連鎖反應。
+
+---

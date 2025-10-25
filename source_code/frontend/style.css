@@ -225,3 +225,31 @@
     border-style: solid;
     border-color: #181818 transparent transparent transparent;
 }
+/* --- Tier 3: 按需翻譯按鈕 --- */
+#enhancer-ondemand-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0; /* 預設隱藏 */
+    pointer-events: none; /* 預設不可點擊 */
+    transition: opacity 0.3s;
+    color: white; /* 【關鍵修正點】 新增文字顏色 */
+    font-size: 14px; /* 【關鍵修正點】 新增文字大小 */
+    font-weight: 600; /* 【關鍵修正點】 新增文字粗細 */
+    font-family: sans-serif; /* 【關鍵修正點】 新增字體 */
+}
+
+/* 當滑鼠移入播放器時，顯示按鈕 */
+#movie_player:hover #enhancer-ondemand-button {
+    opacity: 1;
+    pointer-events: auto;
+}

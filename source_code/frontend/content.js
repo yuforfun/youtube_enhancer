@@ -71,8 +71,9 @@ class YouTubeSubtitleEnhancer {
     }
 
     // 功能: (vssId 驗證版) 主流程入口，在發出指令前鎖定目標 vssId。
+    // 【關鍵修正點】: v2.0 - 完全重寫為 Tier 1/2/3 決策引擎
     async start() {
-        this._log(`[決策] --- 主流程 Start ---`);
+        this._log(`[決策 v2.0] --- 主流程 Start ---`);
         if (!this.currentVideoId || !this.state.playerResponse) {
             this._log(`❌ [決策] 啟動失敗，缺少 VideoID 或 playerResponse。`);
             return;
@@ -80,50 +81,65 @@ class YouTubeSubtitleEnhancer {
 
         const availableTracks = this.getAvailableLanguagesFromData(this.state.playerResponse, true);
         const availableLangs = availableTracks.map(t => t.languageCode);
-        this._log(`[決策] 當前影片可用語言: [${availableLangs.join(', ')}]`);
+        this._log(`[決策] 可用語言: [${availableLangs.join(', ')}]`);
+
+        // 【關鍵修正點】 v2.0 - 讀取新的 Tier 1/2 設定
+        const { native_langs = [], auto_translate_priority_list = [] } = this.settings;
+        this._log(`[決策] Tier 1 (原文): [${native_langs.join(', ')}]`);
+        this._log(`[決策] Tier 2 (自動): [${auto_translate_priority_list.map(t => t.langCode).join(', ')}]`);
+
+        // --- TIER 1 檢查：原文顯示 (零成本) ---
+        const nativeMatch = availableLangs.find(lang => native_langs.includes(lang));
+        if (nativeMatch) {
+            this._log(`[決策] -> Tier 1 命中：匹配到原文顯示語言 (${nativeMatch})。`);
+            const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); // 【關鍵修正點】 確保傳遞完整軌道
+            if (trackToEnable) this.runTier1_NativeView(trackToEnable);
+            return; // 流程結束
+        }
+
+        // --- TIER 2 檢查：自動翻譯 (高品質) ---
+        let tier2Match = null;
+        for (const priorityItem of auto_translate_priority_list) {
+            if (availableLangs.includes(priorityItem.langCode)) {
+                tier2Match = availableTracks.find(t => t.languageCode === priorityItem.langCode);
+                break; // 找到第一個匹配的，停止搜尋
+            }
+        }
         
-        const { preferred_langs = [], ignored_langs = [] } = this.settings;
-        this._log(`[決策] 使用者偏好: [${preferred_langs.join(', ')}] | 忽略: [${ignored_langs.join(', ')}]`);
-
-        const matchedLang = preferred_langs.find(pLang => availableLangs.includes(pLang));
-        this._log(`[決策] 匹配結果: ${matchedLang || '無'}`);
-
-        if (matchedLang && !ignored_langs.includes(matchedLang)) {
-            this._log(`[決策] -> 路徑一: 匹配成功 (${matchedLang})，啟動自動翻譯。`);
-            this.state.sourceLang = matchedLang;
+        if (tier2Match) {
+            this._log(`[決策] -> Tier 2 命中：匹配到自動翻譯語言 (${tier2Match.languageCode})。`);
+            
+            // (重用舊的 activate 邏輯)
+            this.state.sourceLang = tier2Match.languageCode;
+            this._log('[意圖鎖定] 已將期望語言 sourceLang 設為:', this.state.sourceLang);
             
             const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
             const cachedData = await this.getCache(cacheKey);
-
-            this.state.sourceLang = matchedLang;
-            this._log('[意圖鎖定] 已將期望語言 sourceLang 設為:', this.state.sourceLang);
-
+            
             if (cachedData && cachedData.translatedTrack) {
                 this._log('[決策] 發現有效暫存，直接載入。');
                 this.state.translatedTrack = cachedData.translatedTrack;
-                this.activate(cachedData.rawPayload);
+                this.activate(cachedData.rawPayload); // 觸發翻譯
             } else {
-                this._log(`[決策] 無暫存，命令特工啟用軌道 [${matchedLang}]...`);
-                const trackToEnable = availableTracks.find(t => t.languageCode === matchedLang);
-                if (trackToEnable) {
-                    this.state.targetVssId = trackToEnable.vssId;
-                    this._log(`[鎖定] 已鎖定目標 vssId: ${this.state.targetVssId}`);
-                    
-                    this._log('[看門狗] 啟動 3 秒計時器，等待字幕資料...');
-                    this.state.activationWatchdog = setTimeout(() => {
-                        this.handleActivationFailure();
-                    }, 3000);
+                this._log(`[決策] 無暫存，命令特工啟用軌道 [${tier2Match.languageCode}]...`);
+                this.state.targetVssId = tier2Match.vssId;
+                this._log(`[鎖定] 已鎖定目標 vssId: ${this.state.targetVssId}`);
+                this.state.activationWatchdog = setTimeout(() => this.handleActivationFailure(), 3000);
+                window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: tier2Match }, '*');
+            }
+            return; // 流程結束
+        }
 
-                    window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
-                }
-            }
+        // --- TIER 3 檢查：按需翻譯 (Fallback) ---
+        // 【關鍵修正點】 v2.0 - 優先選擇非 'a.' (自動) 的軌道
+        const nonAutoTrack = availableTracks.find(t => !t.vssId.startsWith('a.'));
+        const fallbackTrack = nonAutoTrack || availableTracks[0];
+
+        if (fallbackTrack) {
+            this._log(`[決策] -> Tier 3 觸發：進入按需翻譯模式 (${fallbackTrack.languageCode})。`);
+            this.runTier3_OnDemand(fallbackTrack);
         } else {
-            if (matchedLang) {
-                this._log(`[決策] -> 路徑四: 匹配到偏好語言 (${matchedLang})，但其在忽略清單中，進入手動模式。`);
-            } else {
-                this._log(`[決策] -> 路徑二: 未匹配到任何偏好語言，進入手動模式。`);
-            }
-            this.showManualActivationPrompt();
+            this._log(`[決策] -> 無任何可用字幕，停止。`);
         }
     }
 
@@ -169,12 +185,8 @@ class YouTubeSubtitleEnhancer {
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
 
                 // 【關鍵修正點】開始: 新增全域開關防護機制
-                // 檢查擴充功能是否已在 Popup 中被停用。
-                // 僅當 (全局停用) 且 (這不是一次手動語言覆蓋) 時，才忽略此資料。
                 if (!this.settings.isEnabled && !this.state.isOverride) {
                     this._log('擴充功能目前為停用狀態，已忽略收到的 timedtext 數據。');
-                    
-                    // (可選，但建議) 如果字幕已顯示，確保其被清理
                     if (this.state.hasActivated) {
                         this._log('偵測到狀態殘留，執行溫和重置以關閉字幕。');
                         this.state.abortController?.abort();
@@ -214,9 +226,12 @@ class YouTubeSubtitleEnhancer {
                         this.state.translatedTrack = null;
                         this.state.isProcessing = false;
                         this.state.hasActivated = false; // 重置激活狀態，這是讓後續流程能繼續的關鍵
+                        
+                        // 【關鍵修正點】 v2.0 - 重置 Tier 1/3 旗標
+                        this.state.isNativeView = false; 
+                        
                         if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
                         this._log('溫和重置完成。');
-                        // 注意：這裡不 return，讓程式碼繼續往下執行，以激活新的語言
                     } else {
                         // 語言未變，是重複數據，直接忽略
                         this._log('語言相同，忽略重複的 timedtext 數據。');
@@ -227,10 +242,17 @@ class YouTubeSubtitleEnhancer {
                 // 步驟 3: 執行激活流程 (適用於首次激活或語言切換後的再激活)
                 if (!this.state.hasActivated) { // 再次檢查，確保只有在未激活狀態下才執行
                     this.state.sourceLang = lang;
-                    this._log(`成功捕獲 [${this.getFriendlyLangName(this.state.sourceLang)}] 字幕，啟動翻譯流程。`);
                     this.state.hasActivated = true;
                     this._log(`狀態更新: hasActivated -> true`);
-                    this.activate(timedTextPayload);
+
+                    // 【關鍵修正點】 v2.0 - 根據 isNativeView 旗標決定啟動哪個流程
+                    if (this.state.isNativeView) {
+                        this._log(`[Tier 1/3] 啟動 activateNativeView (僅原文) 流程。`);
+                        this.activateNativeView(timedTextPayload);
+                    } else {
+                        this._log(`[Tier 2] 啟動 activate (完整翻譯) 流程。`);
+                        this.activate(timedTextPayload);
+                    }
                 }
                 break;
             // 【關鍵修正點】結束
@@ -316,6 +338,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     // 功能: (v3.1.2 修改) 重置狀態，增加目標 vssId 鎖定與重試監聽旗標。
+    // 【關鍵修正點】: v2.0 - 新增 isNativeView 和 onDemandButton 旗標
     resetState() {
         this._log('[狀態] resetState() 執行，所有狀態還原為初始值。');
         this.state = {
@@ -326,7 +349,9 @@ class YouTubeSubtitleEnhancer {
             pendingTimedText: null,
             activationWatchdog: null,
             targetVssId: null, // 【關鍵修正點】: 新增目標 vssId 鎖定
-            hasRetryListener: false // 【關鍵修正點】: v3.1.0 - 新增批次重試監聽旗標
+            hasRetryListener: false, // 【關鍵修正點】: v3.1.0 - 新增批次重試監聽旗標
+            isNativeView: false, // 【關鍵修正點】 v2.0 - Tier 1/3 旗標
+            onDemandButton: null // 【關鍵修正點】 v2.0 - Tier 3 按鈕 DOM 參照
         };
     }
 
@@ -351,6 +376,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     // 功能: (v3.1.2 修改) 清理所有UI與狀態，確保停止看門狗並移除重試監聽。
+    // 【關鍵修正點】: v2.0 - 新增移除 onDemandButton 邏輯
     async cleanup() {
         this._log('--- 🧹 cleanup() 開始 ---');
         this.state.abortController?.abort();
@@ -377,6 +403,10 @@ class YouTubeSubtitleEnhancer {
         document.getElementById('enhancer-status-orb')?.remove();
         document.getElementById('enhancer-subtitle-container')?.remove();
         document.getElementById('enhancer-manual-prompt')?.remove();
+        
+        // 【關鍵修正點】 v2.0 - 移除 Tier 3 按鈕
+        document.getElementById('enhancer-ondemand-button')?.remove();
+        
         this._log('已移除所有 UI DOM 元素。');
         
         if (this.state.videoElement) {
@@ -403,6 +433,136 @@ class YouTubeSubtitleEnhancer {
         if(this.state.subtitleContainer) {
             this.state.subtitleContainer.innerHTML = `<div class="enhancer-line enhancer-error-line">自動啟用字幕失敗，請手動選擇字幕</div>`;
         }
+    }
+
+    // 【關鍵修正點】 v2.0 - 新增 Tier 1 啟動函式
+    runTier1_NativeView(trackToEnable) {
+        // 功能: 僅顯示原文，不翻譯 (Tier 1)。
+        this._log(`[Tier 1] 執行 runTier1_NativeView，語言: ${trackToEnable.languageCode}`);
+        
+        // 1. (重要) 設置旗標，告訴 TIMEDTEXT_DATA 處理器應進入原文模式
+        this.state.isNativeView = true;
+        this.state.sourceLang = trackToEnable.languageCode; // 記錄當前語言
+        
+        // 2. 確保清除舊狀態 (例如 Tier 3 按鈕)
+        this.cleanup(); 
+        this.state.isNativeView = true; // cleanup 會重置，需再次設定
+        this.state.sourceLang = trackToEnable.languageCode;
+
+        // 3. 請求 injector.js 啟用軌道
+        this._log(`[Tier 1] 命令特工啟用軌道 [${trackToEnable.languageCode}]...`);
+        this.state.targetVssId = trackToEnable.vssId;
+        this.state.activationWatchdog = setTimeout(() => this.handleActivationFailure(), 3000);
+        window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
+    }
+
+    // 【關鍵修正點】 v2.0 - 新增 Tier 3 啟動函式
+    runTier3_OnDemand(trackToEnable) {
+        // 功能: 顯示原文 + 右上角 Hover 按鈕 (Tier 3)。
+        this._log(`[Tier 3] 執行 runTier3_OnDemand，語言: ${trackToEnable.languageCode}`);
+        
+        // 1. 設置旗標，進入原文模式
+        this.state.isNativeView = true;
+        this.state.sourceLang = trackToEnable.languageCode;
+        
+        // 2. 確保清除舊狀態
+        this.cleanup();
+        this.state.isNativeView = true; // cleanup 會重置，需再次設定
+        this.state.sourceLang = trackToEnable.languageCode;
+        
+        // 3. 建立按鈕
+        const playerContainer = document.getElementById('movie_player');
+        if (!playerContainer) return;
+        
+        const btn = document.createElement('div');
+        btn.id = 'enhancer-ondemand-button';
+        btn.innerHTML = '翻譯'; // 使用 CSS 來設定樣式
+        btn.title = `將 ${this.getFriendlyLangName(trackToEnable.languageCode)} 翻譯為中文`;
+        
+        // 綁定點擊事件
+        this.handleOnDemandTranslateClick = this.handleOnDemandTranslateClick.bind(this);
+        btn.addEventListener('click', () => this.handleOnDemandTranslateClick(trackToEnable));
+        
+        playerContainer.appendChild(btn);
+        this.state.onDemandButton = btn; // 儲存參照
+        
+        // 4. 請求 injector.js 啟用軌道 (以顯示原文)
+        this._log(`[Tier 3] 命令特工啟用軌道 [${trackToEnable.languageCode}] (僅原文)...`);
+        this.state.targetVssId = trackToEnable.vssId;
+        this.state.activationWatchdog = setTimeout(() => this.handleActivationFailure(), 3000);
+        window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
+    }
+
+    // 【關鍵修正點】 v2.0 - 新增 Tier 3 點擊處理函式
+    async handleOnDemandTranslateClick(trackToEnable) {
+        // 功能: Tier 3 按鈕的點擊事件處理。
+        this._log(`[Tier 3] 按鈕被點擊，開始翻譯 ${trackToEnable.languageCode}`);
+        
+        // 1. 移除按鈕
+        this.state.onDemandButton?.remove();
+        this.state.onDemandButton = null;
+
+        // 2. (重要) 解除原文模式旗標
+        this.state.isNativeView = false;
+        
+        // 3. 執行「溫和重置」以準備進入 Tier 2 流程
+        this.state.abortController?.abort();
+        this.state.translatedTrack = null;
+        this.state.isProcessing = false;
+        this.state.hasActivated = false;
+        if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
+        
+        // 4. (同 Tier 2) 檢查快取或觸發 activate() 流程
+        this.state.sourceLang = trackToEnable.languageCode;
+        this._log('[意圖鎖定] 已將期望語言 sourceLang 設為:', this.state.sourceLang);
+
+        const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
+        const cachedData = await this.getCache(cacheKey);
+
+        if (cachedData && cachedData.translatedTrack) {
+            this._log('[Tier 3->2] 發現快取，直接載入。');
+            this.state.translatedTrack = cachedData.translatedTrack;
+            this.activate(cachedData.rawPayload); // 觸發完整翻譯
+        } else {
+            this._log(`[Tier 3->2] 無快取，命令特工重新獲取軌道...`);
+            // 注意：此時軌道應已在原文模式下載入，
+            // 我們需要觸發 TIMEDTEXT_DATA 再次傳來，
+            // 但由於 isNativeView = false，這次它將觸發 activate()。
+            // 為保險起見，再次發送啟用命令。
+            this.state.targetVssId = trackToEnable.vssId;
+            this.state.activationWatchdog = setTimeout(() => this.handleActivationFailure(), 3000);
+            window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
+        }
+    }
+
+    // 【關鍵修正點】 v2.0 - 新增 Tier 1/3 的啟動函式 (activate 簡化版)
+    activateNativeView(initialPayload) {
+        // 功能: 啟動原文顯示流程 (不翻譯)。
+        this.removeGuidancePrompt();
+        this.state.rawPayload = initialPayload;
+        this.state.videoElement = document.querySelector('video');
+        const playerContainer = document.getElementById('movie_player');
+        if (!this.state.videoElement || !playerContainer) {
+            this.handleCriticalFailure('activateNativeView', "找不到播放器元件，啟動失敗。");
+            return;
+        }
+        
+        // (不建立狀態圓環 Orb)
+        this.createSubtitleContainer(playerContainer);
+        this.applySettingsToUI();
+        this.toggleNativeSubtitles(true); // 隱藏原生字幕
+        
+        // (不呼叫 parseAndTranslate)
+        if (!this.state.translatedTrack) {
+            this.state.translatedTrack = this.parseRawSubtitles(initialPayload);
+        }
+        if (!this.state.translatedTrack.length) {
+            this._log("解析後無有效字幕句段。");
+            return;
+        }
+        
+        this.beginDisplay(); // 直接開始顯示
+        this._log(`[Tier 1/3] 原文模式 (activateNativeView) 啟動完畢。`);
     }
 
     async activate(initialPayload) {
@@ -684,9 +844,9 @@ class YouTubeSubtitleEnhancer {
 
     updateSubtitleDisplay() {
         // 功能: (v3.1.0 修改) 將原文/譯文/批次失敗UI 渲染到自訂的字幕容器中。
+        // 【關鍵修正點】: v2.0 - 新增 isNativeView 邏輯
         // input: 無 (自行從 this.state 獲取)
         // output: (DOM 操作)
-        // 其他補充: 檢查 tempFailed 旗標以顯示「點擊重試」按鈕。
         if (!this.state.subtitleContainer || !this.state.videoElement || !this.state.translatedTrack) return;
 
         const currentTime = this.state.videoElement.currentTime * 1000;
@@ -703,11 +863,23 @@ class YouTubeSubtitleEnhancer {
             return; // 結束此函式
         }
         
-        // 2. 渲染正常翻譯 UI
         const originalText = currentSub?.text;
         const translatedText = currentSub?.translatedText;
-        // 【關鍵修正點】: v3.1.0 - 結束
+        
+        // 【關鍵修正點】 v2.0 - Tier 1/3 原文模式邏輯
+        if (this.state.isNativeView) {
+            let html = '';
+            if (originalText) {
+                // 在原文模式下，使用 "translated-line" 的樣式 (較大、較粗) 來顯示原文
+                html += `<div class="enhancer-line enhancer-translated-line">${originalText}</div>`;
+            }
+            if (this.state.subtitleContainer.innerHTML !== html) {
+                this.state.subtitleContainer.innerHTML = html;
+            }
+            return; // 結束此函式
+        }
 
+        // 2. 渲染正常翻譯 UI (Tier 2 邏輯)
         const { showOriginal, showTranslated } = this.settings;
         let html = '';
         if (showOriginal && originalText) html += `<div class="enhancer-line enhancer-original-line">${originalText}</div>`;
