@@ -5,16 +5,15 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 2.1.0
+ * Version: 2.1.0 (v2.0 Engine Refactor)
  *
  * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
 
+// 【關鍵修正點】: v2.0 - 將所有邏輯包裹在 DOMContentLoaded 內部
 document.addEventListener('DOMContentLoaded', () => {
     // 功能: 整個 popup.html 和 options.html 腳本的啟動入口。
-    // input: (DOM 事件)
-    // output: 無
-    // 其他補充: 確保在頁面 DOM 元素都載入完成後才執行腳本。
+
     const isOptionsPage = document.body.style.width === 'auto';
 
     const LANG_CODE_MAP = {
@@ -25,6 +24,36 @@ document.addEventListener('DOMContentLoaded', () => {
         'zh-TW': '繁體中文 (台灣)', 'zh-CN': '簡體中文 (中國)', 'zh-HK': '繁體中文 (香港)'
     };
 
+    // --- [v2.0] 新增常數 (步驟 2.B) ---
+    const LANGUAGE_DATABASE = [
+        { code: 'ja', name: '日文', search: ['ja', 'japanese', '日文', '日語'] },
+        { code: 'en', name: '英文', search: ['en', 'english', '英文', '英語'] },
+        { code: 'ko', name: '韓文', search: ['ko', 'korean', '韓文', '韓語'] },
+        { code: 'zh-Hant', name: '繁體中文', search: ['zh-hant', 'traditional chinese', '繁體中文', '正體中文'] },
+        { code: 'zh-Hans', name: '簡體中文', search: ['zh-hans', 'simplified chinese', '簡體中文'] },
+        { code: 'fr', name: '法文', search: ['fr', 'french', '法文', '法語'] },
+        { code: 'de', name: '德文', search: ['de', 'german', '德文', '德語'] },
+        { code: 'es', name: '西班牙文', search: ['es', 'spanish', '西班牙文', '西班牙語'] },
+        { code: 'ru', name: '俄文', search: ['ru', 'russian', '俄文', '俄語'] },
+        { code: 'vi', name: '越南文', search: ['vi', 'vietnamese', '越南文', '越南語'] },
+        { code: 'th', name: '泰文', search: ['th', 'thai', '泰文', '泰語'] },
+        { code: 'id', name: '印尼文', search: ['id', 'indonesian', '印尼文', '印尼語'] },
+        { code: 'it', name: '義大利文', search: ['it', 'italian', '義大利文', '義大利語'] },
+        { code: 'pt', name: '葡萄牙文', search: ['pt', 'portuguese', '葡萄牙文', '葡萄牙語'] },
+        { code: 'ar', name: '阿拉伯文', search: ['ar', 'arabic', '阿拉伯文', '阿拉伯語'] },
+        { code: 'hi', name: '北印度文', search: ['hi', 'hindi', '北印度文', '印度語'] },
+        { code: 'tr', name: '土耳其文', search: ['tr', 'turkish', '土耳其文', '土耳其語'] }
+    ];
+
+    const NEW_LANGUAGE_PROMPT_TEMPLATE = `**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者的情感語氣。
+- (可選) 翻譯風格應偏向 (口語化/書面語/專業/活潑)。
+
+**人名/專有名詞對照表 (優先級最高):**
+- (範例) 原文名稱/讀音 -> 應翻譯的專有名詞
+`;
+    // --- [v2.0] 常數結束 ---
+
     const ALL_MODELS = {
         'gemini-2.5-pro': { name: 'Gemini 2.5 Pro', tip: '最高品質，適合複雜推理任務。' },
         'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', tip: '效能與速度的平衡點。' },
@@ -32,16 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'gemini-2.0-flash': { name: 'Gemini 2.0 Flash', tip: '舊版高速模型。' },
         'gemini-2.0-flash-lite': { name: 'Gemini 2.0 Flash-Lite', tip: '舊版最快模型。' }
     };
-    
-    const EXAMPLE_PROMPT_CONTENT = `**風格指南:**
-- 翻譯需符合台灣人的說話習慣，使用台灣慣用語。
-- 保留說話者（例如：偶像、實況主）活潑或溫柔的語氣。
-
-**人名/專有名詞對照表 (優先級最高):**
-- しそん じゅん -> 志尊淳
-- さとう たける -> 佐藤健
-- まちだ けいた -> 町田啟太
-`;
 
     // 【關鍵修正點】: v1.1 - 從 backend.py 遷移預設 Prompts
     const DEFAULT_CUSTOM_PROMPTS = {
@@ -61,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 - Takaoka Sho -> 高岡尚
 - Sakamoto Kazushi -> 坂本一志
 - 西條朱音 -> 西條朱音
-- 菅田將暉 -> 菅田將暉
+- 菅田將暉 -> 菅田暉
 - ノブ -> ノブ
 `,
         "ko": "--- 韓文自訂 Prompt (請在此輸入風格與對照表) ---",
@@ -70,9 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 通用函數 ---
     const sendMessage = (message) => chrome.runtime.sendMessage(message);
-        // 功能: 向 background.js 發送訊息的簡化輔助函式。
     const getActiveTab = async () => {
-        // 功能: 獲取當前使用者正在檢視的分頁。
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         return tab;
     };
@@ -80,104 +97,145 @@ document.addEventListener('DOMContentLoaded', () => {
     function translateToFriendlyError(errorMessage) {
         // 功能: 將後端或網路層返回的技術性錯誤訊息，轉換為使用者看得懂的友善提示。
         const msg = String(errorMessage).toLowerCase();
-        if (msg.includes('failed to fetch')) {
-            return "無法連線至後端翻譯伺服器。請確認後端程式是否已啟動。";
-        }
-        if (msg.includes('quota') || msg.includes('billing')) {
-            return "API Key 已達用量上限或帳戶需要綁定付款方式。請更換金鑰。";
-        }
-        if (msg.includes('api key not valid')) {
-            return "API Key 無效。請檢查 api_keys.txt 中的金鑰是否正確。";
-        }
-        if (msg.includes('permission denied')) {
-            return "後端權限不足，無法寫入設定檔 (例如 custom_prompts.json)。";
-        }
-        if (msg.includes('503')) {
-            return "所有 API Key 與模型均嘗試失敗，請檢查後端日誌以獲取詳細資訊。";
-        }
+        if (msg.includes('failed to fetch')) return "無法連線至後端翻譯伺服器。請確認後端程式是否已啟動。";
+        if (msg.includes('quota') || msg.includes('billing')) return "API Key 已達用量上限或帳戶需要綁定付款方式。請更換金鑰。";
+        if (msg.includes('api key not valid')) return "API Key 無效。請檢查 api_keys.txt 中的金鑰是否正確。";
+        if (msg.includes('permission denied')) return "後端權限不足，無法寫入設定檔 (例如 custom_prompts.json)。";
+        if (msg.includes('503')) return "所有 API Key 與模型均嘗試失敗，請檢查後端日誌以獲取詳細資訊。";
         return errorMessage;
     }
     
     let settings = {};
 
+    // 功能: [v2.0] 獲取設定，並包含從 v1.x 到 v2.0 的資料庫自動遷移邏輯。
     async function loadSettings() {
-        // 功能: (偵錯模式) 獲取設定，並將收到的原始資料和最終處理結果都印出來。
-        console.log('--- 開始載入設定 ---');
+        console.log('[v2.0] 開始載入設定...');
+        
+        const minimumDefaults = {
+            fontSize: 22,
+            showOriginal: true,
+            showTranslated: true,
+            fontFamily: 'Microsoft JhengHei, sans-serif'
+        };
+
         try {
-            const response = await sendMessage({ action: 'getSettings' });
+            // 【關鍵修正點】: v2.G - 一次性獲取所有 storage 資料，避免 get(['key']) 的不穩定
+            const allStorageData = await chrome.storage.local.get(null);
             
-            // 【關鍵偵錯點】 1: 印出從 background.js 收到的最原始的回應
-            console.log('1. 從 background.js 收到的原始 response:', response);
-
-            const minimumDefaults = {
-                fontSize: 22,
-                showOriginal: true,
-                showTranslated: true,
-            };
-
-            if (response?.success) {
-                settings = { ...minimumDefaults, ...response.data };
-                
-                // 【關鍵偵錯點】 2: 印出即將用於更新 UI 的最終 settings 物件
-                console.log('2. 合併後的最終 settings 物件:', settings);
-
-                updateUI();
-            } else {
-                settings = minimumDefaults;
-                console.log('X. 載入失敗，使用預設 settings 物件:', settings);
-                updateUI();
+            let currentSettings = allStorageData.ytEnhancerSettings;
+            if (!currentSettings) {
+                const response = await sendMessage({ action: 'getSettings' }); // Fallback
+                currentSettings = response.data || {};
             }
+
+            let needsSave = false; // 追蹤是否執行了遷移
+
+            // 【關鍵修正點】開始: v2.0 資料庫遷移邏輯 (v2.G 修復版)
+            if (currentSettings.preferred_langs) {
+                console.log('[v2.0 Migration] 偵測到旧版設定 (preferred_langs)，正在執行資料庫遷移...');
+                if (isOptionsPage) { 
+                    showOptionsToast('偵測到舊版設定，正在升級資料庫...', 4000);
+                }
+
+                // 1. 【關鍵修正點】: 從 allStorageData 中安全地獲取 userPrompts
+                const userPrompts = allStorageData.customPrompts; // 絕對讀取，如果不存在才是 undefined
+
+                // 2. 正確合併 Prompt (以 DEFAULT 為基底，用 userPrompts 覆蓋)
+                const mergedPrompts = { ...DEFAULT_CUSTOM_PROMPTS, ...userPrompts };
+                
+                // 3. 遷移 Tier 2 (自動翻譯列表)
+                currentSettings.auto_translate_priority_list = currentSettings.preferred_langs.map(lang => {
+                    const name = LANG_CODE_MAP[lang] || lang;
+                    // 4. 從合併後的物件中取值
+                    const customPrompt = mergedPrompts[lang] || NEW_LANGUAGE_PROMPT_TEMPLATE;
+                    
+                    return { langCode: lang, name: name, customPrompt: customPrompt };
+                });
+
+                // 5. 遷移 Tier 1 (原文顯示列表)
+                currentSettings.native_langs = currentSettings.ignored_langs || ['zh-Hant'];
+
+                // 6. 刪除舊屬性
+                delete currentSettings.preferred_langs;
+                delete currentSettings.ignored_langs;
+                
+                needsSave = true;
+
+                // 7. [關鍵] 刪除舊的頂層 customPrompts 儲存金鑰
+                await chrome.storage.local.remove('customPrompts');
+                console.log('[v2.0 Migration] 舊的 customPrompts 鍵已移除。');
+            }
+            // 【關鍵修正點】結束
+
+            settings = { ...minimumDefaults, ...currentSettings };
+            
+            if (needsSave) {
+                console.log('[v2.0 Migration] 遷移完成，正在儲存 v2.0 設定...');
+                await sendMessage({ action: 'updateSettings', data: settings });
+            }
+            
+            if (isOptionsPage) {
+                renderTier1Badges(settings.native_langs || []);
+                renderTier2Accordions(settings.auto_translate_priority_list || []);
+            }
+
+            updateUI();
+
         } catch (e) {
             console.error('loadSettings 函式發生嚴重錯誤:', e);
+            settings = minimumDefaults;
+            updateUI();
         }
-        console.log('--- 設定載入完畢 ---');
+        console.log('[v2.0] 設定載入完畢。');
     }
 
     async function saveSettings(showToast = false) {
-        // 功能: 將使用者在 UI 上的設定變動儲存到 background.js，並通知 content.js 即時更新。
-        // input from: UI 元件的事件 (例如拖曳、點擊)
-        // output to: background.js -> updateSettings
-        //            content.js -> settingsChanged (透過 background.js 廣播)
+        // 功能: 將使用者在 UI 上的設定變動儲存到 background.js
         if (isOptionsPage) {
+            // [v2.0] Tier 1/2 的 settings 已由各自的處理函式 (handleTier1Add/Remove, handleTier2SavePrompt, etc.) 即時更新
+            // [保留] 更新模型偏好
             const selectedList = document.getElementById('selected-models');
-            settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
+            if (selectedList) { // [修復] 增加 null 檢查
+                 settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
+            }
         }
         
-        // 【關鍵修正點】: 修正：使用 { data: settings } 結構傳輸，與 background.js 期待的 updateSettings 結構一致。
         await sendMessage({ action: 'updateSettings', data: settings });
         
         const tab = await getActiveTab();
         if (tab?.url?.includes("youtube.com")) {
-            // 【關鍵修正點】: 修正：sendMessage 的參數必須是 { action: ..., settings: ... }，而不是直接傳遞 settings。
             chrome.tabs.sendMessage(tab.id, { action: 'settingsChanged', settings: settings }).catch(() => {});
         }
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
 
+    // --- [v2.0] 核心函式 (步驟 2.E) ---
     function updateUI() {
-        // 功能: 根據 settings 全域變數的內容，更新 popup 或 options 頁面上所有 UI 元件的狀態（例如滑桿位置、勾選框狀態等）。
-        // input: (全域變數) settings
-        // output: (DOM 操作)
+        // 功能: 根據 settings 更新所有 UI 元件
         if (isOptionsPage) {
-            updateListUI('preferred-lang-list', settings.preferred_langs);
-            document.getElementById('ignored-lang-input').value = (settings.ignored_langs || []).join(', ');
+            // 【關鍵修正點】: (步驟 2.E) 移除舊的 updateListUI 和 ignored-lang-input 參照
             populateModelLists(); 
-            document.getElementById('fontFamilySelect').value = settings.fontFamily;
+            const fontFamilySelect = document.getElementById('fontFamilySelect');
+            if (fontFamilySelect) fontFamilySelect.value = settings.fontFamily;
         } else {
-            // 【關鍵修正點】: 針對 Popup UI 元素，安全地讀取設定，預設為 true/22
-            document.getElementById('fontSizeSlider').value = settings.fontSize ?? 22;
-            document.getElementById('fontSizeValue').textContent = (settings.fontSize ?? 22) + 'px';
+            // Popup 頁面邏輯
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            if (fontSizeSlider) {
+                fontSizeSlider.value = settings.fontSize ?? 22;
+                document.getElementById('fontSizeValue').textContent = (settings.fontSize ?? 22) + 'px';
+            }
+            const showOriginal = document.getElementById('showOriginal');
+            if (showOriginal) showOriginal.checked = settings.showOriginal ?? true;
             
-            // 【關鍵修正點】: 處理布林值時，使用 ?? true 確保預設勾選，解決問題 4
-            document.getElementById('showOriginal').checked = settings.showOriginal ?? true; 
-            document.getElementById('showTranslated').checked = settings.showTranslated ?? true;
+            const showTranslated = document.getElementById('showTranslated');
+            if (showTranslated) showTranslated.checked = settings.showTranslated ?? true;
         }
     }
 
     // --- Options Page 專屬邏輯 ---
     if (isOptionsPage) {
-        const promptTextarea = document.getElementById('customPromptTextarea');
 
+        // --- [保留] 頁籤 (Tab) 邏輯 ---
         const tabLinks = document.querySelectorAll('.tab-link');
         const tabContents = document.querySelectorAll('.tab-content');
         tabLinks.forEach(link => {
@@ -189,10 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
+        // --- [保留] 模型偏好設定邏輯 ---
         function initializeModelSelector() {
-            // 功能: 初始化「模型偏好設定」區塊的 UI 和事件監聽。
             const selectedList = document.getElementById('selected-models');
             const availableList = document.getElementById('available-models');
+            if (!selectedList || !availableList) return; // [修復] 增加 null 檢查
 
             document.getElementById('add-model').addEventListener('click', () => {
                 moveSelectedItems(availableList, selectedList);
@@ -204,9 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [selectedList, availableList].forEach(list => {
                 list.addEventListener('click', (e) => {
                     const li = e.target.closest('li');
-                    if (li) {
-                        li.classList.toggle('selected');
-                    }
+                    if (li) li.classList.toggle('selected');
                 });
             });
             
@@ -214,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function moveSelectedItems(fromList, toList) {
-            // 功能: 處理在「已選用」和「可用」模型列表之間移動選項的邏輯。
             fromList.querySelectorAll('li.selected').forEach(item => {
                 item.classList.remove('selected');
                 toList.appendChild(item);
@@ -223,9 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function populateModelLists() {
-            // 功能: 根據 settings 中的模型偏好，將模型動態填入兩個列表中。
             const selectedList = document.getElementById('selected-models');
             const availableList = document.getElementById('available-models');
+            if (!selectedList || !availableList) return; // [修復] 增加 null 檢查
+            
             selectedList.innerHTML = '';
             availableList.innerHTML = '';
             const preferred = settings.models_preference || [];
@@ -244,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function createModelListItem(id) {
-            // 功能: 創建單個模型選項的 HTML 元素。
             const li = document.createElement('li');
             li.dataset.id = id;
             li.draggable = true;
@@ -252,86 +308,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return li;
         }
         initializeModelSelector();
-
-        // 語言偏好列表的拖曳
-        initializeSortableList('preferred-lang-list', () => {
-            const list = document.getElementById('preferred-lang-list');
-            settings.preferred_langs = [...list.querySelectorAll('li')].map(li => li.dataset.id);
-            saveSettings(true);
-        });
-
-        // 忽略列表輸入
-        document.getElementById('ignored-lang-input').addEventListener('change', (e) => {
-            settings.ignored_langs = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-            saveSettings(true);
-        });
-
-        // Prompt 管理
-        let allCustomPrompts = {};
-        const promptSelect = document.getElementById('promptLanguageSelect');
-        async function loadCustomPrompts() {
-            // 功能: (已修改) 從 chrome.storage.local 獲取已儲存的自訂 Prompts
-            // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch，改用 chrome.storage.local.get
-            try {
-                const result = await chrome.storage.local.get(['customPrompts']); //
-                // 如果 storage 為空，則使用從 backend.py 移植過來的預設值
-                allCustomPrompts = result.customPrompts || DEFAULT_CUSTOM_PROMPTS; //
-                updatePromptTextarea();
-            } catch (e) {
-                console.error('無法載入自訂 Prompts:', e);
-                promptTextarea.value = '無法從瀏覽器儲存區載入 Prompts。';
-                promptTextarea.disabled = true;
-                showOptionsToast(`載入 Prompts 失敗：${e.message}`, 5000);
-            }
-        }
-        const updatePromptTextarea = () => {
-            // 功能: 根據語言下拉選單的選擇，更新編輯區顯示的 Prompt 內容。
-            promptTextarea.value = allCustomPrompts[promptSelect.value] || '';
-        };
-        promptSelect.addEventListener('change', updatePromptTextarea);
-        document.getElementById('savePromptButton').addEventListener('click', async (e) => {
-            // 功能: (已修改) 儲存自訂 Prompts 到 chrome.storage.local
-            // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch，改用 chrome.storage.local.set
-            const button = e.target;
-            button.disabled = true;
-            button.textContent = '儲存中...';
-            allCustomPrompts[promptSelect.value] = promptTextarea.value;
-            try {
-                await chrome.storage.local.set({ customPrompts: allCustomPrompts }); //
-                showOptionsToast('Prompt 已成功儲存！'); //
-            } catch (err) {
-                const userFriendlyError = translateToFriendlyError(err.message);
-                showOptionsToast(`儲存 Prompt 失敗：${userFriendlyError}`, 5000);
-            } finally {
-                button.disabled = false;
-                button.textContent = '儲存 Prompt';
-            }
-        });
-        document.getElementById('resetPromptButton').addEventListener('click', () => {
-            promptTextarea.value = '';
-        });
-        loadCustomPrompts();
         
-        function syncExampleToClipboard() {
-            // 功能: 複製 Prompt 範例到使用者的剪貼簿。
-            navigator.clipboard.writeText(EXAMPLE_PROMPT_CONTENT).then(() => {
-                showOptionsToast('範例格式已複製！請直接在編輯區貼上。');
-            }).catch(err => {
-                console.error('無法寫入剪貼簿:', err);
-                showOptionsToast('複製失敗！', 5000);
-            }).finally(() => {
-                promptTextarea.focus();
+        // --- [保留] 進階外觀 ---
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        if (fontFamilySelect) {
+            fontFamilySelect.addEventListener('change', (e) => {
+                settings.fontFamily = e.target.value;
+                saveSettings(true);
             });
         }
-        document.getElementById('syncPromptExample').addEventListener('click', syncExampleToClipboard);
-        
-        // 進階外觀
-        document.getElementById('fontFamilySelect').addEventListener('change', (e) => {
-            settings.fontFamily = e.target.value;
-            saveSettings(true);
-        });
 
-        // 【關鍵修正點】: 根據規格 1.A，新增 API 金鑰管理邏輯
         // 功能: 讀取 userApiKeys 陣列並將其渲染到 UI 列表
         // input: 無 (從 chrome.storage.local 讀取)
         // output: (DOM 操作) 更新 #apiKeyList
@@ -339,18 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
         async function loadAndRenderApiKeys() {
             const listElement = document.getElementById('apiKeyList');
             if (!listElement) return;
-
             try {
                 const result = await chrome.storage.local.get(['userApiKeys']);
                 const keys = result.userApiKeys || [];
-
-                listElement.innerHTML = ''; // 清空現有列表
-
+                listElement.innerHTML = ''; 
                 if (keys.length === 0) {
                     listElement.innerHTML = '<li style="color: var(--text-light-color); justify-content: center;">尚無金鑰</li>';
                     return;
                 }
-
                 keys.forEach(key => {
                     const li = document.createElement('li');
                     li.innerHTML = `
@@ -374,46 +356,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const keyInput = document.getElementById('apiKeyInput');
             const addButton = document.getElementById('addApiKeyButton');
             const listElement = document.getElementById('apiKeyList');
-
             if (!nameInput || !keyInput || !addButton || !listElement) return;
 
-            // 1. 新增按鈕的邏輯
             addButton.addEventListener('click', async () => {
                 const name = nameInput.value.trim();
                 const key = keyInput.value.trim();
-
                 if (!name || !key) {
                     showOptionsToast('金鑰名稱和 API Key 皆不可為空', 4000);
                     return;
                 }
-
                 if (!key.startsWith('AIzaSy')) {
                      showOptionsToast('金鑰格式似乎不正確，請再次確認。', 4000);
-                     // 不阻擋，僅提示
                 }
-
                 try {
                     addButton.disabled = true;
                     addButton.textContent = '新增中...';
-                    
                     const result = await chrome.storage.local.get(['userApiKeys']);
                     const keys = result.userApiKeys || [];
-                    
-                    const newKey = {
-                        id: crypto.randomUUID(), //
-                        name: name,
-                        key: key
-                    };
-
-                    keys.push(newKey); //
-
-                    await chrome.storage.local.set({ userApiKeys: keys }); //
-
+                    const newKey = { id: crypto.randomUUID(), name: name, key: key };
+                    keys.push(newKey); 
+                    await chrome.storage.local.set({ userApiKeys: keys }); 
                     nameInput.value = '';
                     keyInput.value = '';
                     showOptionsToast(`金鑰 "${name}" 已成功新增！`);
-                    await loadAndRenderApiKeys(); //
-
+                    await loadAndRenderApiKeys(); 
                 } catch (e) {
                     console.error('新增 API Key 失敗:', e);
                     showOptionsToast('新增金鑰時發生錯誤，請檢查控制台日誌。', 5000);
@@ -423,33 +389,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 2. 刪除按鈕的邏輯 (使用事件委派)
             listElement.addEventListener('click', async (e) => {
                 if (!e.target.classList.contains('delete-key')) return;
-
                 const button = e.target;
-                const keyId = button.dataset.id; //
-                if (!keyId) return;
-                
-                if (!confirm('您確定要刪除此 API Key 嗎？')) {
-                    return;
-                }
-
+                const keyId = button.dataset.id; 
+                if (!keyId || !confirm('您確定要刪除此 API Key 嗎？')) return;
                 try {
                     button.disabled = true;
                     button.textContent = '刪除中...';
-
                     const result = await chrome.storage.local.get(['userApiKeys']);
-                    let keys = result.userApiKeys || [];
-
-                    // 使用 filter 過濾掉要刪除的金鑰
-                    keys = keys.filter(key => key.id !== keyId); 
-
-                    await chrome.storage.local.set({ userApiKeys: keys }); //
-
+                    let keys = (result.userApiKeys || []).filter(key => key.id !== keyId); 
+                    await chrome.storage.local.set({ userApiKeys: keys }); 
                     showOptionsToast('金鑰已成功刪除。');
-                    await loadAndRenderApiKeys(); //
-
+                    await loadAndRenderApiKeys(); 
                 } catch (e) {
                     console.error('刪除 API Key 失敗:', e);
                     showOptionsToast('刪除金鑰時發生錯誤，請檢查控制台日誌。', 5000);
@@ -458,46 +410,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-
-        // --- 立即執行 API 金鑰管理 ---
         loadAndRenderApiKeys();
         setupApiKeyListeners();
-        // 【關鍵修正點】: 以上為新增區塊
 
-        // 診斷與日誌
-        document.getElementById('clearCacheButton').addEventListener('click', async () => {
+        // --- [保留] 診斷與日誌 ---
+        document.getElementById('clearCacheButton')?.addEventListener('click', async () => {
             const res = await sendMessage({ action: 'clearAllCache' });
             showOptionsToast(`成功清除了 ${res.count} 個影片的暫存！`);
         });
-        // 【關鍵修正點】: v1.1 - 遷移金鑰診斷邏輯
-        document.getElementById('diagnoseKeysButton').addEventListener('click', async (e) => {
-            // 功能: (已修改) 呼叫 background.js 診斷所有儲存的金鑰
-            // 其他補充: 移除 fetch，改用 sendMessage
+        
+        document.getElementById('diagnoseKeysButton')?.addEventListener('click', async (e) => {
             e.target.disabled = true;
             e.target.textContent = '診斷中...';
             const resultsContainer = document.getElementById('diagnose-results');
             resultsContainer.innerHTML = '';
-            
             try {
-                 // 【關鍵修正點】: 呼叫 background.js 的 'diagnoseAllKeys' 動作
-                 const results = await sendMessage({ action: 'diagnoseAllKeys' }); //
-
-                 if (!results) {
-                     throw new Error('背景服務未回傳診斷結果。');
-                 }
-
+                 const results = await sendMessage({ action: 'diagnoseAllKeys' }); 
+                 if (!results) throw new Error('背景服務未回傳診斷結果。');
                  resultsContainer.innerHTML = ''; 
                  if (results.length === 0) {
-                     // 此處的判斷邏輯保持不變
                      resultsContainer.innerHTML = `<div class="diag-result status-invalid">未在瀏覽器儲存區找到可診斷的 API Key。</div>`;
                  } else {
-                     // 重用舊的 UI 渲染邏輯，因為回傳格式相同
                      results.forEach(res => {
                         const resultEl = document.createElement('div');
                         resultEl.className = `diag-result status-${res.status}`;
-                        resultEl.innerHTML = `<strong>${res.name}:</strong> ${res.status === 'valid' ? '有效' : '無效'}`; //
+                        resultEl.innerHTML = `<strong>${res.name}:</strong> ${res.status === 'valid' ? '有效' : '無效'}`; 
                         if(res.error) {
-                            resultEl.title = res.error; //
+                            resultEl.title = res.error; 
                             resultEl.innerHTML += ` - ${res.error.substring(0, 50)}...`;
                         }
                         resultsContainer.appendChild(resultEl);
@@ -508,9 +447,10 @@ document.addEventListener('DOMContentLoaded', () => {
                  resultsContainer.innerHTML = `<div class="diag-result status-invalid">診斷失敗：${userFriendlyError}</div>`;
             } finally {
                 e.target.disabled = false;
-                e.target.textContent = '開始診斷所有金鑰'; //
+                e.target.textContent = '開始診斷所有金鑰'; 
             }
         });
+        
         async function loadErrorLogs() {
             // 功能: (已修改) 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
             // input from: (自動執行)
@@ -518,25 +458,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // 其他補充: 【關鍵修正點】 v1.1 - 重寫以渲染豐富的 LogEntry 物件
             const logContainer = document.getElementById('error-log-container');
             if (!logContainer) return;
-
-            const response = await sendMessage({ action: 'getErrorLogs' }); //
-
+            const response = await sendMessage({ action: 'getErrorLogs' }); 
             if (response.success && response.data && response.data.length > 0) {
-                logContainer.innerHTML = ''; // 清空 placeholder
+                logContainer.innerHTML = ''; 
                 response.data.forEach(log => {
                     const entryEl = document.createElement('div');
-                    entryEl.className = `log-entry log-level-${log.level.toLowerCase()}`; //
-
-                    // 處理詳細資訊
+                    entryEl.className = `log-entry log-level-${log.level.toLowerCase()}`; 
                     let detailsHtml = '';
-                    if (log.context) { //
-                        detailsHtml += `<div><strong>[原始錯誤]</strong> ${log.context}</div>`;
-                    }
-                    if (log.solution) { //
-                        detailsHtml += `<div><strong>[建議]</strong> ${log.solution}</div>`;
-                    }
-
-                    // 組合 HTML
+                    if (log.context) detailsHtml += `<div><strong>[原始錯誤]</strong> ${log.context}</div>`;
+                    if (log.solution) detailsHtml += `<div><strong>[建議]</strong> ${log.solution}</div>`;
                     entryEl.innerHTML = `
                         <div class="log-header">
                             <span class="log-time">[${new Date(log.timestamp).toLocaleTimeString()}]</span>
@@ -547,10 +477,268 @@ document.addEventListener('DOMContentLoaded', () => {
                     logContainer.appendChild(entryEl);
                 });
             } else {
-                 logContainer.innerHTML = '<p class="log-placeholder">目前沒有持續性錯誤紀錄。</p>'; //
+                 logContainer.innerHTML = '<p class="log-placeholder">目前沒有持續性錯誤紀錄。</p>'; 
             }
         }
         loadErrorLogs();
+
+
+        // --- [v2.0] Tier 1: 原文顯示 (Badge/Token) 邏輯 (步驟 2.C) ---
+        function renderTier1Badges(langs = []) {
+            const container = document.getElementById('tier-1-badge-container');
+            if (!container) return; 
+            container.innerHTML = ''; 
+            langs.forEach(langCode => {
+                const langName = LANGUAGE_DATABASE.find(L => L.code === langCode)?.name || langCode;
+                const badge = document.createElement('div');
+                badge.className = 'lang-badge';
+                badge.innerHTML = `
+                    <span>${langName} (${langCode})</span>
+                    <button class="remove-badge" data-lang="${langCode}">×</button>
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        function handleTier1Add() {
+            openLanguagePopover((selectedLang) => {
+                if (!settings.native_langs) settings.native_langs = [];
+                if (settings.native_langs.includes(selectedLang.code)) {
+                    showOptionsToast(`語言 "${selectedLang.name}" 已存在於清單 A 中`, 3000);
+                    return;
+                }
+                if (settings.auto_translate_priority_list?.some(item => item.langCode === selectedLang.code)) {
+                    if (confirm(`"${selectedLang.name}" 已在「清單 B (自動翻譯)」中。\n\n您確定要將它移至「清單 A (原文顯示)」嗎？`)) {
+                        settings.auto_translate_priority_list = settings.auto_translate_priority_list.filter(item => item.langCode !== selectedLang.code);
+                        renderTier2Accordions(settings.auto_translate_priority_list); 
+                    } else {
+                        return; 
+                    }
+                }
+                settings.native_langs.push(selectedLang.code);
+                renderTier1Badges(settings.native_langs); 
+                saveSettings(true); 
+                showOptionsToast(`已新增 "${selectedLang.name}" 到清單 A`, 3000);
+            });
+        }
+
+        function handleTier1Remove(langCode) {
+            settings.native_langs = (settings.native_langs || []).filter(lang => lang !== langCode);
+            renderTier1Badges(settings.native_langs);
+            saveSettings(true); 
+            showOptionsToast(`已從清單 A 移除 (${langCode})`, 3000);
+        }
+
+        // --- [v2.0] Tier 2: 自動翻譯 (Accordion) 邏輯 (步驟 2.C) ---
+        function renderTier2Accordions(list = []) {
+            const container = document.getElementById('tier-2-accordion-list');
+            if (!container) return; 
+            container.innerHTML = ''; 
+            
+            list.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'accordion-item';
+                li.dataset.langCode = item.langCode;
+                li.draggable = true; 
+
+                const langName = item.name || LANGUAGE_DATABASE.find(L => L.code === item.langCode)?.name || item.langCode;
+
+                li.innerHTML = `
+                    <div class="accordion-header">
+                        <span class="drag-handle" title="拖曳調整優先級">⋮⋮</span>
+                        <span class="priority-badge">優先級 ${index + 1}</span>
+                        <span class="lang-name">${langName} (${item.langCode})</span>
+                        <div class="accordion-controls">
+                            <span class="toggle-icon" title="編輯 Prompt">▼</span>
+                            <span class="delete-item" title="刪除">×</span>
+                        </div>
+                    </div>
+                    <div class="accordion-content">
+                        <h3 class="card-subtitle" style="margin-top: 0; margin-bottom: 8px;">自訂 Prompt (${langName})</h3>
+                        <textarea class="prompt-textarea" rows="10" placeholder="請輸入此語言專屬的風格指南與專有名詞對照表...">${item.customPrompt || ''}</textarea>
+                        <div class="accordion-prompt-controls">
+                            <button class="button-secondary cancel-prompt-button">取消</button>
+                            <button class="button-primary save-prompt-button">儲存 Prompt</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(li);
+            });
+            
+            initializeSortableList('tier-2-accordion-list', () => {
+                const listElement = document.getElementById('tier-2-accordion-list');
+                const newList = [...listElement.querySelectorAll('.accordion-item')].map(item => {
+                    const langCode = item.dataset.langCode;
+                    return settings.auto_translate_priority_list.find(L => L.langCode === langCode);
+                });
+                settings.auto_translate_priority_list = newList;
+                renderTier2Accordions(settings.auto_translate_priority_list); 
+                saveSettings(true); 
+                showOptionsToast('優先級已更新！', 3000);
+            });
+        }
+
+        function handleTier2Add() {
+            openLanguagePopover((selectedLang) => {
+                if (!settings.auto_translate_priority_list) settings.auto_translate_priority_list = [];
+                if (settings.auto_translate_priority_list.some(item => item.langCode === selectedLang.code)) {
+                    showOptionsToast(`語言 "${selectedLang.name}" 已存在於清單 B 中`, 3000);
+                    return;
+                }
+                if (settings.native_langs?.includes(selectedLang.code)) {
+                    if (confirm(`"${selectedLang.name}" 已在「清單 A (原文顯示)」中。\n\n您確定要將它移至「清單 B (自動翻譯)」嗎？`)) {
+                        settings.native_langs = settings.native_langs.filter(lang => lang !== selectedLang.code);
+                        renderTier1Badges(settings.native_langs); 
+                    } else {
+                        return; 
+                    }
+                }
+                const newItem = {
+                    langCode: selectedLang.code,
+                    name: selectedLang.name,
+                    customPrompt: NEW_LANGUAGE_PROMPT_TEMPLATE 
+                };
+                settings.auto_translate_priority_list.push(newItem);
+                renderTier2Accordions(settings.auto_translate_priority_list); 
+                const newItemElement = document.querySelector(`.accordion-item[data-lang-code="${selectedLang.code}"]`);
+                if (newItemElement) {
+                    handleTier2Expand(newItemElement);
+                    newItemElement.querySelector('textarea').focus(); 
+                }
+                saveSettings(true); 
+                showOptionsToast(`已新增 "${selectedLang.name}" 到清單 B`, 3000);
+            });
+        }
+
+        function handleTier2Remove(langCode) {
+            if (confirm(`您確定要刪除 (${langCode}) 的自動翻譯設定嗎？`)) {
+                settings.auto_translate_priority_list = (settings.auto_translate_priority_list || []).filter(item => item.langCode !== langCode);
+                renderTier2Accordions(settings.auto_translate_priority_list);
+                saveSettings(true); 
+                showOptionsToast(`已從清單 B 移除 (${langCode})`, 3000);
+            }
+        }
+
+        function handleTier2Expand(itemElement) {
+            const isExpanded = itemElement.classList.contains('expanded');
+            document.querySelectorAll('#tier-2-accordion-list .accordion-item').forEach(item => {
+                item.classList.remove('expanded');
+            });
+            if (!isExpanded) {
+                itemElement.classList.add('expanded');
+            }
+        }
+
+        function handleTier2SavePrompt(langCode, itemElement) {
+            const textarea = itemElement.querySelector('.prompt-textarea');
+            const newPrompt = textarea.value;
+            const itemInSettings = settings.auto_translate_priority_list.find(item => item.langCode === langCode);
+            if (itemInSettings) {
+                itemInSettings.customPrompt = newPrompt;
+                saveSettings(true); 
+                showOptionsToast(`(${langCode}) 的 Prompt 已儲存！`, 3000);
+                handleTier2Expand(itemElement); 
+            } else {
+                showOptionsToast(`儲存失敗：找不到 ${langCode} 的設定`, 4000);
+            }
+        }
+
+        // --- [v2.0] Popover: 語言搜尋 (共用) 邏輯 (步驟 2.C) ---
+        let currentPopoverCallback = null;
+
+        function openLanguagePopover(onSelectCallback) {
+            currentPopoverCallback = onSelectCallback;
+            const popover = document.getElementById('language-search-popover');
+            const searchInput = document.getElementById('language-search-input');
+            searchInput.value = '';
+            renderLanguageSearchResults(''); 
+            popover.style.display = 'flex';
+            searchInput.focus(); 
+        }
+
+        function closeLanguagePopover() {
+            const popover = document.getElementById('language-search-popover');
+            popover.style.display = 'none';
+            currentPopoverCallback = null;
+        }
+
+        function renderLanguageSearchResults(query) {
+            const resultsContainer = document.getElementById('language-search-results');
+            resultsContainer.innerHTML = '';
+            const lowerQuery = query.toLowerCase().trim();
+            const filteredLangs = LANGUAGE_DATABASE.filter(lang => 
+                lowerQuery === '' || lang.search.some(term => term.toLowerCase().includes(lowerQuery))
+            );
+            if (filteredLangs.length === 0) {
+                resultsContainer.innerHTML = '<li>無匹配結果</li>';
+                return;
+            }
+            const disabledTier1 = new Set(settings.native_langs || []);
+            const disabledTier2 = new Set((settings.auto_translate_priority_list || []).map(item => item.langCode));
+
+            filteredLangs.forEach(lang => {
+                const li = document.createElement('li');
+                li.dataset.langCode = lang.code;
+                li.dataset.langName = lang.name;
+                let isDisabled = false;
+                let reason = '';
+                if (currentPopoverCallback === handleTier1Add && disabledTier1.has(lang.code)) {
+                    isDisabled = true;
+                    reason = '(已在清單 A)';
+                } else if (currentPopoverCallback === handleTier2Add && disabledTier2.has(lang.code)) {
+                    isDisabled = true;
+                    reason = '(已在清單 B)';
+                }
+                li.innerHTML = `<span class="lang-name">${lang.name}</span> <span class="lang-code">${lang.code} ${reason}</span>`;
+                if (isDisabled) li.classList.add('disabled');
+                resultsContainer.appendChild(li);
+            });
+        }
+
+        // --- [v2.0] 綁定所有 v2.0 事件監聽器 (步驟 2.C) ---
+        document.getElementById('tier-1-add-button')?.addEventListener('click', handleTier1Add);
+        document.getElementById('tier-1-badge-container')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-badge')) {
+                handleTier1Remove(e.target.dataset.lang);
+            }
+        });
+
+        document.getElementById('tier-2-add-button')?.addEventListener('click', handleTier2Add);
+        document.getElementById('tier-2-accordion-list')?.addEventListener('click', (e) => {
+            const target = e.target;
+            const header = target.closest('.accordion-header');
+            const item = target.closest('.accordion-item');
+            if (!item) return;
+            const langCode = item.dataset.langCode;
+            if (target.classList.contains('delete-item')) {
+                handleTier2Remove(langCode);
+            } else if (target.classList.contains('save-prompt-button')) {
+                handleTier2SavePrompt(langCode, item);
+            } else if (target.classList.contains('cancel-prompt-button')) {
+                renderTier2Accordions(settings.auto_translate_priority_list);
+            } else if (header) {
+                handleTier2Expand(item);
+            }
+        });
+
+        const popover = document.getElementById('language-search-popover');
+        popover?.addEventListener('click', (e) => {
+            if (e.target.id === 'language-search-popover') {
+                closeLanguagePopover();
+            }
+            const li = e.target.closest('li');
+            if (li && !li.classList.contains('disabled') && currentPopoverCallback) {
+                currentPopoverCallback({
+                    code: li.dataset.langCode,
+                    name: li.dataset.langName
+                });
+                closeLanguagePopover();
+            }
+        });
+        document.getElementById('language-search-input')?.addEventListener('input', (e) => {
+            renderLanguageSearchResults(e.target.value);
+        });
+        // --- [v2.0] 事件監聽器結束 ---
 
     } else {
         // --- Popup Page 專屬邏輯 ---
@@ -558,15 +746,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusText = document.getElementById('status');
         
         async function updatePopupStatus() {
-            // 功能: 更新 popup 主視窗的 UI 狀態（例如「啟用/停用」按鈕的文字）。
             const tab = await getActiveTab();
             if (tab?.url?.includes("youtube.com")) {
                 toggleButton.disabled = false;
-                
-                // 【關鍵修正點】: 使用選用串連 (?. ) 來安全讀取 response 及其 isEnabled 屬性。
                 const response = await sendMessage({ action: 'getGlobalState' });
-                const isEnabled = response?.isEnabled ?? false; // 如果 response 或 isEnabled 是 undefined，則視為 false (未啟用)
-
+                const isEnabled = response?.isEnabled ?? false; 
                 toggleButton.textContent = isEnabled ? '停用翻譯' : '啟用翻譯';
                 toggleButton.classList.toggle('active', isEnabled);
                 statusText.textContent = isEnabled ? '已啟用' : '未啟用';
@@ -577,10 +761,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         toggleButton.addEventListener('click', async () => {
-            // 【關鍵修正點】: 使用選用串連 (?. ) 來安全讀取 response 及其 isEnabled 屬性。
             const response = await sendMessage({ action: 'toggleGlobalState' });
-            const isEnabled = response?.isEnabled ?? false; // 如果 response 或 isEnabled 是 undefined，則視為 false (未啟用)
-
+            const isEnabled = response?.isEnabled ?? false; 
             toggleButton.textContent = isEnabled ? '停用翻譯' : '啟用翻譯';
             toggleButton.classList.toggle('active', isEnabled);
             statusText.textContent = isEnabled ? '已啟用' : '未啟用';
@@ -613,7 +795,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         const overrideSelect = document.getElementById('overrideLanguageSelect');
-        // 【關鍵修正點】: 只有在 overrideSelect 元件存在時，才為它綁定事件
         if (overrideSelect) {
             overrideSelect.addEventListener('change', async (e) => {
                 if (e.target.value === 'auto') return;
@@ -627,13 +808,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         async function loadAvailableLangs() {
-            // 功能: 從 background.js 獲取當前影片可用的字幕語言，並動態生成到「自訂來源語言」的下拉選單中。
+            // 【關鍵修正點】: v2.0 - overrideSelect 已被廢除，安全檢查
+            if (!overrideSelect) return; 
+            
             const response = await sendMessage({ action: 'getAvailableLangs' });
-            
-            // 【關鍵修正點】: 預先準備選項，確保「自動」永遠是第一個選項。
             overrideSelect.innerHTML = '<option value="auto">自動 (推薦)</option>';
-            
-            // 【關鍵修正點】: 修正傳回資料的判斷，確保 data 是一個陣列且有內容。
             if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
                 response.data.forEach(lang => {
                     const option = document.createElement('option');
@@ -641,9 +820,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     option.textContent = LANG_CODE_MAP[lang] ? `${LANG_CODE_MAP[lang]} (${lang})` : lang;
                     overrideSelect.appendChild(option);
                 });
-                overrideSelect.disabled = false; // 確保在有語言時啟用選擇器
+                overrideSelect.disabled = false; 
             } else {
-                // 如果沒有語言，則只顯示「自動 (推薦)」和「無可用語言」的提示。
                 const placeholderOption = document.createElement('option');
                 placeholderOption.value = 'none';
                 placeholderOption.textContent = '無可用語言';
@@ -662,8 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 通用初始化 ---
     loadSettings();
 
+    // --- 通用輔助函式 ---
     function initializeSortableList(listId, onSortEndCallback) {
-        // 功能: 為一個列表 (ul) 賦予拖曳排序的功能。
         const list = document.getElementById(listId);
         if (!list) return;
         let draggingElement = null;
@@ -691,7 +869,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getDragAfterElement(container, y) {
-        // 功能: 拖曳排序的輔助函式，用於計算拖曳項目應該插入的位置。
         const draggable = [...container.querySelectorAll('li:not(.dragging)')];
         return draggable.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
@@ -700,30 +877,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
-    function updateListUI(listId, items) {
-        // 功能: 根據一個字串陣列，動態更新一個列表 (ul) 的內容。
-        const list = document.getElementById(listId);
-        if (!list) return;
-        list.innerHTML = '';
-        if (!items) return;
-        items.forEach(item => {
-            const li = document.createElement('li');
-            li.dataset.id = item;
-            li.draggable = true;
-            
-            if (listId === 'preferred-lang-list' && LANG_CODE_MAP[item]) {
-                li.textContent = `${LANG_CODE_MAP[item]} (${item})`;
-            } else {
-                li.textContent = item;
-            }
-            
-            list.appendChild(li);
-        });
-    }
-
     let toastTimeout = null;
     function showOptionsToast(message, duration = 3000) {
-        // 功能: 在 options.html 頁面頂部顯示一個短暫的提示訊息（例如「儲存成功」）。
         const toast = document.getElementById('options-toast');
         if (!toast) return;
         toast.textContent = message;

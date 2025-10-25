@@ -20,35 +20,32 @@
     </div>
 
     <div id="tab-main" class="tab-content active">
-        <div class="card">
-            <h2 class="card-title">語言偏好設定</h2>
-            <p class="card-hint">智慧匹配時，系統會從上到下檢查「偏好列表」，並跳過「忽略列表」中的語言。</p>
+        <div class="card" id="tier-1-card">
+            <h2 class="card-title">語言清單 A：原文顯示語言 (零成本模式)</h2>
+            <p class="card-hint">設定您能看懂的語言。當影片有這些語言字幕時，系統將不發送 API 請求，直接顯示原文。</p>
             
-            <h3 class="card-subtitle">偏好語言列表 (可拖曳排序)</h3>
-            <ul id="preferred-lang-list" class="sortable-list"></ul>
-            
-            <h3 class="card-subtitle">忽略語言列表</h3>
-            <input type="text" id="ignored-lang-input" placeholder="參考下方清單，用逗號分隔代碼">
+            <div id="tier-1-badge-container" class="badge-container">
+                </div>
 
-            <details class="reference-details">
-                <summary>常用語言代碼參考 (點擊展開)</summary>
-                <ul class="reference-list">
-                    <li><code>ja</code> - 日文</li>
-                    <li><code>ko</code> - 韓文</li>
-                    <li><code>en</code> - 英文</li>
-                    <li><code>zh-Hant</code> - 繁體中文 (台灣、香港)</li>
-                    <li><code>zh-Hans</code> - 簡體中文 (中國、新加坡)</li>
-                    <li><code>vi</code> - 越南文</li>
-                    <li><code>th</code> - 泰文</li>
-                    <li><code>id</code> - 印尼文</li>
-                    <li><code>es</code> - 西班牙文</li>
-                    <li><code>fr</code> - 法文</li>
-                    <li><code>de</code> - 德文</li>
-                    <li><code>ru</code> - 俄文</li>
-                </ul>
-            </details>
+            <button id="tier-1-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
+            
+            <div class="card-hint info-box" style="margin-top: 16px;">
+                💡 <strong>節費提示：</strong> 當字幕是您設定的語言時，系統會直接顯示原文，不會消耗 API 配額。
+            </div>
         </div>
-        
+        <div class="card" id="tier-2-card">
+            <h2 class="card-title">語言清單 B：自動翻譯與 Prompt 管理</h2>
+            <p class="card-hint">設定需要自動翻譯的語言，並為每個語言自訂 Prompt。系統會依列表順序檢查並觸發第一個匹配的語言。</p>
+            
+            <ul id="tier-2-accordion-list" class="sortable-list accordion-list">
+                </ul>
+
+            <button id="tier-2-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
+
+            <div class="card-hint warning-box" style="margin-top: 16px;">
+                ⚠️ <strong>優先級說明：</strong> 系統會依序檢查列表，並觸發第一個匹配的翻譯。拖曳項目可調整優先序。
+            </div>
+        </div>
         <div class="card">
             <h2 class="card-title">模型偏好設定 (可拖曳排序)</h2>
             <p class="card-hint">點擊選取模型，使用箭頭按鈕在兩個列表間移動。僅「已選用模型」列表中的模型會被調用，您可以拖曳它們來調整嘗試順序。</p>
@@ -64,34 +61,12 @@
             <h3 class="card-subtitle">可用模型</h3>
             <ul id="available-models" class="model-list"></ul>
         </div>
-
-        <div class="card">
-            <div class="card-header-relative">
-                <h2 class="card-title">Prompt 自訂 (風格指南/對照表)</h2>
-                <button id="syncPromptExample" class="button-extra-small">同步範例</button>
-            </div>
-            <p class="card-hint">建議將自訂內容控制在 1000 字元內(不超過1500字元)。提醒：Prompt 越長，AI 處理時間越久且出錯可能增加。</p>
-            <div class="setting-row">
-                <label for="promptLanguageSelect">選擇語言</label>
-                <select id="promptLanguageSelect">
-                    <option value="ja">日文 (ja)</option>
-                    <option value="ko">韓文 (ko)</option>
-                    <option value="en">英文 (en)</option>
-                </select>
-            </div>
-            <textarea id="customPromptTextarea" rows="8" placeholder="在此輸入您的自訂風格指南和專有名詞對照表..."></textarea>
-            <div class="prompt-controls">
-                <button id="savePromptButton" class="button-primary">儲存 Prompt</button>
-                <button id="resetPromptButton" class="button-secondary">還原預設</button>
-            </div>
-        </div>
-
         <div class="card">
             <h2 class="card-title">進階外觀設定</h2>
             <div class="setting-row">
                 <label for="fontFamilySelect">字體選擇</label>
                 <select id="fontFamilySelect">
-                     <optgroup label="通用">
+                    <optgroup label="通用">
                         <option value="YouTube Noto, Roboto, sans-serif">YouTube 預設</option>
                         <option value="Noto Sans TC, sans-serif">思源黑體 (推薦)</option>
                     </optgroup>
@@ -99,6 +74,14 @@
                         <option value="Microsoft JhengHei, sans-serif">微軟正黑體 (預設)</option>
                     </optgroup>
                 </select>
+            </div>
+        </div>
+        <div id="language-search-popover" class="popover-backdrop" style="display: none;">
+            <div class="popover-content">
+                <h3>新增語言</h3>
+                <input type="text" id="language-search-input" placeholder="搜尋語言 (例如: 日文, ja, Japanese)...">
+                <ul id="language-search-results">
+                    </ul>
             </div>
         </div>
     </div>

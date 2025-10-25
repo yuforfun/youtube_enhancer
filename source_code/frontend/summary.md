@@ -1,4 +1,4 @@
-# YouTube 字幕增強器 - 專案情境總結 (v3.1.2)
+# YouTube 字幕增強器 - 專案情境總結 (v3.1.3)
 
 ## 1. 專案目標與核心功能
 
@@ -45,23 +45,24 @@ v3.0.0 架構的核心轉變是**完全 Serverless 化**。專案已移除所有
     2.  `content.js` (ISOLATED World) 載入，並透過 `window.postMessage('REQUEST_PLAYER_RESPONSE')` 開始輪詢 `injector.js`。
     3.  `injector.js` 監聽到 `yt-navigate-finish`，找到播放器實例，呼叫 `player.getPlayerResponse()` 獲取影片資料並暫存 (`state.playerResponse`)。
     4.  `injector.js` 收到 `REQUEST_PLAYER_RESPONSE` 信號，回傳 `PLAYER_RESPONSE_CAPTURED` 資料。
-    5.  `content.js` 收到資料，停止輪詢，呼叫 `start()` 進入主流程。
+    5.  `content.js` 收到資料，停止輪詢，檢查 `settings.isEnabled`，若為 `true` 則呼叫 `start()` 進入主流程。
 
-2.  **[流程二：Serverless 翻譯 (v3.0)]**
+2.  **[流程二：Serverless 翻譯 (v3.1.3)]**
     1.  `content.js` 於 `start()` 中匹配到偏好語言 (例如 `ja`)，檢查快取 (`getCache`)，確認無快取。
     2.  `content.js` 鎖定目標 `targetVssId`，啟動 `activationWatchdog` (3秒看門狗)，並透過 `postMessage('FORCE_ENABLE_TRACK', ...)` 命令 `injector.js`。
     3.  `injector.js` 執行 `player.setOption(...)` (含 3 次重試保險) 強制 YT 播放器請求該字幕。
     4.  `injector.js` 的網路攔截器捕獲 `/api/timedtext` 的 *回應 (Response)*，並 `postMessage('TIMEDTEXT_DATA', ...)`。
-    5.  `content.js` 收到 `TIMEDTEXT_DATA`，驗證 `vssId` 匹配，解除 `activationWatchdog`。
-    6.  `content.js` 呼叫 `activate()` -> `parseAndTranslate()` -> `processNextBatch()`。
-    7.  `content.js` 呼叫 `chrome.runtime.sendMessage({ action: 'translateBatch', texts: [...] })` 將批次(30句)送至 `background.js`。
-    8.  `background.js` 收到任務，從 `storage` 讀取 `userApiKeys` 和 `customPrompts`。
-    9.  `background.js` 執行「金鑰-模型」雙重迴圈，呼叫 Google API。
-    10. `background.js` 透過 `sendResponse({ data: [...] })` 將翻譯陣列回傳給 `content.js`。
-    11. `content.js` 收到翻譯，更新 `state.translatedTrack`，並呼叫 `setCache` 存入 `chrome.storage.local`。
+    5.  **【v3.1.3 修正】** `content.js` 收到 `TIMEDTEXT_DATA`。**優先檢查** `!this.settings.isEnabled`。若為 `true` (即擴充功能已停用)，則立即 `return`，**成功阻擋**手動觸發的翻譯流程。
+    6.  (若 `isEnabled` 為 `true`) `content.js` 繼續執行：驗證 `vssId` 匹配，解除 `activationWatchdog`。
+    7.  `content.js` 呼叫 `activate()` -> `parseAndTranslate()` -> `processNextBatch()`。
+    8.  `content.js` 呼叫 `chrome.runtime.sendMessage({ action: 'translateBatch', texts: [...] })` 將批次(30句)送至 `background.js`。
+    9.  `background.js` 收到任務，從 `storage` 讀取 `userApiKeys` 和 `customPrompts`。
+    10. `background.js` 執行「金鑰-模型」雙重迴圈，呼叫 Google API。
+    11. `background.js` 透過 `sendResponse({ data: [...] })` 將翻譯陣列回傳給 `content.js`。
+    12. `content.js` 收到翻譯，更新 `state.translatedTrack`，並呼叫 `setCache` 存入 `chrome.storage.local`。
 
 3.  **[流程三：智慧錯誤處理 (v3.1.2)]**
-    1.  `background.js` 在(流程二 步驟 9)中呼叫 Google API 失敗。
+    1.  `background.js` 在(流程二 步驟 10)中呼叫 Google API 失敗。
     2.  `background.js` *分析* 錯誤。
     3.  **(情境 A: 暫時性過載)**：
         * `background.js` 偵測到 429/503 錯誤，記錄 `errorStats.temporary++`。
@@ -129,11 +130,14 @@ v3.0.0 架構的核心轉變是**完全 Serverless 化**。專案已移除所有
 * **[決策] 金鑰冷卻中繼邏輯 (v3.1.2)**：
     **原因**：(開發者論述) 為了解決 v3.1.1 中發現的「前端 11 秒重試 vs 後端 60 秒冷卻」的衝突 Bug。
     **決策**：`background.js` (後端) 新增了一個最高優先級的檢查。當它發現「所有金鑰都在冷卻中」時，它會主動計算「最短剩餘冷卻秒數」(例如 48 秒)，並**再次**回報 `TEMPORARY_FAILURE`，迫使前端繼續等待，直到後端的 60 秒冷卻期結束。
+* **【v3.1.3 修正】[決策] `TIMEDTEXT_DATA` 增加 `isEnabled` 防護 (v3.1.3)**：
+    **原因**：(Plan.md) 修復 v3.1.2 的邏輯缺陷：當擴充功能在 Popup 中「停用」時，使用者手動點擊 [CC] 按鈕觸發的 `timedtext` 仍會錯誤啟動翻譯流程。
+    **決策**：(Plan.md) 在 `content.js` 的 `TIMEDTEXT_DATA` 事件處理中，新增一個最高優先級的 `if (!this.settings.isEnabled && !this.state.isOverride)` 防護機制，確保在「停用」狀態下，所有 `timedtext` 數據都會被忽略。
 * **[決策] `activationWatchdog` (vssId 驗證)**：
     **原因**：(`content.js`) `player.setOption()` 指令有時會被 YT 播放器靜默忽略。`content.js` 在發出指令後會啟動一個 3 秒看門狗。如果 3 秒內*目標 `vssId`* 的字幕沒回來 (`TIMEDTEXT_DATA`)，流程會被標記為失敗並顯示提示，避免無限等待。
 * **[歷史包袱] 60秒金鑰冷卻 (API_KEY_COOLDOWN_SECONDS = 60)**：
     **原因**：(開發者論述) 這個常數最初是為了應對「每分鐘 X 次」的*速率限制*而設計的。
-    **現狀 (v3.1.2 的 Bug)**：在測試中發現，當面對「*每日配額* (requests_per_day)」時，這個 60 秒的冷卻變得毫無意義。它導致系統陷入「等待 60 秒 -> 重試 -> 再次撞上每日配額 -> 再等待 60 秒」的無限迴圈。**這是 v3.1.3 待修復的核心問題**。
+    **現狀 (v3.1.2 的 Bug)**：在測試中發現，當面對「*每日配額* (requests_per_day)」時，這個 60 秒的冷卻變得毫無意義。它導致系統陷入「等待 60 秒 -> 重試 -> 再次撞上每日配額 -> 再等待 60 秒」的無限迴圈。**這是 v3.1.4 (或未來版本) 待修復的核心問題**。
 * **[歷史包袱] `injector.js` 的 3 次重試保險**：
     **原因**：(`injector.js`) 為了解決 `player.setOption()` 偶爾失效的問題，`injector.js` 在收到 `FORCE_ENABLE_TRACK` 指令時，會分別在 0ms, 250ms, 500ms *執行 3 次* `setOption`，以最大努力確保指令至少有一次被成功執行。
 

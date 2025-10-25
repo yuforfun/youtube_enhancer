@@ -27,7 +27,7 @@ const DEFAULT_CORE_PROMPT_TEMPLATE = `你是一位頂尖的繁體中文譯者與
 {json_input_text}`;
 
 // 區塊: lang_map
-const LANG_MAP = {'ja': '日文', 'ko': '韓文', 'en': '英文'};
+const LANG_MAP = {'ja': '日文', 'ko': '韓文', 'en': '英文'}; 
 
 // 區塊: safety_settings
 const SAFETY_SETTINGS = [
@@ -167,6 +167,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             // 其他補充: 實作金鑰/模型迴圈、冷卻機制，以及智慧錯誤分類。
             isAsync = true; 
             
+            // 功能: (v3.1.2 補丁) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
+            // input: request.texts (字串陣列), request.source_lang (字串), request.models_preference (字串陣列)
+            // output: (成功) { data: [...] }
+            //         (失敗) { error: 'TEMPORARY_FAILURE', retryDelay: X }
+            //         (失敗) { error: 'PERMANENT_FAILURE', message: '...' }
+            //         (失敗) { error: 'BATCH_FAILURE', message: '...' }
+            // 其他補充: 實作金鑰/模型迴圈、冷卻機制，以及智慧錯誤分類。
             (async () => {
                 // 【關鍵修正點】: v3.1.0 - 初始化錯誤統計物件
                 let errorStats = { temporary: 0, permanent: 0, batch: 0, totalAttempts: 0 };
@@ -197,25 +204,34 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     return;
                 }
 
-                // 2. 組合 Prompt (階段 3 實作)
+                // 2. 組合 Prompt (v2.0 決策引擎更新)
                 const sourceLangName = LANG_MAP[source_lang] || '原文'; 
                 const corePrompt = DEFAULT_CORE_PROMPT_TEMPLATE.replace(/{source_lang}/g, sourceLangName); 
                 
-                const promptResult = await chrome.storage.local.get(['customPrompts']); 
-                const storedPrompts = promptResult.customPrompts || DEFAULT_CUSTOM_PROMPTS; 
-                const customPromptPart = storedPrompts[source_lang] || ""; 
+                // 【關鍵修正點】開始: v2.0 - 從 Tier 2 列表獲取自訂 Prompt
+                // 1. 獲取完整的設定
+                const settingsResult = await chrome.storage.local.get(['ytEnhancerSettings']);
+                const settings = settingsResult.ytEnhancerSettings || {};
+                
+                // 2. 從 Tier 2 列表中查找當前語言的設定
+                const tier2List = settings.auto_translate_priority_list || [];
+                const langConfig = tier2List.find(item => item.langCode === source_lang);
+                
+                // 3. 獲取自訂 Prompt，如果 Tier 2 列表沒有該語言，則 customPromptPart 為空字串
+                const customPromptPart = langConfig ? langConfig.customPrompt : "";
+                // 【關鍵修正點】結束
                 
                 const jsonInputText = JSON.stringify(texts);
                 const fullPrompt = `${customPromptPart}\n\n${corePrompt.replace('{json_input_text}', jsonInputText)}`;
                 
                 const requestBody = {
-                  "contents": [
+                "contents": [
                     { "parts": [ { "text": fullPrompt } ] }
-                  ],
-                  "generationConfig": {
+                ],
+                "generationConfig": {
                     "responseMimeType": "application/json"
-                  },
-                  "safetySettings": SAFETY_SETTINGS
+                },
+                "safetySettings": SAFETY_SETTINGS
                 };
 
                 // 3. 執行「金鑰-模型」雙重迴圈
@@ -226,7 +242,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     const keyName = keyInfo.name || '未命名金鑰';
                     const currentKey = keyInfo.key;
                     const cooldownTimestamp = cooldowns[keyId];
-    
+
                     if (cooldownTimestamp && now < cooldownTimestamp + (API_KEY_COOLDOWN_SECONDS * 1000)) {
                         // 【關鍵修正點】: v3.1.2 - 追蹤冷卻狀態
                         keysInCooldown++;
