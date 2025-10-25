@@ -168,6 +168,25 @@ class YouTubeSubtitleEnhancer {
                 const { payload: timedTextPayload, lang, vssId } = payload;
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
 
+                // 【關鍵修正點】開始: 新增全域開關防護機制
+                // 檢查擴充功能是否已在 Popup 中被停用。
+                // 僅當 (全局停用) 且 (這不是一次手動語言覆蓋) 時，才忽略此資料。
+                if (!this.settings.isEnabled && !this.state.isOverride) {
+                    this._log('擴充功能目前為停用狀態，已忽略收到的 timedtext 數據。');
+                    
+                    // (可選，但建議) 如果字幕已顯示，確保其被清理
+                    if (this.state.hasActivated) {
+                        this._log('偵測到狀態殘留，執行溫和重置以關閉字幕。');
+                        this.state.abortController?.abort();
+                        this.state.translatedTrack = null;
+                        this.state.isProcessing = false;
+                        this.state.hasActivated = false;
+                        if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
+                    }
+                    return; // 關鍵：在此處停止
+                }
+                // 【關鍵修正點】結束
+
                 // 步驟 1: 處理與看門狗相關的初始啟用驗證
                 if (this.state.activationWatchdog) {
                     const isVssIdMatch = this.state.targetVssId && vssId === this.state.targetVssId;
