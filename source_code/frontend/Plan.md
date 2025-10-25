@@ -824,3 +824,137 @@ Textarea 已預填充預設 Prompt 範本
 
 
 ---
+
+
+好的，我們在執行 v2.1 修正案 的過程中，確實遇到並解決了幾個相互關聯的 Bug。
+
+以下是本次修改從頭到尾遇到的 Bug、根本原因以及解決方法的總結：
+
+### Bug 1：語言設定被「啟用/停用」按鈕重置
+
+* **Bug 描述：**
+    當使用者在 `options.html` 將 Tier 1 / Tier 2 列表設為空之後，只要點擊 `popup.html`（小彈窗） 的「啟用/停用翻譯」按鈕，下次再打開 `options.html` 時，語言列表會被重置回 v1.x 的預設值（例如 `ja, ko, en`）。
+
+* **根本原因 (Root Cause)：**
+    問題出在 `background.js`。
+    1.  `background.js` 中的 `defaultSettings` 常數 仍然是 v1.x 的舊結構（包含 `preferred_langs` 和 `ignored_langs`）。
+    2.  當 `popup.js` 觸發 `toggleGlobalState` 動作時，`background.js` 會執行 `chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings }, ...)`。
+    3.  這個 `get` 操作會將 v2.0 的設定（在 `storage` 中）與 v1.x 的 `defaultSettings`（在程式碼中） 進行「合併」。
+    4.  這導致 `preferred_langs` 這個 v1.x 屬性被錯誤地**重新加回**並儲存到 `storage` 中。
+    5.  下次 `popup.js` 載入時，`loadSettings` 偵測到 `if (currentSettings.preferred_langs)` 為 `true`，因此**錯誤地再次觸發** v1.x 遷移邏輯，覆蓋了使用者的 v2.0 設定。
+
+* **解決方法：**
+    修改 `background.js`，將 `defaultSettings` 常數 **完整升級為 v2.0 結構**，移除 `preferred_langs` 和 `ignored_langs`，替換為 `native_langs` 和 `auto_translate_priority_list`。
+
+---
+
+### Bug 2：Tier 1 優先級匹配失敗 (zh-Hant vs zh-TW)
+
+* **Bug 描述：**
+    在 `options.html` 設定 Tier 1 列表順序為 `[zh-Hant, zh-Hans]`。當打開一個同時提供 `[zh-TW, zh-Hans]` 字幕的影片時，系統忽略了 `zh-Hant`（繁中），錯誤地匹配了 `zh-Hans`（簡中）。
+
+* **根本原因 (Root Cause)：**
+    `content.js` 中的 `start` 函式（v2.1.0 版本） 在檢查 Tier 1 時，使用了 `availableLangs.includes(preferredLang)` 進行嚴格字串比對。JavaScript 無法將 `zh-TW`（影片提供） 視為等同於 `zh-Hant`（使用者設定），導致匹配失敗。
+
+* **解決方法 (v2.1.1)：**
+    1.  在 `content.js` 中新增一個 `checkLangEquivalency` 輔助函式。
+    2.  此函式定義了「繁體中文群組」（`['zh-Hant', 'zh-TW', 'zh-HK']`） 和「簡體中文群組」（`['zh-Hans', 'zh-CN']`）。
+    3.  修改 `start` 與 `onMessageFromInjector` 函式中的所有 Tier 1 和 Tier 2 檢查邏輯，**用 `checkLangEquivalency` 取代 `includes()`**。
+
+---
+
+### Bug 3：手動切換 Tier 3 語言時錯誤觸發翻譯
+
+* **Bug 描述：**
+    修正 Bug 2 後，在 T1/T2 為空的情況下，手動從 CC 選單選擇 `zh-TW` 字幕（應為 Tier 3 原文模式），系統卻顯示 `找不到 zh-TW 的軌道物件`，並錯誤地掉入兜底邏輯，觸發了 Tier 2（翻譯）流程。
+
+* **根本原因 (Root Cause)：**
+    `onMessageFromInjector` 函式（v2.1.1 版本） 自身存在缺陷。
+    1.  雖然 T1/T2 檢查已更新為 `checkLangEquivalency`，但在 Tier 3 邏輯區塊中，當它試圖尋找軌道物件以建立「翻譯」按鈕時，**遺漏了**使用 `checkLangEquivalency`。
+    2.  它使用了錯誤的 `availableTracks.find(t => t.languageCode === lang)`。
+    3.  這導致 `zh-TW`（來自 `timedtext`） 無法匹配 `zh-Hant`（來自 `playerResponse`），`find` 失敗，程式掉入錯誤的 `else` 兜底區塊，觸發了 Tier 2。
+
+* **解決方法 (v2.1.2)：**
+    修正 `onMessageFromInjector` 函式中的 Tier 3 邏輯，將 `find` 函式也改為使用 `this.checkLangEquivalency(t.languageCode, lang)`，並將 `else` 兜底區塊的行為修正為「執行 Tier 3 (僅原文)」。
+
+---
+
+### Bug 4：泛用 'zh' 代碼未被 Tier 1 識別
+
+* **Bug 描述：**
+    影片提供了 `zh`（泛中文）字幕，但 Tier 1 中的 `zh-Hans` 未能匹配它，導致系統錯誤地執行了 Tier 2（例如 `ja`） 或 Tier 3。
+
+* **根本原因 (Root Cause)：**
+    `checkLangEquivalency` 函式 的簡體中文群組（`['zh-Hans', 'zh-CN']`） 遺漏了 `zh` 這個常見的泛用代碼。
+
+* **解決方法 (v2.1.3)：**
+    修正 `content.js` 中的 `checkLangEquivalency` 函式，將 `'zh'` 添加到 `simplifiedGroup` 陣列中。
+
+---
+
+### Bug 5：Tier 1 列表（新增/刪除）無法儲存
+
+* **Bug 描述：**
+    在 `options.html` 中對 Tier 1 列表進行的新增、刪除或拖曳排序，在重新整理頁面後失效（被還原）。
+
+* **根本原因 (Root Cause)：**
+    `popup.js` 中的 `saveTier1Settings` 函式 存在邏輯缺陷。
+    1.  它在一個 `if (JSON.stringify(settings.native_langs) !== JSON.stringify(newList))` 判斷式**之後**才執行儲存。
+    2.  當使用者「刪除」時，`handleTier1Remove` 會先更新記憶體 (`settings.native_langs`)，再更新 DOM，最後才呼叫 `saveTier1Settings`。
+    3.  這導致 `saveTier1Settings` 在比較（已更新的記憶體）和（已更新的 DOM）時，兩者恆等，`if` 判斷為 `false`，因此**跳過了** `await saveSettings()` 儲存步驟。
+
+* **解決方法：**
+    修正 `popup.js` 中的 `saveTier1Settings` 函式，**移除**該 `if` 判斷式，使其無條件地從 DOM 讀取最新列表、更新 `settings.native_langs`，並執行 `await saveSettings()`。
+
+
+---
+
+是的，在我們剛剛完成的 v2.1.x 修正案（包含 Bug 1 到 Bug 5）的過程中，我們確實確立了幾個非常重要的新決策、背負了新的歷史包袱，並因此需要建立新的關鍵護欄。
+
+以下是我的總結：
+
+### 1. 關鍵決策 (Key Decisions)
+
+在這次除錯中，我們被迫做出了三個影響深遠的架構決策：
+
+1.  **【決策】抽象化「語言等價性」檢查 (Bugs 2, 3, 4)：**
+    * **決策：** 我們不再使用 `===` 或 `.includes()` 來進行語言代碼的字串比對。我們決定在 `content.js` 中建立一個新的輔助函式 `checkLangEquivalency`。
+    * **原因：** Bug 2 和 Bug 4 證明，YouTube 提供的語言代碼（如 `zh-TW`, `zh`）與使用者在 `options.html` 設定的代碼（如 `zh-Hant`）之間存在不一致。`checkLangEquivalency` 透過定義「繁體中文群組」 和「簡體中文群組」，從根本上解決了這個匹配問題。
+
+2.  **【決策】升級 `background.js` 的 `defaultSettings` (Bug 1)：**
+    * **決策：** 我們將 `background.js` 中的 `defaultSettings` 常數 從 v1.x 結構（`preferred_langs`） 升級到了 v2.0 結構（`native_langs`, `auto_translate_priority_list`）。
+    * **原因：** 這是為了解決 Bug 1。`toggleGlobalState` 函式 會使用 `defaultSettings` 來「填補」`storage` 中缺少的屬性。使用舊結構 會汙染 v2.0 設定，導致 v1.x 遷移邏輯 被重複觸發。
+
+3.  **【決策】簡化儲存函式的職責 (Bug 5)：**
+    * **決策：** 我們移除了 `popup.js` 中 `saveTier1Settings` 函式 內部的 `if` 檢查。
+    * **原因：** Bug 5 證明，這個 `if` 檢查 的邏輯是錯誤的。它在呼叫時（例如在 `handleTier1Remove` 之後），記憶體 和 DOM 都已經被更新了，導致 `if` 判斷恆為 `false` 並跳過了儲存。此決策確立了「儲存函式」的職責就是無條件讀取 DOM 並儲存。
+
+### 2. 歷史包袱 (Historical Baggage)
+
+這些決策也為我們帶來了新的、未來需要維護的「歷史包袱」：
+
+1.  **【包袱】`checkLangEquivalency` 函式的硬編碼 (Bugs 2, 4)：**
+    * **包袱：** `checkLangEquivalency` 函式 本身就是一個新的包袱。它包含了我們對 YouTube 語言代碼的「領域知識」（Domain Knowledge）。
+    * **影響：** 如果未來 YouTube 停止使用 `zh-TW` 或新增了 `zh-SG`（新加坡中文），這個函式 就會立刻過時，我們必須手動維護並更新這兩個群組。
+
+2.  **【包袱】`defaultSettings` 的同步債 (Bug 1)：**
+    * **包袱：** 雖然我們修復了 Bug 1，但 `background.js` 中的 `toggleGlobalState` 函式 仍然依賴 `defaultSettings` 進行合併。
+    * **影響：** 這意味著未來只要 `ytEnhancerSettings` 的資料結構有*任何*變更（例如新增一個 `v3.0` 的屬性），我們都**必須**記得同時更新 `background.js` 中的 `defaultSettings` 常數，否則 Bug 1 會以新的形式再次出現。
+
+### 3. 關鍵護欄 (Guard Rails)
+
+基於以上決策與包袱，我們必須建立以下三條新的「關鍵護欄」：
+
+1.  **[護欄 1] 語言匹配的唯一性 (Bugs 2, 3, 4)：**
+    * **規則：** 在 `content.js` 中，**所有**需要比對「影片語言代碼」和「使用者設定代碼」的邏輯，**必須**使用 `checkLangEquivalency` 函式。
+    * **禁止：** 嚴格禁止再使用 `lang === settingLang` 或 `array.includes(lang)` 進行語言代碼比對。
+
+2.  **[護欄 2] 決策樹的鏡像原則 (Bug 3)：**
+    * **規則：** `content.js` 有兩個入口點會觸發決策樹：`start()`（自動載入） 和 `onMessageFromInjector`（手動切換）。
+    * **禁止：** 這兩個函式 內部的 Tier 1/2/3 判斷邏輯**必須**保持 100% 鏡像同步。只修改其中一個（例如 `start`）而忘記另一個（`onMessageFromInjector`），將立刻導致 Bug 3 迴歸。
+
+3.  **[護欄 3] `defaultSettings` 的結構同步 (Bug 1)：**
+    * **規則：** `background.js` 中的 `defaultSettings` 常數 **必須**被視為 `ytEnhancerSettings` 資料結構的「鏡像」或「藍圖」。
+    * **禁止：** 嚴格禁止在 `ytEnhancerSettings` 中新增/刪除屬性後，卻忘記同步修改 `background.js` 中的 `defaultSettings`。
+
+    

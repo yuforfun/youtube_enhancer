@@ -6,7 +6,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 2.1.0 (Debug Build 8.0)
+ * Version: 4.0.1
  */
 
 // 【關鍵修正點】: 新增偵錯模式開關和計時器
@@ -88,32 +88,37 @@ class YouTubeSubtitleEnhancer {
         this._log(`[決策] Tier 1 (原文): [${native_langs.join(', ')}]`);
         this._log(`[決策] Tier 2 (自動): [${auto_translate_priority_list.map(t => t.langCode).join(', ')}]`);
 
-        // --- TIER 1 檢查 (v2.1 修正：尊重使用者排序) ---
+        // 【關鍵修正點】開始: v2.1.1 - 升級 Tier 1/2 檢查邏輯
+        // --- TIER 1 檢查 (v2.1.1 修正：使用 checkLangEquivalency) ---
         let nativeMatch = null;
-        const orderedNativeLangs = this.settings.native_langs || []; //
+        const orderedNativeLangs = this.settings.native_langs || [];
         
         // 遍歷使用者偏好的 Tier 1 順序
-        for (const preferredLang of orderedNativeLangs) {
-            // 檢查影片是否提供此語言
-            if (availableLangs.includes(preferredLang)) {
-                nativeMatch = preferredLang; // 找到了！這就是最高優先級的
+        for (const preferredLang of orderedNativeLangs) { // e.g., 'zh-Hant'
+            // 檢查影片是否提供此語言 (使用新的等價性檢查)
+            const matchingVideoLang = availableLangs.find(videoLang => this.checkLangEquivalency(videoLang, preferredLang)); // e.g., 'zh-TW' matches 'zh-Hant'
+            
+            if (matchingVideoLang) {
+                nativeMatch = matchingVideoLang; // 儲存影片實際的語言代碼 (e.g., 'zh-TW')
                 break; // 停止搜尋
             }
         }
         
         if (nativeMatch) {
-            this._log(`[決策 v2.1] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`); //
-            const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); //
-            if (trackToEnable) this.runTier1_NativeView(trackToEnable); //
+            this._log(`[決策 v2.1.1] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`); 
+            const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); 
+            if (trackToEnable) this.runTier1_NativeView(trackToEnable); 
             return; // 流程結束
         }
-        // 【關鍵修正點】: v2.1 - 以上為 TIER 1 替換區塊
 
-        // --- TIER 2 檢查：自動翻譯 (高品質) ---
+        // --- TIER 2 檢查 (v2.1.1 修正：使用 checkLangEquivalency) ---
         let tier2Match = null;
         for (const priorityItem of auto_translate_priority_list) {
-            if (availableLangs.includes(priorityItem.langCode)) {
-                tier2Match = availableTracks.find(t => t.languageCode === priorityItem.langCode);
+            // 檢查影片是否提供此語言 (使用新的等價性檢查)
+            const matchingVideoLang = availableLangs.find(videoLang => this.checkLangEquivalency(videoLang, priorityItem.langCode));
+            
+            if (matchingVideoLang) {
+                tier2Match = availableTracks.find(t => t.languageCode === matchingVideoLang); // 獲取完整的軌道物件
                 break; // 找到第一個匹配的，停止搜尋
             }
         }
@@ -155,13 +160,11 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    /**
-     * 功能: 處理來自 injector.js 的所有訊息，包含修復後的語言切換邏輯。
-     * input: event (MessageEvent) - 來自 injector.js 的訊息事件。
-     * output: 根據訊息類型觸發對應的核心流程。
-     * 其他補充: 這是擴充功能邏輯的核心中樞，處理導航、資料接收和字幕處理。
-     */
     async onMessageFromInjector(event) {
+        // 功能: (v2.1.2) 處理來自 injector.js 的所有訊息，包含修復後的語言切換邏輯。
+        // input: event (MessageEvent) - 來自 injector.js 的訊息事件。
+        // output: 根據訊息類型觸發對應的核心流程。
+        // 其他補充: 這是擴充功能邏輯的核心中樞，處理導航、資料接收和字幕處理。
         if (event.source !== window || !event.data || event.data.from !== 'YtEnhancerInjector') return;
 
         const { type, payload } = event.data;
@@ -191,12 +194,12 @@ class YouTubeSubtitleEnhancer {
                 }
                 break;
 
-            // 【關鍵修正點】開始: 重構整個 TIMEDTEXT_DATA 處理邏輯，以正確處理語言切換
+            // 【關鍵修正點】開始: v2.1.2 - 完整重構 TIMEDTEXT_DATA 處理邏輯
             case 'TIMEDTEXT_DATA':
                 const { payload: timedTextPayload, lang, vssId } = payload;
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
 
-                // 【關鍵修正點】開始: 新增全域開關防護機制
+                // 步驟 0: 全域開關防護機制
                 if (!this.settings.isEnabled && !this.state.isOverride) {
                     this._log('擴充功能目前為停用狀態，已忽略收到的 timedtext 數據。');
                     if (this.state.hasActivated) {
@@ -209,15 +212,15 @@ class YouTubeSubtitleEnhancer {
                     }
                     return; // 關鍵：在此處停止
                 }
-                // 【關鍵修正點】結束
 
                 // 步驟 1: 處理與看門狗相關的初始啟用驗證
                 if (this.state.activationWatchdog) {
+                    // (v2.1.1 修正：使用 checkLangEquivalency 進行驗證)
                     const isVssIdMatch = this.state.targetVssId && vssId === this.state.targetVssId;
-                    const isLangMatchWithoutVssId = !vssId && lang === this.state.sourceLang;
-
-                    if (!isVssIdMatch && !isLangMatchWithoutVssId) {
-                        this._log(`[驗證失敗] 忽略了非目標字幕。目標 vssId: [${this.state.targetVssId}], 目標 lang: [${this.state.sourceLang}] | 收到 vssId: [${vssId || 'N/A'}], lang: [${lang}]`);
+                    const isLangMatch = this.state.sourceLang && this.checkLangEquivalency(lang, this.state.sourceLang);
+                    
+                    if (!isVssIdMatch && !(isLangMatch && !vssId)) { // vssId 匹配優先，其次才是無 vssId 的 lang 匹配
+                         this._log(`[驗證失敗] 忽略了非目標字幕。目標 vssId: [${this.state.targetVssId}], 目標 lang: [${this.state.sourceLang}] | 收到 vssId: [${vssId || 'N/A'}], lang: [${lang}]`);
                         return;
                     }
                     this._log(`[驗證成功] 收到的字幕符合預期 (vssId 匹配或 lang 匹配)。`);
@@ -228,10 +231,10 @@ class YouTubeSubtitleEnhancer {
                 // 清除 targetVssId，避免影響後續的手動切換操作
                 this.state.targetVssId = null;
 
-                // 步驟 2: 判斷是「首次激活」、「語言切換」還是「重複數據」
+                // 步驟 2: 判斷是「語言切換」還是「重複數據」
+                // (v2.1.1 修正：使用 checkLangEquivalency 比較)
                 if (this.state.hasActivated) {
-                    // 如果已激活，判斷語言是否變化
-                    if (lang !== this.state.sourceLang) {
+                    if (!this.checkLangEquivalency(lang, this.state.sourceLang)) {
                         // 語言發生變化，執行「溫和重置」
                         this._log(`[語言切換] 偵測到語言從 [${this.state.sourceLang}] -> [${lang}]。執行溫和重置...`);
                         this.state.abortController?.abort();
@@ -239,8 +242,9 @@ class YouTubeSubtitleEnhancer {
                         this.state.isProcessing = false;
                         this.state.hasActivated = false; // 重置激活狀態，這是讓後續流程能繼續的關鍵
                         
-                        // 【關鍵修正點】 v2.0 - 重置 Tier 1/3 旗標
                         this.state.isNativeView = false; 
+                        document.getElementById('enhancer-ondemand-button')?.remove(); // 移除 Tier 3 按鈕
+                        this.state.onDemandButton = null;
                         
                         if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
                         this._log('溫和重置完成。');
@@ -251,26 +255,77 @@ class YouTubeSubtitleEnhancer {
                     }
                 }
 
-                // 步驟 3: 執行激活流程 (適用於首次激活或語言切換後的再激活)
-                if (!this.state.hasActivated) { // 再次檢查，確保只有在未激活狀態下才執行
+                // 步驟 3: 執行激活流程 (適用於「首次激活」或「語言切換後的再激活」)
+                if (!this.state.hasActivated) { 
+                    this._log(`[決策 v2.1.2/手動] 收到語言 [${lang}]，執行三層決策樹...`);
+
+                    const playerResponse = this.state.playerResponse;
+                    const availableTracks = this.getAvailableLanguagesFromData(playerResponse, true);
+                    const { native_langs = [], auto_translate_priority_list = [] } = this.settings;
+
                     this.state.sourceLang = lang;
                     this.state.hasActivated = true;
                     this._log(`狀態更新: hasActivated -> true`);
 
-                    // 【關鍵修正點】 v2.0 - 根據 isNativeView 旗標決定啟動哪個流程
-                    if (this.state.isNativeView) {
-                        this._log(`[Tier 1/3] 啟動 activateNativeView (僅原文) 流程。`);
+                    // 1. 執行 Tier 1 檢查
+                    const isTier1Match = native_langs.some(settingLang => this.checkLangEquivalency(lang, settingLang));
+
+                    if (isTier1Match) {
+                        this._log(`[決策 v2.1.2/手動] -> Tier 1 命中 (${lang})。`);
+                        this.state.isNativeView = true;
                         this.activateNativeView(timedTextPayload);
+                        return; // Tier 1 流程結束
+                    }
+
+                    // 2. 執行 Tier 2 檢查
+                    const tier2Config = auto_translate_priority_list.find(item => this.checkLangEquivalency(lang, item.langCode));
+                    if (tier2Config) {
+                        this._log(`[決策 v2.1.2/手動] -> Tier 2 命中 (${lang})。`);
+                        this.state.isNativeView = false; 
+                        document.getElementById('enhancer-ondemand-button')?.remove(); 
+                        this.state.onDemandButton = null;
+                        
+                        this.activate(timedTextPayload); // 觸發完整翻譯
+                        return; // Tier 2 流程結束
+                    }
+
+                    // 3. 執行 Tier 3 (Fallback)
+                    this._log(`[決策 v2.1.2/手動] -> Tier 3 觸發 (${lang})。`);
+                    
+                    // 【關鍵修正點】 v2.1.2: 使用 checkLangEquivalency 查找軌道物件
+                    const trackToEnable = availableTracks.find(t => this.checkLangEquivalency(t.languageCode, lang));
+                    
+                    if (trackToEnable) {
+                         // 1. 建立按鈕
+                        const playerContainer = document.getElementById('movie_player');
+                        if (playerContainer && !document.getElementById('enhancer-ondemand-button')) {
+                            const btn = document.createElement('div');
+                            btn.id = 'enhancer-ondemand-button';
+                            btn.innerHTML = '翻譯'; 
+                            btn.title = `將 ${this.getFriendlyLangName(trackToEnable.languageCode)} 翻譯為中文`;
+                            this.handleOnDemandTranslateClick = this.handleOnDemandTranslateClick.bind(this);
+                            btn.addEventListener('click', () => this.handleOnDemandTranslateClick(trackToEnable));
+                            playerContainer.appendChild(btn);
+                            this.state.onDemandButton = btn; // 儲存參照
+                        }
+                        
+                        // 2. 顯示原文
+                        this.state.isNativeView = true;
+                        this.activateNativeView(timedTextPayload);
+
                     } else {
-                        this._log(`[Tier 2] 啟動 activate (完整翻譯) 流程。`);
-                        this.activate(timedTextPayload);
+                        // 【關鍵修正點】 v2.1.2: 修正兜底邏輯
+                        // 兜底：找不到軌道物件 (例如 playerResponse 中只有 zh-Hant，但 timedtext 卻回傳 en)
+                        // 這種情況極不可能發生，但如果發生了，我們也不應該觸發翻譯。
+                         this._log(`[決策 v2.1.2/手動] 找不到 ${lang} 的軌道物件，但收到了字幕。執行 Tier 3 (僅原文)。`);
+                         this.state.isNativeView = true;
+                         this.activateNativeView(timedTextPayload);
                     }
                 }
                 break;
             // 【關鍵修正點】結束
         }
     }
-
 
     async onMessageFromBackground(request, sender, sendResponse) {
         // 功能: 監聽來自 background.js 和 popup.js 的訊息。
@@ -330,6 +385,29 @@ class YouTubeSubtitleEnhancer {
         }
         if (sendResponse) sendResponse({ success: true });
         return true;
+    }
+
+    // 【關鍵修正點】 v2.1.3: 新增語言等價性檢查函式 (納入 'zh')
+    checkLangEquivalency(videoLang, settingLang) {
+        // 功能: 檢查影片語言是否滿足設定語言 (v2.1.3 繁簡-TW-HK-zh 修正)
+        // input: videoLang (e.g., 'zh-TW'), settingLang (e.g., 'zh-Hant')
+        // output: boolean
+        if (videoLang === settingLang) return true;
+
+        // 檢查是否同屬「繁體中文」群組
+        const traditionalGroup = ['zh-Hant', 'zh-TW', 'zh-HK'];
+        if (traditionalGroup.includes(videoLang) && traditionalGroup.includes(settingLang)) {
+            return true;
+        }
+
+        // 檢查是否同屬「簡體中文」群組
+        // 【關鍵修正點】: v2.1.3 - 將 'zh' 納入簡體中文群組
+        const simplifiedGroup = ['zh-Hans', 'zh-CN', 'zh'];
+        if (simplifiedGroup.includes(videoLang) && simplifiedGroup.includes(settingLang)) {
+            return true;
+        }
+        
+        return false;
     }
 
     getAvailableLanguagesFromData(playerData, returnFullObjects = false) {

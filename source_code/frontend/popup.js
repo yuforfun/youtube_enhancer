@@ -5,7 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 2.1.0 (v2.0 Engine Refactor)
+ * Version: 4.0.1
  *
  * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeSortableList('tier-1-badge-list', saveTier1Settings);
         }
 
-        // 功能: [v2.1] 儲存 Tier 1 列表的當前 DOM 順序
+        // 功能: [v2.1.2 修正] 儲存 Tier 1 列表的當前 DOM 順序
         async function saveTier1Settings(showToast = false) {
             const listElement = document.getElementById('tier-1-badge-list');
             if (!listElement) return;
@@ -517,12 +517,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // 根據 DOM 順序讀取 langCode
             const newList = [...listElement.querySelectorAll('li')].map(li => li.dataset.langCode);
             
-            if (JSON.stringify(settings.native_langs) !== JSON.stringify(newList)) {
-                settings.native_langs = newList;
-                await saveSettings(showToast); // 呼叫通用的儲存函式
-                if (showToast) {
-                    showOptionsToast('原文語言優先級已更新！', 3000);
-                }
+            // 【關鍵修正點】: 移除錯誤的 if 檢查。
+            // 必須無條件以 DOM 的當前狀態為準，更新全域 settings 並儲存。
+            const hasChanged = JSON.stringify(settings.native_langs) !== JSON.stringify(newList);
+            
+            settings.native_langs = newList;
+            await saveSettings(showToast); // 呼叫通用的儲存函式
+            
+            // 僅在真正發生變更時才顯示提示 (避免拖曳後放回原位也跳提示)
+            if (showToast && hasChanged) {
+                showOptionsToast('原文語言優先級已更新！', 3000);
             }
         }
 

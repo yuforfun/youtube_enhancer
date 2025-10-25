@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "YouTube 字幕增強器",
-    "version": "3.0.0",
+    "version": "4.0.1",
     "description": "即時攔截並翻譯 YouTube 字幕，提供智慧匹配、雙語顯示與高度客製化選項。",
     "permissions": [
         "storage",
