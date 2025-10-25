@@ -82,6 +82,8 @@ const defaultSettings = {
 // 功能: 定義擴充功能的預設設定值。
 // input: 無 (靜態物件)
 // output: 在使用者首次安裝或清除儲存資料時，作為基礎設定寫入 chrome.storage。
+// 其他補充: v2.1 修正 - 必須使用 v2.0 結構 (native_langs, auto_translate_priority_list)
+//           以防止 toggleGlobalState 汙染 v2.0 設定並導致遷移邏輯重複觸發。
     isEnabled: true,
     fontSize: 22,
     fontFamily: 'Microsoft JhengHei, sans-serif',
@@ -92,8 +94,27 @@ const defaultSettings = {
     ],
     showOriginal: true,
     showTranslated: true,
-    preferred_langs: ['ja', 'ko', 'en'],
-    ignored_langs: ['zh-Hant']
+    
+    // 【關鍵修正點】: v2.0 結構 (取代 preferred_langs / ignored_langs)
+    native_langs: ['zh-Hant'], // 原 ignored_langs 的預設值
+    
+    auto_translate_priority_list: [ // v2.0 結構
+        { 
+            langCode: 'ja', 
+            name: '日文', 
+            customPrompt: DEFAULT_CUSTOM_PROMPTS.ja // 從本檔案的常數載入
+        },
+        { 
+            langCode: 'ko', 
+            name: '韓文', 
+            customPrompt: DEFAULT_CUSTOM_PROMPTS.ko 
+        },
+        { 
+            langCode: 'en', 
+            name: '英文', 
+            customPrompt: DEFAULT_CUSTOM_PROMPTS.en
+        }
+    ]
 };
 
 

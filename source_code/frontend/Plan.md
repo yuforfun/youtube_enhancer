@@ -771,3 +771,56 @@ Textarea 已預填充預設 Prompt 範本
 * **使用者視角 (困擾 1)：** 「我打開法文影片（Tier 3），手動點擊 CC 按鈕，它**不再**自動翻譯了。它正確地顯示了原文和右上角的『翻譯』按鈕。」
 * **使用者視角 (困擾 2)：** 「我把『繁體中文』拖到『簡體中文』上面（Tier 1）。現在當我打開同時有這兩種字幕的影片時，它總是**優先顯示繁體中文**。」
 * **系統行為：** `content.js` 中的兩個主要入口點 (`start` 和 `onMessageFromInjector`) 現在都 100% 遵守 v2.1 的三層式語言決策引擎。
+
+
+---
+## 語言重置Bug
+
+這個 Bug 與 v1.x 遷移*本身*無關，而是\*\*`popup.html`（小彈窗）的「啟用/停用翻譯」按鈕觸發的一個嚴重 Bug\*\*，它錯誤地還原了 v1.x 的資料，導致遷移邏輯被「重複觸發」。
+
+### 執行規劃：問題分析與修正方法論
+
+1.  **問題根源 (Root Cause Analysis)：**
+
+      * **核心缺陷：** `background.js`（我們的後端）中的 `defaultSettings` 常數（預設設定）仍然是 v1.x 的舊結構。
+      * **缺陷程式碼 (位於 `background.js`)：**
+        ```javascript
+        const defaultSettings = {
+            // ...
+            preferred_langs: ['ja', 'ko', 'en'], // 【v1.x 舊資料】
+            ignored_langs: ['zh-Hant']         // 【v1.x 舊資料】
+        };
+        ```
+
+2.  **Bug 觸發流程（SOP）：**
+
+    1.  您的 `options.html` 運作正常，`chrome.storage` 中的 `ytEnhancerSettings` 已經是 v2.0 結構（包含 `native_langs: []` 和 `auto_translate_priority_list: []`）。
+    2.  您點擊了 `popup.html`（小彈窗）中的「啟用翻譯」按鈕。
+    3.  這個按鈕觸發了 `background.js` 中的 `toggleGlobalState` 動作。
+    4.  `toggleGlobalState` 函式執行了這行程式碼：`chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings }, ...)`。
+    5.  **【Bug 爆發點】**：`get` 函式會執行「合併」。它會拿您 v2.0 的設定，並用 `defaultSettings`（v1.x）來**填補**「您設定中不存在的屬性」。
+    6.  結果，`background.js` 記憶體中的 `newSettings` 物件變成了：
+        ```json
+        {
+          "native_langs": [],
+          "auto_translate_priority_list": [],
+          "isEnabled": false,
+          // ...
+          "preferred_langs": ["ja", "ko", "en"], // <-- 舊資料被錯誤地加回來了！
+          "ignored_langs": ["zh-Hant"]         // <-- 舊資料被錯誤地加回來了！
+        }
+        ```
+    7.  `background.js` 接著將這個被汙染的物件**儲存**回 `chrome.storage.local`。
+    8.  **【連鎖反應】**：您下次打開 `options.html` 時，`popup.js` 中的 `loadSettings` 執行。
+    9.  它讀取到被汙染的設定，`if (currentSettings.preferred_langs)` 判斷變為 **True**。
+    10. v1.x 的遷移邏輯**被錯誤地再次觸發**，它根據 `preferred_langs: ['ja', 'ko', 'en']` 重新建立了您的 Tier 2 列表，導致您的 `[]`（空列表）設定被覆蓋。
+
+3.  **修正方法論 (Fix Strategy)：**
+    我們必須修正 `background.js`，將其內部的 `defaultSettings` 常數從 v1.x 結構**升級為 v2.0 結構**。
+
+      * **移除**：`preferred_langs` 和 `ignored_langs`。
+      * **新增**：`native_langs` 和 `auto_translate_priority_list`，並填入與 `popup.js` 的 `DEFAULT_CUSTOM_PROMPTS` 一致的預設值，以確保新使用者安裝時的體驗一致。
+
+
+
+---
