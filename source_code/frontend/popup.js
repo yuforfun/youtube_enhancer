@@ -482,24 +482,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         loadErrorLogs();
 
-
         // --- [v2.0] Tier 1: 原文顯示 (Badge/Token) 邏輯 (步驟 2.C) ---
+        // 【關鍵修正點】: v2.1 - 完全重寫 Tier 1 邏輯以支援拖曳排序
+
+        // 功能: [v2.1] 將 native_langs 陣列渲染為可拖曳的 <li> 列表
         function renderTier1Badges(langs = []) {
-            const container = document.getElementById('tier-1-badge-container');
+            const container = document.getElementById('tier-1-badge-list');
             if (!container) return; 
             container.innerHTML = ''; 
             langs.forEach(langCode => {
                 const langName = LANGUAGE_DATABASE.find(L => L.code === langCode)?.name || langCode;
-                const badge = document.createElement('div');
-                badge.className = 'lang-badge';
-                badge.innerHTML = `
+                const li = document.createElement('li'); // 替換為 li
+                li.className = 'lang-badge-item'; // 使用 li 樣式 (css 中已定義)
+                li.dataset.langCode = langCode;
+                li.draggable = true; 
+                
+                li.innerHTML = `
+                    <span class="drag-handle" title="拖曳調整優先級">⋮⋮</span>
                     <span>${langName} (${langCode})</span>
-                    <button class="remove-badge" data-lang="${langCode}">×</button>
+                    <button class="remove-badge" data-lang="${langCode}" title="移除">×</button>
                 `;
-                container.appendChild(badge);
+                container.appendChild(li);
             });
+
+            // 【關鍵修正點】: v2.1 - 綁定拖曳排序功能
+            initializeSortableList('tier-1-badge-list', saveTier1Settings);
         }
 
+        // 功能: [v2.1] 儲存 Tier 1 列表的當前 DOM 順序
+        async function saveTier1Settings(showToast = false) {
+            const listElement = document.getElementById('tier-1-badge-list');
+            if (!listElement) return;
+
+            // 根據 DOM 順序讀取 langCode
+            const newList = [...listElement.querySelectorAll('li')].map(li => li.dataset.langCode);
+            
+            if (JSON.stringify(settings.native_langs) !== JSON.stringify(newList)) {
+                settings.native_langs = newList;
+                await saveSettings(showToast); // 呼叫通用的儲存函式
+                if (showToast) {
+                    showOptionsToast('原文語言優先級已更新！', 3000);
+                }
+            }
+        }
+
+        // 功能: [v2.1] 處理新增語言到 Tier 1
         function handleTier1Add() {
             openLanguagePopover((selectedLang) => {
                 if (!settings.native_langs) settings.native_langs = [];
@@ -515,17 +542,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         return; 
                     }
                 }
+                
                 settings.native_langs.push(selectedLang.code);
                 renderTier1Badges(settings.native_langs); 
-                saveSettings(true); 
+                saveTier1Settings(false); // 【關鍵修正點】: 呼叫 saveTier1Settings 而不是 saveSettings
+                
                 showOptionsToast(`已新增 "${selectedLang.name}" 到清單 A`, 3000);
             });
         }
 
+        // 功能: [v2.1] 處理從 Tier 1 移除語言
         function handleTier1Remove(langCode) {
             settings.native_langs = (settings.native_langs || []).filter(lang => lang !== langCode);
             renderTier1Badges(settings.native_langs);
-            saveSettings(true); 
+            saveTier1Settings(false); // 【關鍵修正點】: 呼叫 saveTier1Settings 而不是 saveSettings
             showOptionsToast(`已從清單 A 移除 (${langCode})`, 3000);
         }
 
@@ -697,9 +727,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- [v2.0] 綁定所有 v2.0 事件監聽器 (步驟 2.C) ---
         document.getElementById('tier-1-add-button')?.addEventListener('click', handleTier1Add);
-        document.getElementById('tier-1-badge-container')?.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-badge')) {
-                handleTier1Remove(e.target.dataset.lang);
+        
+        // 【關鍵修正點】: v2.1 - 修改監聽器以適配 ul > li 結構
+        document.getElementById('tier-1-badge-list')?.addEventListener('click', (e) => {
+            const removeButton = e.target.closest('.remove-badge');
+            if (removeButton) {
+                handleTier1Remove(removeButton.dataset.lang);
             }
         });
 

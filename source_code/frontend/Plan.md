@@ -584,3 +584,190 @@ Textarea 已預填充預設 Prompt 範本
     * **教訓：** 這是我們在 [步驟 2.C] 遇到的核心錯誤。如果在 DOM 載入完成前嘗試存取任何元素（`getElementById`），都會因取到 `null` 而導致**整個腳本崩潰**，進而引發「遷移失敗」、「UI 假死」、「金鑰功能失效」等連鎖反應。
 
 ---
+
+
+# 系統架構規格書：v2.1 修正案 (Tier 1 優先級與 Tier 3 觸發 Bug)
+
+**版本：** 4.0.1 (基於 v4.0.0 的修正)
+**目標：** 修復 v2.0 架構中遺留的兩個邊界情境 (Edge Case) 問題，以完善三層式語言決策引擎。
+
+---
+
+## 1. 執行規劃 (Phased Execution Plan)
+
+此修正案將分為兩個獨立的任務，您可以分開指派與驗證。
+
+### 任務一：修正 Tier 1 (原文顯示) 優先級問題
+
+* **核心目標：** 允許使用者為「語言清單 A (原文顯示語言)」 進行排序，並確保系統**嚴格遵守**此順序。
+* **任務：**
+    1.  **UI 變更 (`options.html`)：** 將 Tier 1 的靜態 Badge 容器 升級為**可拖曳排序**的列表 (類似 Tier 2 的 `<ul>`)。
+    2.  **UI 邏輯 (`popup.js`)：**
+        * 綁定 `initializeSortableList` 到 Tier 1 列表。
+        * 修改 `saveTier1Settings()`（或相關儲存邏輯），確保 `native_langs` 陣列**嚴格按照 DOM 順序**儲存。
+    3.  **引擎邏輯 (`content.js`)：** **修改 `start()` 函式** 中的 Tier 1 檢查邏輯，使其**遍歷使用者偏好的 `native_langs` 順序**，而不是遍歷影片的 `availableLangs` 順序。
+* **驗證標準 (如何測試)：**
+    1.  在 `options.html` 設定 Tier 1 列表順序為：1. `繁體中文 (zh-Hant)`, 2. `簡體中文 (zh-Hans)`。
+    2.  打開一個**同時提供**這兩種字幕的影片。
+    3.  **預期行為：** 系統**必須**啟用 `繁體中文 (zh-Hant)` 字幕，並進入 Tier 1 (原文顯示) 模式。
+
+### 任務二：修正 Tier 3 (按需翻譯) 邏輯漏洞
+
+* **核心目標：** 確保使用者**手動切換 CC 字幕**的行為，依然 100% 遵守 Tier 1/2/3 決策引擎，防止 Tier 3 語言被錯誤地自動翻譯。
+* **任務：**
+    1.  **引擎邏輯 (`content.js`)：**
+        * **修改 `onMessageFromInjector`** 函式中的 `case 'TIMEDTEXT_DATA'` 區塊。
+        * 在此區塊中（特別是處理非 `activationWatchdog` 觸發的字幕時），**完整複製/實作** `start()` 函式 中的「三層決策樹」邏輯。
+* **驗證標準 (如何測試)：**
+    1.  在 `options.html` 設定 Tier 1/2 中**不**包含「法文 (fr)」。
+    2.  打開一個法文影片。
+    3.  **預期行為 1：** 系統應正確進入 Tier 3 模式（顯示原文 + 右上角按需翻譯按鈕）。
+    4.  **手動操作：** **手動點擊**播放器原生的 [CC] 按鈕，並重新選擇「法文」。
+    5.  **預期行為 2：** 系統**必須**再次進入 Tier 3 模式（顯示原文 + 按需翻譯按鈕），**絕不能**觸發自動翻譯 (Orb 狀態環)。
+
+---
+
+## 2. 系統實作細節
+
+### 任務一：修正 Tier 1 優先級問題
+
+#### 2.1 問題根本原因 (Root Cause Analysis)
+
+* **v2.0 缺陷：** 我們的 v2.0 藍圖將 Tier 1 設計為「無序」的 Badge 集合，並在 `content.js` 的 `start()` 函式 中使用了 `availableLangs.find(lang => native_langs.includes(lang))` 的邏輯。
+* **錯誤行為：** 此邏輯會匹配「**影片方**」提供的字幕列表（`availableLangs`）中的第一個匹配項，而不是「**使用者**」在 `native_langs` 中設定的最高優先級。
+
+#### 2.2 檔案修改藍圖
+
+* **`options.html`**
+    * **替換指示：** 替換 `<div id="tier-1-badge-container" ...>` (靜態 `div`)。
+    * **新邏輯 (示意)：**
+        ```html
+        <ul id="tier-1-badge-list" class="sortable-list badge-list">
+            </ul>
+        ```
+
+* **`popup.css`**
+    * **新增指示：** 必須新增/修改 CSS 規則，使 `tier-1-badge-list` 及其 `li` 元素看起來像可拖曳的 Badge，而不是 Tier 2 的 Accordion。
+
+* **`popup.js`**
+    * **修改指示：**
+        1.  在 `loadSettings` (或相關初始化函式) 中，呼叫 `initializeSortableList('tier-1-badge-list', saveTier1Settings)`，使其具備拖曳能力。
+        2.  修改 `saveTier1Settings()`（或您實作的儲存函式），確保 `native_langs` 陣列是**根據 `tier-1-badge-list` 中 `li` 元素的 DOM 順序**產生的。
+
+* **`content.js`**
+    * **替換指示：** 替換 `start()` 函式 內部的「TIER 1 檢查」邏輯區塊。
+    * **舊邏輯 (將被移除)：**
+        ```javascript
+        const nativeMatch = availableLangs.find(lang => native_langs.includes(lang));
+        if (nativeMatch) {
+            // ... (Tier 1 執行) ...
+        }
+        ```
+    * **新邏輯 (將被替換為)：**
+        ```javascript
+        // --- TIER 1 檢查 (v2.1 修正：尊重使用者排序) ---
+        let nativeMatch = null;
+        const orderedNativeLangs = this.settings.native_langs || [];
+        
+        // 遍歷使用者偏好的 Tier 1 順序
+        for (const preferredLang of orderedNativeLangs) {
+            // 檢查影片是否提供此語言
+            if (availableLangs.includes(preferredLang)) {
+                nativeMatch = preferredLang; // 找到了！這就是最高優先級的
+                break; // 停止搜尋
+            }
+        }
+        
+        if (nativeMatch) {
+            this._log(`[決策 v2.1] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`);
+            this.runTier1_NativeView(availableTracks.find(t => t.languageCode === nativeMatch));
+            return; // 流程結束
+        }
+        
+        // --- TIER 2 檢查 (邏輯不變) ---
+        // ... (Tier 2 邏輯) ...
+        ```
+
+---
+
+### 任務二：修正 Tier 3 邏輯漏洞
+
+#### 2.1 問題根本原因 (Root Cause Analysis)
+
+* **v2.0 缺陷：** 我們的 v2.0 藍圖只重寫了 `start()` 函式（頁面載入時觸發） 的決策邏輯。
+* **邏輯漏洞：** 我們**遺漏**了 `content.js` 中的**第二個**字幕觸發點：`onMessageFromInjector` 函式內的 `case 'TIMEDTEXT_DATA'` 區塊。
+* **錯誤行為：** 當使用者手動點擊 CC 按鈕時，`TIMEDTEXT_DATA` 事件被觸發，並執行了**舊的 v1.x 邏輯**（即「收到字幕就翻譯」），完全繞過了 v2.0 的三層決策引擎。
+
+#### 2.2 檔案修改藍圖
+
+* **`content.js`**
+    * **替換指示：** **重寫 `onMessageFromInjector` 函式中的 `case 'TIMEDTEXT_DATA'` 區塊**。
+    * **新邏輯 (示意)：**
+        ```javascript
+        // 位於 onMessageFromInjector 函式內
+        case 'TIMEDTEXT_DATA':
+            const { payload: timedTextPayload, lang, vssId } = payload;
+            this._log(`[v2.1] 收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
+            
+            // (防護機制：忽略非啟用狀態的字幕)
+            if (!this.settings.isEnabled && !this.state.isOverride) {
+                // ... (保留 v3.1.3 的防護邏輯) ...
+                return;
+            }
+
+            // (看門狗邏輯：處理 v2.0 的 TIER 2 自動啟用)
+            if (this.state.activationWatchdog) {
+                // ... (保留 v2.0 的看門狗驗證邏輯) ...
+                
+                // (看門狗成功，解除並執行 activate)
+                clearTimeout(this.state.activationWatchdog);
+                this.state.activationWatchdog = null;
+                this.state.targetVssId = null;
+                this.state.sourceLang = lang;
+                this.state.hasActivated = true;
+                this.activate(timedTextPayload); // Tier 2 流程
+                return; // Tier 2 流程結束
+            }
+
+            // --- 【v2.1 關鍵修正點】---
+            // 如果不是看門狗觸發的 (例如手動切換CC)，則必須重新執行三層決策
+            
+            // 0. 檢查是否為重複數據
+            if (this.state.hasActivated && lang === this.state.sourceLang) {
+                this._log('語言相同，忽略重複的 timedtext 數據。');
+                return;
+            }
+            
+            // 1. 執行 Tier 1 檢查
+            const availableTracks = this.getAvailableLanguagesFromData(this.state.playerResponse, true);
+            const { native_langs = [], auto_translate_priority_list = [] } = this.settings;
+            
+            if (native_langs.includes(lang)) {
+                this._log(`[決策 v2.1/手動] -> Tier 1 命中： (${lang})。`);
+                this.runTier1_NativeView(availableTracks.find(t => t.languageCode === lang));
+                return;
+            }
+
+            // 2. 執行 Tier 2 檢查
+            const tier2Config = auto_translate_priority_list.find(item => item.langCode === lang);
+            if (tier2Config) {
+                this._log(`[決策 v2.1/手動] -> Tier 2 命中： (${lang})。`);
+                this.state.sourceLang = lang;
+                this.state.hasActivated = true;
+                this.activate(timedTextPayload); // 觸發翻譯
+                return;
+            }
+
+            // 3. 執行 Tier 3 (Fallback)
+            this._log(`[決策 v2.1/手動] -> Tier 3 觸發： (${lang})。`);
+            this.runTier3_OnDemand(availableTracks.find(t => t.languageCode === lang));
+            break;
+        ```
+
+---
+
+## 3. 預期結果 (v2.1)
+
+* **使用者視角 (困擾 1)：** 「我打開法文影片（Tier 3），手動點擊 CC 按鈕，它**不再**自動翻譯了。它正確地顯示了原文和右上角的『翻譯』按鈕。」
+* **使用者視角 (困擾 2)：** 「我把『繁體中文』拖到『簡體中文』上面（Tier 1）。現在當我打開同時有這兩種字幕的影片時，它總是**優先顯示繁體中文**。」
+* **系統行為：** `content.js` 中的兩個主要入口點 (`start` 和 `onMessageFromInjector`) 現在都 100% 遵守 v2.1 的三層式語言決策引擎。

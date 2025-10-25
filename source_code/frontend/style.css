@@ -53,18 +53,22 @@
 
 /* 錯誤/重試行 */
 .enhancer-error-line {
-    background-color: rgba(180, 40, 40, 0.8);
-    color: #fff;
+    /* 【關鍵修正點】: v2.0 - 修改為警告黃樣式，移除陰影 */
+    background-color: #fffbeb; /* 淺黃/琥珀色背景 */
+    color: #78350f; /* 深琥珀/棕色文字 */
+    text-shadow: none; /* 移除繼承的文字陰影 */
+    font-weight: 600; /* 加粗文字 */
 }
 .enhancer-error-line a {
     font-weight: bold;
-    color: #ffdddd;
+    /* 【關鍵修正點】: 匹配新的文字顏色 */
+    color: #92400e; /* 深琥珀/棕色 (加深) */
     text-decoration: underline;
     cursor: pointer;
     pointer-events: auto;
 }
 .enhancer-error-line a:hover {
-    color: #ffffff;
+    color: #78350f; /* 匹配文字顏色 */
 }
 
 /* 【關鍵修正點】: 新增在地化引導提示框樣式 */

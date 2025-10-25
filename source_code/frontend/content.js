@@ -71,7 +71,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     // 功能: (vssId 驗證版) 主流程入口，在發出指令前鎖定目標 vssId。
-    // 【關鍵修正點】: v2.0 - 完全重寫為 Tier 1/2/3 決策引擎
+    // 【關鍵修正點】: v2.1 - 完全重寫 TIER 1 檢查邏輯以尊重使用者排序
     async start() {
         this._log(`[決策 v2.0] --- 主流程 Start ---`);
         if (!this.currentVideoId || !this.state.playerResponse) {
@@ -88,14 +88,26 @@ class YouTubeSubtitleEnhancer {
         this._log(`[決策] Tier 1 (原文): [${native_langs.join(', ')}]`);
         this._log(`[決策] Tier 2 (自動): [${auto_translate_priority_list.map(t => t.langCode).join(', ')}]`);
 
-        // --- TIER 1 檢查：原文顯示 (零成本) ---
-        const nativeMatch = availableLangs.find(lang => native_langs.includes(lang));
+        // --- TIER 1 檢查 (v2.1 修正：尊重使用者排序) ---
+        let nativeMatch = null;
+        const orderedNativeLangs = this.settings.native_langs || []; //
+        
+        // 遍歷使用者偏好的 Tier 1 順序
+        for (const preferredLang of orderedNativeLangs) {
+            // 檢查影片是否提供此語言
+            if (availableLangs.includes(preferredLang)) {
+                nativeMatch = preferredLang; // 找到了！這就是最高優先級的
+                break; // 停止搜尋
+            }
+        }
+        
         if (nativeMatch) {
-            this._log(`[決策] -> Tier 1 命中：匹配到原文顯示語言 (${nativeMatch})。`);
-            const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); // 【關鍵修正點】 確保傳遞完整軌道
-            if (trackToEnable) this.runTier1_NativeView(trackToEnable);
+            this._log(`[決策 v2.1] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`); //
+            const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); //
+            if (trackToEnable) this.runTier1_NativeView(trackToEnable); //
             return; // 流程結束
         }
+        // 【關鍵修正點】: v2.1 - 以上為 TIER 1 替換區塊
 
         // --- TIER 2 檢查：自動翻譯 (高品質) ---
         let tier2Match = null;

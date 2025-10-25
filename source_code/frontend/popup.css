@@ -391,7 +391,74 @@ textarea { resize: vertical; margin-top: 12px; }
     border-color: var(--accent-color);
     color: var(--accent-color);
 }
+/* 【關鍵修正點】: v2.1 - 新增 Tier 1 可排序列表樣式 */
+.badge-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    min-height: 40px;
+    background-color: #fafafa;
+    /* 新增 flex 以橫向排列 */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 
+.badge-list li {
+    /* 從 .lang-badge 繼承樣式 */
+    display: flex;
+    align-items: center;
+    background-color: #eef2ff;
+    color: var(--accent-color);
+    border: 1px solid #c7d2fe;
+    padding: 4px 8px 4px 6px; /* 調整左邊距以容納拖曳圖示 */
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: grab; /* 設為可抓取 */
+    user-select: none;
+}
+
+/* 拖曳時的樣式 */
+.badge-list li.dragging {
+    opacity: 0.5;
+    background: #eef2ff;
+}
+
+/* 拖曳圖示 */
+.badge-list .drag-handle {
+    cursor: grab;
+    color: #a3aabd;
+    margin-right: 6px;
+    font-size: 14px;
+    line-height: 1;
+}
+.badge-list .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* 移除按鈕 (微調) */
+.badge-list .remove-badge {
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #c7d2fe;
+    color: var(--accent-color);
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+.badge-list .remove-badge:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
 /* --- [v2.0] Tier 1/2: 提示框 --- */
 .info-box, .warning-box {
     padding: 10px;
