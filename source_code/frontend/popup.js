@@ -398,8 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     li.innerHTML = `
                         <input type="text" class="key-name-input" value="${key.name || ''}" data-id="${key.id}" placeholder="金鑰名稱">
                         <input type="password" class="key-value-input" value="${key.key || ''}" data-id="${key.id}" placeholder="請在此貼上您的 Google API">
-                        <button class="delete-key" data-id="${key.id}">刪除</button>
+                        <button class="delete-key" data-id="${key.id}">×</button>
                     `;
+                    // 【關鍵修正點】: 上一行 <button> 內容從 "刪除" 改為 "×"
                     listElement.appendChild(li);
                 });
 
@@ -421,6 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // output: (chrome.storage.local 操作)
         // 其他補充: (Plan.md) 採用事件委派模式，處理暫時列 (blur 儲存) 與已儲存列 (change 更新)
         function setupApiKeyListeners() {
+            // 功能: 
+            // input:
+            // output:
+            // 其他補充:
             
             // 【關鍵修正點】: (Plan.md) 移除舊的 input 和 add-button 參照
             const listElement = document.getElementById('apiKeyList');
@@ -436,7 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!keyId || !confirm('您確定要刪除此 API Key 嗎？')) return;
                     try {
                         target.disabled = true;
-                        target.textContent = '刪除中...';
+                        // 【關鍵修正點】: 將 "刪除中..." 修改為 "..." 以適應圓形按鈕
+                        target.textContent = '...';
                         const result = await chrome.storage.local.get(['userApiKeys']);
                         let keys = (result.userApiKeys || []).filter(key => key.id !== keyId);
                         await chrome.storage.local.set({ userApiKeys: keys });
@@ -463,8 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     newLi.innerHTML = `
                         <input type="text" class="new-key-name-input" placeholder="金鑰名稱">
                         <input type="text" class="new-key-value-input" placeholder="請在此貼上您的 Google API">
-                        <button class="delete-temp-row-button">刪除</button>
+                        <button class="delete-temp-row-button">×</button>
                     `;
+                    // 【關鍵修正點】: 上一行 <button> 內容從 "刪除" 改為 "×"
                     // 插在「新增」按鈕之前
                     listElement.insertBefore(newLi, target.closest('li.add-key-row'));
                     newLi.querySelector('.new-key-name-input').focus();

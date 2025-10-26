@@ -11,7 +11,7 @@
 
     <header class="header" style="margin-bottom: 20px;">
         <h1>YT 字幕增強器 - 進階管理後台</h1>
-        <span class="version-badge">v2.2.0</span>
+        <span class="version-badge">v2.3.0</span>
     </header>
 
     <div class="tab-nav">
@@ -20,48 +20,7 @@
     </div>
 
     <div id="tab-main" class="tab-content active">
-        <div class="card" id="tier-1-card">
-            <h2 class="card-title">語言清單 A：原文顯示語言</h2>
-            <p class="card-hint">設定您能看懂的語言。當影片有這些語言字幕時，系統將直接顯示依列表順序檢查並觸發匹配的語言。</p>
-            
-            <ul id="tier-1-badge-list" class="sortable-list badge-list">
-                </ul>
-
-            <button id="tier-1-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
-            
-            <div class="card-hint info-box" style="margin-top: 16px;">
-                💡 <strong>提示：</strong> 當字幕是您設定的語言時，系統會直接顯示原文，不會消耗 API 配額。
-            </div>
-        </div>
-        <div class="card" id="tier-2-card">
-            <h2 class="card-title">語言清單 B：自動翻譯與 Prompt 管理</h2>
-            <p class="card-hint">設定需要自動翻譯的語言，並為每個語言自訂 Prompt。系統會依列表順序檢查並觸發第一個匹配的語言。</p>
-            
-            <ul id="tier-2-accordion-list" class="sortable-list accordion-list">
-                </ul>
-
-            <button id="tier-2-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
-
-            <div class="card-hint warning-box" style="margin-top: 16px;">
-                ⚠️ <strong>優先級說明：</strong> 系統會依序檢查列表，並觸發第一個匹配的翻譯。拖曳項目可調整優先序。
-            </div>
-        </div>
-        <div class="card">
-            <h2 class="card-title">模型偏好設定 (可拖曳排序)</h2>
-            <p class="card-hint">
-                系統將依照您在「已選用模型」列表中的順序（由上至下）依序嘗試。
-                <br>
-                您可以從下方「可添加模型」中點擊 `+` 將其加入列表。
-            </p>
-            
-            <h3 class="card-subtitle">已選用模型 (會被調用)</h3>
-            <ul id="selected-models" class="model-list sortable-list">
-                </ul>
-
-            <h3 class="card-subtitle">可添加模型</h3>
-            <div id="available-model-pills" class="model-pills-container">
-                </div>
-        </div>
+        
         <div class="card">
             <h2 class="card-title">進階外觀設定</h2>
             <div class="setting-row">
@@ -77,6 +36,73 @@
                 </select>
             </div>
         </div>
+
+        <div class="card" id="tier-1-card">
+            <h2 class="card-title">語言清單 A：原文顯示語言</h2>
+            <p class="card-hint">設定您能看懂的語言。當影片有這些語言字幕時，系統將直接顯示依列表順序檢查並觸發匹配的語言。</p>
+            
+            <ul id="tier-1-badge-list" class="sortable-list badge-list">
+                </ul>
+
+            <button id="tier-1-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
+            
+            <div class="card-hint info-box" style="margin-top: 16px;">
+                💡 <strong>提示：</strong> 當字幕是您設定的語言時，系統會直接顯示原文，不會消耗 API 配額。
+            </div>
+        </div>
+
+        <div class="card" id="tier-2-card">
+            <h2 class="card-title">語言清單 B：自動翻譯與 Prompt 管理</h2>
+            <p class="card-hint">設定需要自動翻譯的語言，並為每個語言自訂 Prompt。系統會依列表順序檢查並觸發第一個匹配的語言。</p>
+            
+            <ul id="tier-2-accordion-list" class="sortable-list accordion-list">
+                </ul>
+
+            <button id="tier-2-add-button" class="button-secondary add-lang-button">+ 新增語言</button>
+
+            <div class="card-hint warning-box" style="margin-top: 16px;">
+                ⚠️ <strong>優先級說明：</strong> 系統會依序檢查列表，並觸發第一個匹配的翻譯。拖曳項目可調整優先序。
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">模型偏好設定 (可拖曳排序)</h2>
+            <p class="card-hint">
+                系統將依照您在「已選用模型」列表中的順序（由上至下）依序嘗試。
+                <br>
+                您可以從下方「可添加模型」中點擊 `+` 將其加入列表。
+            </p>
+            
+            <h3 class="card-subtitle">已選用模型 (會被調用)</h3>
+            <ul id="selected-models" class="model-list sortable-list">
+            </ul>
+
+            <h3 class="card-subtitle">可添加模型</h3>
+            <div id="available-model-pills" class="model-pills-container">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Google API 金鑰管理</h2>
+            <p class="card-hint">
+                設定金鑰後，將存儲在瀏覽器本地，並且可以設定多組金鑰來避免單一金鑰的配額限制。
+            </p>
+            
+            <h3 class="card-subtitle" style="margin-top: 0;">金鑰列表 (輸入、儲存)</h3>
+            
+            <ul id="apiKeyList" class="api-key-list">
+                </ul>
+            
+            <h2 class="card-title" style="margin-top: 24px;">API Key 診斷</h2>
+            <p class="card-hint">
+                此功能僅透過發送一個極小的測試請求來驗證金鑰的<b>基本有效性</b>（即金鑰是否存在且未被禁用）。
+                <br>
+                它<b>無法</b>檢測金鑰的剩餘用量或是否已達每日配額上限。
+            </p>
+            <button id="diagnoseKeysButton" class="button-primary" style="width: 100%;">開始診斷所有金鑰</button>
+            <div id="diagnose-results"></div>
+        </div>
+
         <div id="language-search-popover" class="popover-backdrop" style="display: none;">
             <div class="popover-content">
                 <h3>新增語言</h3>
@@ -88,31 +114,10 @@
     </div>
     
     <div id="tab-diag" class="tab-content">
-        <div class="card">
-            <h2 class="card-title">Google API 金鑰管理</h2>
-            <p class="card-hint">
-                設定金鑰後，將存儲在瀏覽器本地，並且可以設定多組金鑰來避免單一金鑰的配額限制。
-            </p>
-            
-            <h3 class="card-subtitle" style="margin-top: 0;">金鑰列表 (輸入、儲存)</h3>
-            
-            <ul id="apiKeyList" class="api-key-list">
-                </ul>
-            </div>
+        
         <div class="card">
             <h2 class="card-title">資料管理</h2>
             <button id="clearCacheButton" class="button-secondary" style="width: 100%;">清除所有影片的翻譯暫存</button>
-        </div>
-
-        <div class="card">
-            <h2 class="card-title">API Key 診斷</h2>
-            <p class="card-hint">
-                此功能僅透過發送一個極小的測試請求來驗證金鑰的<b>基本有效性</b>（即金鑰是否存在且未被禁用）。
-                <br>
-                它<b>無法</b>檢測金鑰的剩餘用量或是否已達每日配額上限。
-            </p>
-            <button id="diagnoseKeysButton" class="button-primary" style="width: 100%;">開始診斷所有金鑰</button>
-            <div id="diagnose-results"></div>
         </div>
         
         <div class="card">

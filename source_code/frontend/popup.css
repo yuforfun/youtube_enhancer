@@ -10,19 +10,30 @@
  * Styles for both popup.html and options.html.
  */
 
-/* 【關鍵修正點】: (Phase 3) 替換此區塊 */
+/* 【關鍵修正點】: (Phase 1) 替換此區塊 */
 :root {
     --bg-color: #f4f4f5;
     --card-bg-color: #ffffff;
     --text-color: #18181b;
     --text-light-color: #71717a;
     --border-color: #e4e4e7;
-    /* 【關鍵修正點】: (Plan.md) 顏色從藍色 (#4f46e5) 改為黑色 */
+    
+    /* 主題色 (黑) */
     --accent-color: #18181b; 
-    /* 【關鍵修正點】: (Plan.md) 顏色從深藍 (#4338ca) 改為深灰 */
     --accent-color-dark: #3f3f46; 
+
+    /* --- 修正: 將點綴色從「藍色」改為「灰色」 --- */
+    --accent-pill-bg: #f3f4f6;          /* 淺灰底 (原: #eef2ff 淺藍) */
+    --accent-pill-bg-hover: #e5e7eb;    /* 中灰底 (原: #e0e7ff 淺藍) */
+    --accent-pill-border: #d1d5db;      /* 灰邊框 (原: #c7d2fe 藍邊框) */
+    --accent-pill-text: #374151;         /* 深灰文字 (原: #4338ca 藍文字) */
+    /* --- 修正結束 --- */
+
     --success-color: #16a34a;
-    --danger-color: #dc2626;
+    /* 【關鍵修正點】: 改用飽和度較低、更專業的紅色 */
+    --danger-color: #D73737; 
+    /* 【關鍵修正點】: 新增一個非常淺的 hover 背景色 */
+    --danger-color-bg-hover: #FDECEC; 
     --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --border-radius: 8px;
     --box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -284,9 +295,10 @@ textarea { resize: vertical; margin-top: 12px; }
 
 /* 【關鍵修正點】: (Phase 2) 新增: 移除按鈕樣式 */
 .model-list li .remove-model-item {
-    background-color: #f3f4f6;
-    color: #6b7280;
-    border: 1px solid #d1d5db;
+    /* 【關鍵修正點】: 這是我們的「標準樣式」 */
+    background-color: #ffffff;
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
     border-radius: 50%; /* 圓形按鈕 */
     width: 20px;
     height: 20px;
@@ -296,11 +308,14 @@ textarea { resize: vertical; margin-top: 12px; }
     transition: all 0.2s;
     flex-shrink: 0;
     line-height: 18px; /* 對齊 '×' */
+    /* 【關鍵修正點】: 新增此行以確保 20x20 尺寸包含邊框 */
+    box-sizing: border-box;
 }
 .model-list li .remove-model-item:hover {
-    background-color: #fef2f2;
+    /* 【關鍵修正點】: 使用新的 hover 變數 */
+    background-color: var(--danger-color-bg-hover);
     color: var(--danger-color);
-    border-color: #fecaca;
+    border-color: var(--danger-color); 
 }
 
 /* 【關鍵修正點】: (Phase 2) 新增: 內容區域 (名稱 + ?) */
@@ -331,22 +346,32 @@ textarea { resize: vertical; margin-top: 12px; }
     background-color: #fafafa;
 }
 
-/* 【關鍵修正點】: (Phase 2) 新增: 「+」標籤按鈕樣式 */
+/* 【關鍵修正點】: (Phase 1 & 2) 替換此區塊 (Add Pill 按鈕) */
 .add-model-pill {
-    background-color: #ffffff;
-    border: 1px solid #d1d5db;
-    color: var(--text-color);
-    padding: 6px 12px;
+    /* 【關鍵修正點】: (Plan.md) (Phase 1) 統一為點綴色變數 */
+    background-color: var(--accent-pill-bg);
+    border: 1px solid var(--accent-pill-border);
+    color: var(--accent-pill-text);
+    
+    padding: 0 12px; /* (Phase 2) 調整 padding */
     border-radius: 16px; /* 膠囊形狀 */
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+
+    /* 【關鍵修正點】: (Plan.md) (Phase 2) 統一樣式與高度 */
+    height: 28px;
+    line-height: 28px;
+    display: inline-flex;
+    align-items: center;
 }
+/* 【關鍵修正點】: (Phase 1) 替換此區塊 (Add Pill Hover) */
 .add-model-pill:hover {
-    background-color: #eef2ff; /* 淺藍色 hover */
-    color: var(--accent-color);
-    border-color: #c7d2fe;
+    /* 【關鍵修正點】: (Plan.md) 統一為點綴色變數 */
+    background-color: var(--accent-pill-bg-hover);
+    border-color: var(--accent-pill-border);
+    color: var(--accent-pill-text);
 }
 /* Language Reference List */
 .reference-details {
@@ -473,11 +498,13 @@ textarea { resize: vertical; margin-top: 12px; }
     border-bottom: none; /* 確保無邊框 */
 }
 .api-key-list li.add-key-row button {
-    border-style: dashed;
+    /* 【關鍵修正點】: 從「虛線」改為「實線」輪廓按鈕 */
+    border-style: solid;
 }
 .api-key-list li.add-key-row button:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
+    /* 【關鍵修正點】: Hover 時使用 --accent-pill-text (現為深灰色) */
+    border-color: var(--accent-pill-text);
+    color: var(--accent-pill-text);
 }
 
 /* (Fix) 覆蓋全域 width: 100%，讓 flex-grow 生效 */
@@ -504,40 +531,51 @@ textarea { resize: vertical; margin-top: 12px; }
 
 /* 刪除按鈕 (暫時列) (保留) */
 .api-key-list .delete-temp-row-button {
-    background-color: #f3f4f6;
-    color: #6b7280;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 500;
+    /* 【關鍵修正點】: 統一為「樣式 B」(圓形 ×) */
+    background-color: #ffffff;
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    border-radius: 50%; /* 圓形 */
+    width: 20px; /* 固定寬高 */
+    height: 20px; /* 固定寬高 */
+    font-size: 12px; /* 匹配 '×' 大小 */
+    font-weight: bold; /* 匹配 '×' 粗細 */
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
+    line-height: 18px; /* 垂直居中 '×' */
+    padding: 0; /* 移除文字按鈕的 padding */
+    /* 【關鍵修正點】: 新增此行以確保 20x20 尺寸包含邊框 */
+    box-sizing: border-box;
 }
 .api-key-list .delete-temp-row-button:hover {
-    background-color: #fee2e2;
-    color: var(--danger-color);
-    border-color: #fca5a5;
+    background-color: var(--danger-color-bg-hover);
+    border-color: var(--danger-color);
 }
 
 /* 刪除按鈕 (已儲存) (保留) */
 .api-key-list .delete-key {
-    background-color: #fef2f2;
+    /* 【關鍵修正點】: 統一為「樣式 B」(圓形 ×) */
+    background-color: #ffffff;
     color: var(--danger-color);
-    border: 1px solid #fecaca;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 500;
+    border: 1px solid var(--danger-color);
+    border-radius: 50%; /* 圓形 */
+    width: 20px; /* 固定寬高 */
+    height: 20px; /* 固定寬高 */
+    font-size: 12px; /* 匹配 '×' 大小 */
+    font-weight: bold; /* 匹配 '×' 粗細 */
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0; 
+    line-height: 18px; /* 垂直居中 '×' */
+    padding: 0; /* 移除文字按鈕的 padding */
+    /* 【關鍵修正點】: 新增此行以確保 20x20 尺寸包含邊框 */
+    box-sizing: border-box;
 }
 
 .api-key-list .delete-key:hover {
-    background-color: #fee2e2;
-    border-color: #fca5a5;
+    background-color: var(--danger-color-bg-hover);
+    border-color: var(--danger-color);
 }
 
 /* Toast */
@@ -598,11 +636,13 @@ textarea { resize: vertical; margin-top: 12px; }
     margin-top: 12px;
     font-weight: 500;
     color: var(--text-color);
-    border-style: dashed;
+    /* 【關鍵修正點】: 從「虛線」改為「實線」 */
+    border-style: solid;
 }
 .add-lang-button:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
+    /* 【關鍵修正點】: (Plan.md) 顏色從 (黑色) 改為 (藍色) */
+    border-color: var(--accent-pill-text);
+    color: var(--accent-pill-text);
 }
 /* 【關鍵修正點】: v2.1 - 新增 Tier 1 可排序列表樣式 */
 .badge-list {
@@ -635,12 +675,37 @@ textarea { resize: vertical; margin-top: 12px; }
 }
 
 /* 拖曳時的樣式 */
+/* 【關鍵修正點】: (Phase 1 & 2) 替換此區塊 */
+.badge-list li {
+    /* 從 .lang-badge 繼承樣式 */
+    display: inline-flex; /* (Fix) 確保 flex 佈局 */
+    align-items: center; /* (Fix) 垂直居中 */
+    
+    /* 【關鍵修正點】: (Plan.md) (Phase 1) 統一為點綴色變數 */
+    background-color: var(--accent-pill-bg);
+    color: var(--accent-pill-text);
+    border: 1px solid var(--accent-pill-border);
+    
+    padding: 0 8px 0 6px; /* 調整 padding */
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: grab; 
+    user-select: none;
+
+    /* 【關鍵修正點】: (Plan.md) (Phase 2) 修復高度不一致 Bug */
+    height: 28px;
+    line-height: 28px;
+    white-space: nowrap; /* 防止文字換行 */
+}
+
+/* 拖曳時的樣式 (保留) */
 .badge-list li.dragging {
     opacity: 0.5;
     background: #eef2ff;
 }
 
-/* 拖曳圖示 */
+/* 拖曳圖示 (保留) */
 .badge-list .drag-handle {
     cursor: grab;
     color: #a3aabd;
@@ -652,14 +717,15 @@ textarea { resize: vertical; margin-top: 12px; }
     cursor: grabbing;
 }
 
-/* 移除按鈕 (微調) */
+/* 【關鍵修正點】: (Phase 1) 替換此區塊 (移除按鈕) */
 .badge-list .remove-badge {
     margin-left: 6px;
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background-color: #c7d2fe;
-    color: var(--accent-color);
+    /* 【關鍵修正點】: (Plan.md) 統一為點綴色變數 */
+    background-color: var(--accent-pill-border);
+    color: var(--accent-pill-text);
     border: none;
     cursor: pointer;
     font-weight: bold;
@@ -668,9 +734,11 @@ textarea { resize: vertical; margin-top: 12px; }
     text-align: center;
     transition: background-color 0.2s, color 0.2s;
 }
+/* 【關鍵修正點】: (Phase 1) 替換此區塊 (移除按鈕 Hover) */
 .badge-list .remove-badge:hover {
-    background-color: var(--accent-color);
-    color: white;
+    /* 【關鍵修正點】: (Plan.md) 統一為點綴色變數 */
+    background-color: var(--accent-pill-text);
+    color: var(--accent-pill-bg); /* 反色 */
 }
 /* --- [v2.0] Tier 1/2: 提示框 --- */
 .info-box, .warning-box {
@@ -777,17 +845,25 @@ textarea { resize: vertical; margin-top: 12px; }
 }
 
 .delete-item {
-    font-size: 18px;
+    /* 【關鍵修正點】: 統一為「樣式 B」(圓形 ×) */
+    background-color: #ffffff;
     color: var(--danger-color);
-    cursor: pointer;
+    border: 1px solid var(--danger-color);
+    border-radius: 50%; /* 圓形 */
     width: 20px;
     height: 20px;
-    line-height: 20px;
+    font-size: 12px; /* 縮小字體以匹配 '×' */
+    font-weight: bold; /* 加粗 '×' */
+    cursor: pointer;
+    line-height: 18px; /* 垂直居中 '×' */
     text-align: center;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    opacity: 1;
+    transition: all 0.2s;
+    /* 【關鍵修正點】: 新增此行以確保 20x20 尺寸包含邊框 */
+    box-sizing: border-box; 
 }
 .delete-item:hover {
+    background-color: var(--danger-color-bg-hover);
     opacity: 1;
 }
 
