@@ -105,10 +105,14 @@ input[type="range"] { width: 120px; }
 .checkbox-group input, .checkbox-group label { cursor: pointer; }
 
 /* Inputs & Selects */
-select, input[type="text"], textarea {
+/* 【關鍵修正點】: (Phase 1 Fix) 新增 input[type="password"] */
+select, input[type="text"], input[type="password"], textarea {
     width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box;
 }
-select:focus, input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px #e0e7ff; }
+/* 【關鍵修正點】: (Phase 1 Fix) 新增 input[type="password"] */
+select:focus, input[type="text"]:focus, input[type="password"]:focus, textarea:focus { 
+    outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px #e0e7ff; 
+}
 textarea { resize: vertical; margin-top: 12px; }
 .prompt-controls { display: flex; gap: 10px; margin-top: 12px; }
 
@@ -261,53 +265,93 @@ textarea { resize: vertical; margin-top: 12px; }
 .log-placeholder { padding: 16px; text-align: center; color: var(--text-light-color); font-style: italic; }
 
 /* API Key Management (from 1.A) */
-.api-key-form {
-    display: flex;
-    gap: 8px; /* 保持間距一致性 */
-    margin-top: 8px;
-}
+/* 【關鍵修正點】: (Phase 1 Fix) 替換此整個區塊 (ul + li + input + button) */
 
-.api-key-form input {
-    margin: 0; /* 覆蓋預設 margin */
-}
-
-.api-key-form .button-primary {
-    padding: 6px 16px; /* 讓按鈕高度與輸入框一致 */
-    font-size: 13px;
-    font-weight: 500;
-}
-
+/* (Fix) 移除 ul 的所有視覺樣式，使其成為透明容器 */
 .api-key-list {
     list-style: none;
     margin: 8px 0 0 0;
     padding: 0;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: #fafafa;
-    max-height: 150px;
-    overflow-y: auto;
+    /* 移除了 background-color, border, max-height, overflow-y */
 }
 
-.api-key-list li {
-    padding: 10px 12px;
+/* (Fix) 將視覺樣式 (白底、邊框、圓角) 轉移到 li 項目上 */
+.api-key-list li.api-key-item-saved,
+.api-key-list li.api-key-item-new {
+    padding: 10px 12px; /* 恢復 li 內部邊距 */
     font-size: 13px;
-    border-bottom: 1px solid #e5e7eb;
-    background-color: #ffffff;
+    border: 1px solid #e5e7eb; /* 邊框 */
+    background-color: #ffffff; /* 白底 */
     display: flex;
-    justify-content: space-between;
     align-items: center;
     user-select: none;
+    gap: 8px;
+    border-radius: 6px; /* 新增圓角 */
+    margin-bottom: 8px; /* (Fix) 新增 li 之間的間距 */
 }
 
+/* (Fix) 移除 li 上的 border-bottom */
 .api-key-list li:last-child {
     border-bottom: none;
 }
 
-.api-key-list .api-key-name {
-    font-weight: 500;
-    color: var(--text-color);
+/* (Fix) 重設 "新增金鑰" 按鈕列的樣式 */
+.api-key-list li.add-key-row {
+    background-color: transparent;
+    padding: 0; /* 移除 padding */
+    margin-top: 8px; /* (Fix) 與上方 li 保持間距，移除 border-top 解決雙線問題 */
+    border-bottom: none; /* 確保無邊框 */
+}
+.api-key-list li.add-key-row button {
+    border-style: dashed;
+}
+.api-key-list li.add-key-row button:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
+/* (Fix) 覆蓋全域 width: 100%，讓 flex-grow 生效 */
+.api-key-list input[type="text"],
+.api-key-list input[type="password"] {
+    margin: 0;
+    flex-grow: 1;
+    width: auto; /* 關鍵: 覆蓋 width: 100% */
+}
+
+/* 金鑰名稱 input (保留) */
+.api-key-list .key-name-input,
+.api-key-list .new-key-name-input {
+    flex-grow: 1;
+    min-width: 100px;
+    flex-basis: 150px;
+}
+
+/* 金鑰 input (保留) */
+.api-key-list .key-value-input,
+.api-key-list .new-key-value-input {
+    flex-grow: 2;
+}
+
+/* 刪除按鈕 (暫時列) (保留) */
+.api-key-list .delete-temp-row-button {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.api-key-list .delete-temp-row-button:hover {
+    background-color: #fee2e2;
+    color: var(--danger-color);
+    border-color: #fca5a5;
+}
+
+/* 刪除按鈕 (已儲存) (保留) */
 .api-key-list .delete-key {
     background-color: #fef2f2;
     color: var(--danger-color);
@@ -318,14 +362,13 @@ textarea { resize: vertical; margin-top: 12px; }
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0; 
 }
 
 .api-key-list .delete-key:hover {
     background-color: #fee2e2;
     border-color: #fca5a5;
 }
-/* 【關鍵修正點】: 以上為新增區塊 */
-
 
 /* Toast */
 #options-toast {

@@ -318,98 +318,216 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 功能: 讀取 userApiKeys 陣列並將其渲染到 UI 列表
+        // 【關鍵修正點】: (Phase 1) 替換此函式
+        // 功能: [v2.2.0] 讀取 userApiKeys 陣列並將其渲染為可編輯的 input 列表
         // input: 無 (從 chrome.storage.local 讀取)
         // output: (DOM 操作) 更新 #apiKeyList
-        // 其他補充: [規格 1.A] 的核心 UI 渲染函式
+        // 其他補充: (Plan.md) 最後會動態附加「+ 新增金鑰」按鈕
         async function loadAndRenderApiKeys() {
             const listElement = document.getElementById('apiKeyList');
             if (!listElement) return;
             try {
                 const result = await chrome.storage.local.get(['userApiKeys']);
                 const keys = result.userApiKeys || [];
-                listElement.innerHTML = ''; 
+                
+                listElement.innerHTML = ''; // 清空列表
+                
                 if (keys.length === 0) {
-                    listElement.innerHTML = '<li style="color: var(--text-light-color); justify-content: center;">尚無金鑰</li>';
-                    return;
+                    // listElement.innerHTML = '<li style="color: var(--text-light-color); justify-content: center;">尚無金鑰</li>';
+                    // (v2.2.0: 不顯示 "尚無金鑰"，直接顯示新增按鈕)
                 }
+
+                // 【關鍵修正點】: (Plan.md) 渲染已儲存的金鑰
                 keys.forEach(key => {
                     const li = document.createElement('li');
+                    li.className = 'api-key-item-saved'; // 標記為已儲存
                     li.innerHTML = `
-                        <span class="api-key-name">${key.name || '未命名金鑰'}</span>
+                        <input type="text" class="key-name-input" value="${key.name || ''}" data-id="${key.id}" placeholder="金鑰名稱">
+                        <input type="password" class="key-value-input" value="${key.key || ''}" data-id="${key.id}" placeholder="請在此貼上您的 Google API">
                         <button class="delete-key" data-id="${key.id}">刪除</button>
                     `;
                     listElement.appendChild(li);
                 });
+
+                // 【關鍵修正點】: (Plan.md) 在 ul 內部渲染「+ 新增金鑰」按鈕
+                const addRow = document.createElement('li');
+                addRow.className = 'add-key-row';
+                addRow.innerHTML = `<button id="addNewKeyRowButton" class="button-secondary add-lang-button" style="width: 100%;">+ 新增金鑰</button>`;
+                listElement.appendChild(addRow);
+
             } catch (e) {
                 console.error('無法載入 API Keys:', e);
                 listElement.innerHTML = '<li style="color: var(--danger-color);">載入金鑰失敗</li>';
             }
         }
 
-        // 功能: 綁定金鑰管理區塊 (新增/刪除) 的所有事件監聽器
+        // 【關鍵修正點】: (Phase 1) 替換此函式
+        // 功能: [v2.2.0 重構] 綁定金鑰管理區塊 (新增/刪除/更新) 的所有事件監聽器
         // input: 無 (DOM 事件)
         // output: (chrome.storage.local 操作)
-        // 其他補充: [規格 1.A] 的核心邏輯函式
+        // 其他補充: (Plan.md) 採用事件委派模式，處理暫時列 (blur 儲存) 與已儲存列 (change 更新)
         function setupApiKeyListeners() {
-            const nameInput = document.getElementById('apiKeyNameInput');
-            const keyInput = document.getElementById('apiKeyInput');
-            const addButton = document.getElementById('addApiKeyButton');
+            
+            // 【關鍵修正點】: (Plan.md) 移除舊的 input 和 add-button 參照
             const listElement = document.getElementById('apiKeyList');
-            if (!nameInput || !keyInput || !addButton || !listElement) return;
+            if (!listElement) return;
 
-            addButton.addEventListener('click', async () => {
-                const name = nameInput.value.trim();
-                const key = keyInput.value.trim();
-                if (!name || !key) {
-                    showOptionsToast('金鑰名稱和 API Key 皆不可為空', 4000);
-                    return;
+            // --- 1. [v2.2.0] 點擊事件委派 (新增/刪除) ---
+            listElement.addEventListener('click', async (e) => {
+                const target = e.target;
+
+                // [保留] 邏輯: 點擊「刪除」 (已儲存的金鑰)
+                if (target.classList.contains('delete-key')) {
+                    const keyId = target.dataset.id;
+                    if (!keyId || !confirm('您確定要刪除此 API Key 嗎？')) return;
+                    try {
+                        target.disabled = true;
+                        target.textContent = '刪除中...';
+                        const result = await chrome.storage.local.get(['userApiKeys']);
+                        let keys = (result.userApiKeys || []).filter(key => key.id !== keyId);
+                        await chrome.storage.local.set({ userApiKeys: keys });
+                        showOptionsToast('金鑰已成功刪除。');
+                        await loadAndRenderApiKeys(); // 重繪
+                    } catch (err) {
+                        console.error('刪除 API Key 失敗:', err);
+                        showOptionsToast('刪除金鑰時發生錯誤。', 5000);
+                        await loadAndRenderApiKeys();
+                    }
                 }
-                if (!key.startsWith('AIzaSy')) {
-                     showOptionsToast('金鑰格式似乎不正確，請再次確認。', 4000);
+
+                // [新增] 邏輯: 點擊「+ 新增金鑰」按鈕
+                if (target.id === 'addNewKeyRowButton') {
+                    // 檢查是否已存在暫時列，避免重複新增
+                    const existingTempRow = listElement.querySelector('li.api-key-item-new');
+                    if (existingTempRow) {
+                        existingTempRow.querySelector('.new-key-name-input').focus();
+                        return;
+                    }
+                    
+                    const newLi = document.createElement('li');
+                    newLi.className = 'api-key-item-new'; // 暫時 class
+                    newLi.innerHTML = `
+                        <input type="text" class="new-key-name-input" placeholder="金鑰名稱">
+                        <input type="text" class="new-key-value-input" placeholder="請在此貼上您的 Google API">
+                        <button class="delete-temp-row-button">刪除</button>
+                    `;
+                    // 插在「新增」按鈕之前
+                    listElement.insertBefore(newLi, target.closest('li.add-key-row'));
+                    newLi.querySelector('.new-key-name-input').focus();
                 }
-                try {
-                    addButton.disabled = true;
-                    addButton.textContent = '新增中...';
-                    const result = await chrome.storage.local.get(['userApiKeys']);
-                    const keys = result.userApiKeys || [];
-                    const newKey = { id: crypto.randomUUID(), name: name, key: key };
-                    keys.push(newKey); 
-                    await chrome.storage.local.set({ userApiKeys: keys }); 
-                    nameInput.value = '';
-                    keyInput.value = '';
-                    showOptionsToast(`金鑰 "${name}" 已成功新增！`);
-                    await loadAndRenderApiKeys(); 
-                } catch (e) {
-                    console.error('新增 API Key 失敗:', e);
-                    showOptionsToast('新增金鑰時發生錯誤，請檢查控制台日誌。', 5000);
-                } finally {
-                    addButton.disabled = false;
-                    addButton.textContent = '新增';
+
+                // [新增] 邏輯: 點擊「刪除」 (暫時列)
+                if (target.classList.contains('delete-temp-row-button')) {
+                    target.closest('li.api-key-item-new').remove();
                 }
             });
 
-            listElement.addEventListener('click', async (e) => {
-                if (!e.target.classList.contains('delete-key')) return;
-                const button = e.target;
-                const keyId = button.dataset.id; 
-                if (!keyId || !confirm('您確定要刪除此 API Key 嗎？')) return;
+            // --- 2. [v2.2.0] 儲存 (on blur) 事件委派 (for 暫時列) ---
+            // 使用 'blur' (capture: true) 來捕捉 input 失去焦點
+            listElement.addEventListener('blur', async (e) => {
+                const li = e.target.closest('li.api-key-item-new');
+                if (!li) return; // 不是暫時列
+
+                // 【關鍵修正點】: (Plan.md) 檢查焦點是否移出整個 li
+                // relatedTarget 是焦點 *將要* 移往的元素
+                const relatedTarget = e.relatedTarget;
+                if (relatedTarget && li.contains(relatedTarget)) {
+                    // 焦點仍在 li 內部 (例如: 切換 input, 點擊刪除鈕)，不儲存
+                    return;
+                }
+
+                // 如果我們在這裡，表示焦點已移出 li
+                const nameInput = li.querySelector('.new-key-name-input');
+                const keyInput = li.querySelector('.new-key-value-input');
+
+                // 【關鍵修正點】: (Plan.md) 兩者都必須有值才儲存
+                if (nameInput.value.trim() && keyInput.value.trim()) {
+                    const name = nameInput.value.trim();
+                    const key = keyInput.value.trim();
+                    
+                    if (!key.startsWith('AIzaSy')) {
+                        showOptionsToast('金鑰格式似乎不正確，請再次確認。', 4000);
+                    }
+                    
+                    try {
+                        // 顯示儲存中狀態 (暫時替換 li)
+                        li.innerHTML = `<span>儲存中...</span>`;
+                        
+                        const newKey = { id: crypto.randomUUID(), name: name, key: key };
+                        const result = await chrome.storage.local.get(['userApiKeys']);
+                        const keys = result.userApiKeys || [];
+                        keys.push(newKey);
+                        await chrome.storage.local.set({ userApiKeys: keys });
+                        
+                        showOptionsToast(`金鑰 "${name}" 已成功新增！`);
+                        await loadAndRenderApiKeys(); // 【關鍵修正點】: 儲存後立即重新渲染整個列表
+
+                    } catch (err) {
+                        console.error('新增 API Key 失敗:', err);
+                        showOptionsToast('新增金鑰時發生錯誤，請檢查控制台日誌。', 5000);
+                        await loadAndRenderApiKeys(); // 失敗也要重繪
+                    }
+                }
+                // 如果任一為空，on blur 不做事，等待使用者刪除或填寫
+            }, true); // 使用 capture: true
+
+            // --- 3. [v2.2.0] 更新 (on change) 事件委派 (for 已儲存的金鑰) ---
+            // 'change' 事件會在 input 失去焦點 *且* 值已改變時觸發
+            listElement.addEventListener('change', async (e) => {
+                const target = e.target;
+                // 【關鍵修正點】: (Plan.md) 只響應 "已儲存" 金鑰的 input
+                if (!target.classList.contains('key-name-input') && !target.classList.contains('key-value-input')) {
+                    return;
+                }
+                
+                const keyId = target.dataset.id;
+                if (!keyId) return;
+
                 try {
-                    button.disabled = true;
-                    button.textContent = '刪除中...';
                     const result = await chrome.storage.local.get(['userApiKeys']);
-                    let keys = (result.userApiKeys || []).filter(key => key.id !== keyId); 
-                    await chrome.storage.local.set({ userApiKeys: keys }); 
-                    showOptionsToast('金鑰已成功刪除。');
-                    await loadAndRenderApiKeys(); 
-                } catch (e) {
-                    console.error('刪除 API Key 失敗:', e);
-                    showOptionsToast('刪除金鑰時發生錯誤，請檢查控制台日誌。', 5000);
-                    button.disabled = false;
-                    button.textContent = '刪除';
+                    const keys = result.userApiKeys || [];
+                    const keyToUpdate = keys.find(k => k.id === keyId);
+
+                    if (!keyToUpdate) return;
+                    
+                    let nameChanged = false;
+                    if (target.classList.contains('key-name-input')) {
+                        keyToUpdate.name = target.value.trim();
+                        nameChanged = true;
+                    } else {
+                        keyToUpdate.key = target.value.trim();
+                    }
+                    
+                    await chrome.storage.local.set({ userApiKeys: keys });
+                    
+                    // 只有在 key-value input (密碼框) 變更時才重設 type
+                    if (target.classList.contains('key-value-input')) {
+                        target.type = 'password';
+                    }
+                    
+                    showOptionsToast(`金鑰 "${keyToUpdate.name}" 已更新。`);
+
+                } catch (err) {
+                    console.error('更新 API Key 失敗:', err);
+                    showOptionsToast('更新金鑰時發生錯誤，請檢查控制台日誌。', 5000);
+                }
+            });
+            
+            // --- 4. [v2.2.0] 密碼框點擊顯示/隱藏 (UX 優化) ---
+            // [新增] 點擊 (focusin) 密碼框時顯示文字
+            listElement.addEventListener('focusin', (e) => {
+                if (e.target.classList.contains('key-value-input')) {
+                    e.target.type = 'text';
+                }
+            });
+            // [新增] 移開 (focusout) 密碼框時隱藏文字
+            listElement.addEventListener('focusout', (e) => {
+                if (e.target.classList.contains('key-value-input')) {
+                    e.target.type = 'password';
                 }
             });
         }
+        
         loadAndRenderApiKeys();
         setupApiKeyListeners();
 
