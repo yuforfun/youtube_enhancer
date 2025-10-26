@@ -189,15 +189,24 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[v2.0] 設定載入完畢。');
     }
 
+    // 【關鍵修正點】: (Phase 2 Bug Fix) 替換此函式
+    // 功能: [v2.2.0 修復] 將使用者在 UI 上的設定變動儲存到 background.js
+    // input: showToast (boolean) - 是否顯示儲存提示
+    // output: (Promise) 儲存操作
+    // 其他補充: (Plan.md) 移除了 models_preference 的 DOM 讀取邏輯
     async function saveSettings(showToast = false) {
         // 功能: 將使用者在 UI 上的設定變動儲存到 background.js
         if (isOptionsPage) {
             // [v2.0] Tier 1/2 的 settings 已由各自的處理函式 (handleTier1Add/Remove, handleTier2SavePrompt, etc.) 即時更新
-            // [保留] 更新模型偏好
-            const selectedList = document.getElementById('selected-models');
-            if (selectedList) { // [修復] 增加 null 檢查
-                 settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
-            }
+            
+            // 【關鍵修正點】: (Phase 2 Bug Fix) 移除此行錯誤的覆蓋程式碼
+            // const selectedList = document.getElementById('selected-models');
+            // if (selectedList) { 
+            //      settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
+            // }
+            // 說明: models_preference 陣列現在由 initializeSortableList (拖曳) 
+            // 和 initializeModelSelector (新增/移除) 兩個監聽器自行更新，
+            // saveSettings 只負責儲存。
         }
         
         await sendMessage({ action: 'updateSettings', data: settings });
@@ -208,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
-
     // --- [v2.0] 核心函式 (步驟 2.E) ---
     function updateUI() {
         // 功能: 根據 settings 更新所有 UI 元件
@@ -247,64 +255,110 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
-        // --- [保留] 模型偏好設定邏輯 ---
+        // 【關鍵修正點】: (Phase 2) 替換此函式
+        // 功能: [v2.2.0 重構] 綁定模型偏好設定 UI (單一列表 + 標籤) 的事件
+        // input: 無 (DOM 事件)
+        // output: (DOM 事件綁定)
+        // 其他補充: (Plan.md) 移除舊的雙列表邏輯，新增「添加」和「移除」事件
         function initializeModelSelector() {
             const selectedList = document.getElementById('selected-models');
-            const availableList = document.getElementById('available-models');
-            if (!selectedList || !availableList) return; // [修復] 增加 null 檢查
+            // 【關鍵修正點】: (Plan.md) 獲取新的標籤容器
+            const availablePillsContainer = document.getElementById('available-model-pills');
 
-            document.getElementById('add-model').addEventListener('click', () => {
-                moveSelectedItems(availableList, selectedList);
-            });
-            document.getElementById('remove-model').addEventListener('click', () => {
-                moveSelectedItems(selectedList, availableList);
+            if (!selectedList || !availablePillsContainer) return; // [修復] 增加 null 檢查
+
+            // 【關鍵修正點】: (Plan.md) 移除舊的 #add-model, #remove-model 監聽器
+            // (DOM 元素已在 options.html 中被刪除)
+
+            // 【關鍵修正點】: (Plan.md) 移除舊的 li.selected 點擊切換邏輯
+            // (舊的 list.addEventListener('click', (e) => ... li.classList.toggle('selected') ...); 已被移除)
+
+            // 【關鍵修正點】: (Plan.md) 保留拖曳排序功能
+            initializeSortableList('selected-models', () => {
+                // 拖曳結束後，從 DOM 讀取順序並儲存
+                settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
+                saveSettings(true); // 顯示提示
             });
 
-            [selectedList, availableList].forEach(list => {
-                list.addEventListener('click', (e) => {
-                    const li = e.target.closest('li');
-                    if (li) li.classList.toggle('selected');
-                });
+            // 【關鍵修正點】: (Plan.md) 新增: 監聽「已選用列表」中的「移除」按鈕
+            selectedList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-model-item')) {
+                    const modelId = e.target.dataset.id;
+                    // 從陣列中移除
+                    settings.models_preference = (settings.models_preference || []).filter(id => id !== modelId);
+                    saveSettings(true); // 儲存並顯示提示
+                    populateModelLists(); // 立即重繪兩個列表
+                }
             });
-            
-            initializeSortableList('selected-models', () => saveSettings(true));
-        }
 
-        function moveSelectedItems(fromList, toList) {
-            fromList.querySelectorAll('li.selected').forEach(item => {
-                item.classList.remove('selected');
-                toList.appendChild(item);
+            // 【關鍵修正點】: (Plan.md) 新增: 監聽「可添加模型」標籤的點擊
+            availablePillsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('add-model-pill')) {
+                    const modelId = e.target.dataset.id;
+                    if (!settings.models_preference) settings.models_preference = [];
+                    // 添加到陣列末尾
+                    settings.models_preference.push(modelId);
+                    saveSettings(true); // 儲存並顯示提示
+                    populateModelLists(); // 立即重繪兩個列表
+                }
             });
-            saveSettings(true);
-        }
+        } 
 
+        // 【關鍵修正點】: (Phase 2) 替換此函式
+        // 功能: [v2.2.0 重構] 渲染「已選用模型」列表和「可添加模型」標籤
+        // input: 無 (從 settings 讀取)
+        // output: (DOM 操作) 更新 #selected-models 和 #available-model-pills
+        // 其他補充: (Plan.md) 根據 settings.models_preference 動態分配模型到兩個容器
         function populateModelLists() {
             const selectedList = document.getElementById('selected-models');
-            const availableList = document.getElementById('available-models');
-            if (!selectedList || !availableList) return; // [修復] 增加 null 檢查
+            // 【關鍵修正點】: (Plan.md) 獲取新的標籤容器
+            const availablePillsContainer = document.getElementById('available-model-pills');
+            
+            if (!selectedList || !availablePillsContainer) return; // [修復] 增加 null 檢查
             
             selectedList.innerHTML = '';
-            availableList.innerHTML = '';
+            availablePillsContainer.innerHTML = '';
+            
             const preferred = settings.models_preference || [];
             const preferredSet = new Set(preferred);
 
+            // 【關鍵修正點】: 1. 渲染「已選用模型」列表
             preferred.forEach(modelId => {
                 if (ALL_MODELS[modelId]) {
+                    // 使用 createModelListItem 建立帶有「移除」按鈕的 li
                     selectedList.appendChild(createModelListItem(modelId));
                 }
             });
+
+            // 【關鍵修正點】: 2. 渲染「可添加模型」標籤
             Object.keys(ALL_MODELS).forEach(modelId => {
                 if (!preferredSet.has(modelId)) {
-                    availableList.appendChild(createModelListItem(modelId));
+                    // (Plan.md) 動態生成 "Available Pills"
+                    const pill = document.createElement('button');
+                    pill.className = 'add-model-pill';
+                    pill.dataset.id = modelId;
+                    pill.textContent = `+ ${ALL_MODELS[modelId].name}`;
+                    availablePillsContainer.appendChild(pill);
                 }
             });
         }
 
+        // 【關鍵修正點】: (Phase 2) 替換此函式
+        // 功能: [v2.2.0 重構] 建立一個用於「已選用模型」列表的 li 元素 (含移除按鈕)
+        // input: id (string) - 模型 ID (例如 'gemini-2.5-flash')
+        // output: li (HTMLElement) - 包含移除按鈕的列表項
         function createModelListItem(id) {
             const li = document.createElement('li');
             li.dataset.id = id;
             li.draggable = true;
-            li.innerHTML = `<span>${ALL_MODELS[id].name}</span><span class="model-tooltip" title="${ALL_MODELS[id].tip}">?</span>`;
+            // 【關鍵修正點】: (Plan.md) 新增 <div> 包裹內容，並添加「移除」按鈕
+            li.innerHTML = `
+                <div class="model-list-item-content">
+                    <span>${ALL_MODELS[id].name}</span>
+                    <span class="model-tooltip" title="${ALL_MODELS[id].tip}">?</span>
+                </div>
+                <button class="remove-model-item" data-id="${id}" title="移除">×</button>
+            `;
             return li;
         }
         initializeModelSelector();

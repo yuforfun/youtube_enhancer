@@ -152,32 +152,95 @@ textarea { resize: vertical; margin-top: 12px; }
 .sortable-list li.dragging { opacity: 0.5; background: #eef2ff; }
 
 /* Model Selector */
+/* 【關鍵修正點】: (Phase 2 Bug Fix) 替換此區塊 */
 .model-list {
-    list-style: none; margin: 0; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; min-height: 50px; overflow-y: auto; background-color: #fafafa;
+    list-style: none; margin: 0; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; 
+    /* 【關鍵修正點】: 移除了 min-height, overflow-y */
+    background-color: #fafafa;
 }
-#selected-models { height: 80px; }
-#available-models { height: 60px; }
+
+/* 【關鍵修正點】: (Phase 2) 替換此區塊 */
 .model-list li {
-    padding: 8px 10px; font-size: 13px; border-radius: 4px; margin-bottom: 4px; background-color: #ffffff; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; user-select: none; cursor: pointer;
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    /* 【關鍵修正點】: (Plan.md) 使用 flex 佈局來容納移除按鈕 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    /* 移除 .selected 狀態的 cursor: pointer */
 }
+
+/* 【關鍵修正點】: (Phase 2) 新增: 移除按鈕樣式 */
+.model-list li .remove-model-item {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 50%; /* 圓形按鈕 */
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    line-height: 18px; /* 對齊 '×' */
+}
+.model-list li .remove-model-item:hover {
+    background-color: #fef2f2;
+    color: var(--danger-color);
+    border-color: #fecaca;
+}
+
+/* 【關鍵修正點】: (Phase 2) 新增: 內容區域 (名稱 + ?) */
+.model-list li .model-list-item-content {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 名稱和 '?' 之間的間距 */
+}
+
 .model-list li:last-child { margin-bottom: 0; }
 .model-list.sortable-list li { cursor: grab; }
-.model-list li.selected {
-    background-color: #eef2ff; color: var(--accent-color); border-color: #c7d2fe; font-weight: 500;
-}
-.model-controls {
-    display: flex; justify-content: center; gap: 12px; margin: 12px 0;
-}
-.model-controls button {
-    width: auto; padding: 6px 16px; font-size: 13px; font-weight: 500; border: 1px solid #d1d5db; background-color: #ffffff; cursor: pointer;
-}
-.model-controls button:hover { background-color: #f3f4f6; border-color: #a1a1aa; }
+
+/* 【關鍵修正點】: (Phase 2) 移除 .selected 樣式，因為不再需要點擊選取 */
 
 .model-tooltip {
     color: #9ca3af; border: 1px solid #d1d5db; border-radius: 50%; width: 18px; height: 18px; text-align: center; line-height: 16px; font-size: 12px; font-weight: 600;
     cursor: help;
 }
+/* 【關鍵修正點】: (Phase 2 Bug Fix) 替換此區塊 */
+.model-pills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    /* 【關鍵修正點】: 移除了 min-height */
+    background-color: #fafafa;
+}
 
+/* 【關鍵修正點】: (Phase 2) 新增: 「+」標籤按鈕樣式 */
+.add-model-pill {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    color: var(--text-color);
+    padding: 6px 12px;
+    border-radius: 16px; /* 膠囊形狀 */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.add-model-pill:hover {
+    background-color: #eef2ff; /* 淺藍色 hover */
+    color: var(--accent-color);
+    border-color: #c7d2fe;
+}
 /* Language Reference List */
 .reference-details {
     margin-top: 16px;

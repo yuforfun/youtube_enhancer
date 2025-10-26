@@ -48,18 +48,19 @@
         </div>
         <div class="card">
             <h2 class="card-title">模型偏好設定 (可拖曳排序)</h2>
-            <p class="card-hint">點擊選取模型，使用箭頭按鈕在兩個列表間移動。僅「已選用模型」列表中的模型會被調用，您可以拖曳它們來調整嘗試順序。</p>
+            <p class="card-hint">
+                系統將依照您在「已選用模型」列表中的順序（由上至下）依序嘗試。
+                <br>
+                您可以從下方「可添加模型」中點擊 `+` 將其加入列表。
+            </p>
             
             <h3 class="card-subtitle">已選用模型 (會被調用)</h3>
-            <ul id="selected-models" class="model-list sortable-list"></ul>
+            <ul id="selected-models" class="model-list sortable-list">
+                </ul>
 
-            <div class="model-controls">
-                <button id="add-model" title="新增選取">&#9650; (加入選用)</button>
-                <button id="remove-model" title="移除選取">&#9660; (移出選用)</button>
-            </div>
-
-            <h3 class="card-subtitle">可用模型</h3>
-            <ul id="available-models" class="model-list"></ul>
+            <h3 class="card-subtitle">可添加模型</h3>
+            <div id="available-model-pills" class="model-pills-container">
+                </div>
         </div>
         <div class="card">
             <h2 class="card-title">進階外觀設定</h2>
