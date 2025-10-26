@@ -22,22 +22,24 @@
 
     <div class="card">
         <h2 class="card-title">即時設定</h2>
-        <!--
-        <div class="setting-row">
-             <label for="overrideLanguageSelect" title="手動指定本次翻譯要使用的來源語言，會覆蓋智慧匹配的結果。">自訂來源語言</label>
-            <select id="overrideLanguageSelect">
-                <option value="auto">自動 (推薦)</option>
-                </select>
-        </div>
-        -->
+        
         <div class="setting-row">
             <label>顯示模式</label>
-            <div class="checkbox-group">
-                <input type="checkbox" id="showOriginal"><label for="showOriginal">原文</label>
-                <input type="checkbox" id="showTranslated"><label for="showTranslated">翻譯</label>
+            <div class="toggle-group">
+                <label class="toggle-switch-label" for="showOriginal">　 原文</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showOriginal">
+                    <span class="toggle-slider"></span>
+                </label>
+                
+                <label class="toggle-switch-label" for="showTranslated">翻譯</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="showTranslated">
+                    <span class="toggle-slider"></span>
+                </label>
             </div>
         </div>
-         <div class="setting-row">
+        <div class="setting-row">
             <label for="fontSizeSlider">字體大小</label>
             <input type="range" id="fontSizeSlider" min="14" max="40" step="1">
             <span id="fontSizeValue" class="value-display">22px</span>
