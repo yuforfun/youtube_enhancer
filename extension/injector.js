@@ -6,7 +6,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 4.0.1
+ * Version: 4.0.2
  */
 (function() {
     'use strict';

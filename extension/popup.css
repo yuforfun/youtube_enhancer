@@ -5,7 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 4.0.1
+ * Version: 4.0.2
  *
  * Styles for both popup.html and options.html.
  */
@@ -79,6 +79,27 @@ h1 { font-size: 18px; font-weight: 600; margin: 0; }
     margin: 8px 0 12px 0; 
     line-height: 1.5; 
 }
+
+/* 【關鍵修正點】: v4.0.2 新增列表樣式，用於選項頁面的說明清單 */
+.hint-list {
+    list-style-type: disc; /* 保持原來的點/數字樣式 */
+    margin: 4px 0 12px 20px; /* 移除預設 padding，只保留左邊距 20px */
+    padding: 0;
+    
+    color: var(--text-light-color); /* 統一使用淺色 */
+    font-size: 12px; /* 統一字體大小 */
+    line-height: 1.6;
+}
+
+.hint-list li {
+    margin-bottom: 4px;
+    padding-left: 0;
+}
+
+.hint-list li b {
+    color: var(--text-color); /* 讓粗體字稍微突出 */
+}
+/* 【關鍵修正點】: 新增列表樣式結束 */
 
 .card-header-relative {
     position: relative;

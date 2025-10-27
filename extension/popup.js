@@ -5,7 +5,7 @@
  * @license MIT
  *
  * This program is free software distributed under the MIT License.
- * Version: 4.0.1
+ * Version: 4.0.2
  *
  * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="lang-name">${langName} (${item.langCode})</span>
                         <div class="accordion-controls">
                             <span class="toggle-icon" title="編輯 Prompt">▼</span>
-                            <span class="delete-item" title="刪除">×</span>
+                            <span class="delete-item" title="移除">×</span>
                         </div>
                     </div>
                     <div class="accordion-content">
