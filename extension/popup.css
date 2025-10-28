@@ -984,3 +984,25 @@ textarea { resize: vertical; margin-top: 12px; }
 #language-search-results li .lang-name {
     font-weight: 500;
 }
+/* --- [v4.1.3] HQS 開關視覺對齊 --- */
+#hqs-toggle-group {
+  /* 確保內部元素使用 flex 佈局 */
+  display: flex;
+  /* 將元素推向容器的起始位置 (左側) */
+  justify-content: flex-start;
+  /* 確保其寬度與上方的 toggle-group 相似，以便內部對齊 */
+  /* 這個寬度可能需要根據實際情況微調 */
+  width: 145px; /* 估計值：約等於上方兩個標籤+兩個開關的總寬度 */
+}
+
+#hqs-toggle-group > .toggle-switch-label:first-child {
+  /* 這是佔位符 <label> */
+  /* 給予一個固定寬度，將後面的 HQS 開關推到正確的位置 */
+  /* 這個寬度需要仔細調整，目標是讓 HQS 開關與上方的 "原文" 開關左側對齊 */
+  /* 估計值：約等於 "原文" 標籤寬度 + toggle 開關寬度 + 一些間距 */
+  width: 91px;   /* <--- 這個值是估計值，您可能需要微調 (e.g., 85px, 90px) */
+  flex-shrink: 0; /* 防止寬度被壓縮 */
+  /* 移除 placeholder 的右邊距，因為 toggle-group 內部已有 gap */
+  /* margin-right: 0; */ /* 通常 .toggle-group 有 gap，可能不需要 */
+}
+/* --- [v4.1.3] HQS 開關視覺對齊 END --- */

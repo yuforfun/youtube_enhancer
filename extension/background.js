@@ -15,7 +15,7 @@ const DEFAULT_CORE_PROMPT_TEMPLATE = `你是一位頂尖的繁體中文譯者與
 你收到的{source_lang}原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。
 
 你的核心任務:
-發揮你的推理能力，理解原文的真實意圖，並直接翻譯成最自然、口語化的繁體中文。
+發揮你的推理能力參考上下文的內容，理解原文的真實意圖，直接翻譯當前句子為完整、自然、口語化的繁體中文，不需要辨識是誰講的話。
 
 範例:
 - 輸入: ["こんにちは世界", "お元気ですか？"]
@@ -87,13 +87,11 @@ const sessionData = {
 
 
 
-const defaultSettings = {
-// 區塊: defaultSettings
 // 功能: 定義擴充功能的預設設定值。
 // input: 無 (靜態物件)
 // output: 在使用者首次安裝或清除儲存資料時，作為基礎設定寫入 chrome.storage。
-// 其他補充: v2.1 修正 - 必須使用 v2.0 結構 (native_langs, auto_translate_priority_list)
-//           以防止 toggleGlobalState 汙染 v2.0 設定並導致遷移邏輯重複觸發。
+// 其他補充: v4.1.3 - 新增 hqsEnabledForJa: false
+const defaultSettings = {
     isEnabled: true,
     fontSize: 22,
     fontFamily: 'Microsoft JhengHei, sans-serif',
@@ -104,27 +102,26 @@ const defaultSettings = {
     ],
     showOriginal: true,
     showTranslated: true,
-    
-    // 【關鍵修正點】: v2.0 結構 (取代 preferred_langs / ignored_langs)
-    native_langs: ['zh-Hant'], // 原 ignored_langs 的預設值
-    
-    auto_translate_priority_list: [ // v2.0 結構
-        { 
-            langCode: 'ja', 
-            name: '日文', 
-            customPrompt: DEFAULT_CUSTOM_PROMPTS.ja // 從本檔案的常數載入
+    native_langs: ['zh-Hant'],
+    auto_translate_priority_list: [
+        {
+            langCode: 'ja',
+            name: '日文',
+            customPrompt: DEFAULT_CUSTOM_PROMPTS.ja
         },
-        { 
-            langCode: 'ko', 
-            name: '韓文', 
-            customPrompt: DEFAULT_CUSTOM_PROMPTS.ko 
+        {
+            langCode: 'ko',
+            name: '韓文',
+            customPrompt: DEFAULT_CUSTOM_PROMPTS.ko
         },
-        { 
-            langCode: 'en', 
-            name: '英文', 
+        {
+            langCode: 'en',
+            name: '英文',
             customPrompt: DEFAULT_CUSTOM_PROMPTS.en
         }
-    ]
+    ],
+    // 【關鍵修正點】: v4.1.3 - 新增 HQS 引擎啟用開關 (預設關閉)
+    hqsEnabledForJa: false
 };
 
 

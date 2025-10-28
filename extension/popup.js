@@ -217,12 +217,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
-    // --- [v2.0] 核心函式 (步驟 2.E) ---
+    // 功能: [v4.1.3] 根據 settings 更新所有 UI 元件
+    // input: 無 (從全域 settings 變數讀取)
+    // output: (DOM 操作) 更新 popup.html 或 options.html 的 UI 狀態
+    // 其他補充: v4.1.3 - 新增更新 #hqsToggleJa 的邏輯
     function updateUI() {
-        // 功能: 根據 settings 更新所有 UI 元件
         if (isOptionsPage) {
-            // 【關鍵修正點】: (步驟 2.E) 移除舊的 updateListUI 和 ignored-lang-input 參照
-            populateModelLists(); 
+            // Options Page 邏輯 (保持不變)
+            populateModelLists();
             const fontFamilySelect = document.getElementById('fontFamilySelect');
             if (fontFamilySelect) fontFamilySelect.value = settings.fontFamily;
         } else {
@@ -234,9 +236,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const showOriginal = document.getElementById('showOriginal');
             if (showOriginal) showOriginal.checked = settings.showOriginal ?? true;
-            
+
             const showTranslated = document.getElementById('showTranslated');
             if (showTranslated) showTranslated.checked = settings.showTranslated ?? true;
+
+            // 【關鍵修正點】: v4.1.3 - 更新 HQS 開關狀態
+            const hqsToggle = document.getElementById('hqsToggleJa');
+            if (hqsToggle) {
+                // 從 settings 讀取 hqsEnabledForJa 的值 (若不存在則預設 false)
+                hqsToggle.checked = settings.hqsEnabledForJa ?? false;
+            }
         }
     }
 
@@ -1047,7 +1056,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         loadAvailableLangs();
-
+        // 【關鍵修正點】: v4.1.3 - 新增 HQS 開關事件監聽 START
+        const hqsToggle = document.getElementById('hqsToggleJa');
+        if (hqsToggle) {
+            hqsToggle.addEventListener('change', (e) => {
+                // 將開關的 checked 狀態存入全域 settings 物件
+                settings.hqsEnabledForJa = e.target.checked;
+                // 呼叫通用的儲存函式 (會自動通知 content.js)
+                saveSettings();
+            });
+        }
+        // 【關鍵修正點】: v4.1.3 - 新增 HQS 開關事件監聽 END
         document.getElementById('openOptionsButton').addEventListener('click', () => {
             chrome.runtime.openOptionsPage();
         });

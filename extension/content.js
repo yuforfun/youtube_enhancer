@@ -13,6 +13,25 @@
 const DEBUG_MODE = true;
 const scriptStartTime = performance.now();
 
+// 【關鍵修正點】: v4.1.3 - 植入 HQS (高品質分句) 引擎常數
+const HQS_PAUSE_THRESHOLD_MS = 500;
+const HQS_LINGUISTIC_PAUSE_MS = 150;
+// 來自 python: LINGUISTIC_MARKERS
+const HQS_LINGUISTIC_MARKERS = [
+    'です', 'でした', 'ます', 'ました', 'ません','ますか','ない',
+    'だ','かな﻿','かしら',
+    'ください',
+    '。', '？', '！'
+];
+// 來自 python: CONNECTIVE_PARTICLES_TO_MERGE
+// 使用 Set 物件以優化查找效能
+const HQS_CONNECTIVE_PARTICLES_TO_MERGE = new Set([
+    'に', 'を', 'は', 'で', 'て', 'と', 'も', 'の' ,'本当','やっぱ','ども','お'
+]);
+// 【關鍵修正點】: v4.1.3 - 新增 HQS 多 Seg 事件比例閾值
+const HQS_MULTI_SEG_THRESHOLD = 0.35; // 70% (可調整 0.0 - 1.0)
+// --- HQS 引擎常數結束 ---
+
 class YouTubeSubtitleEnhancer {
     constructor() {
         // 功能: 初始化 class 實例。
@@ -132,11 +151,13 @@ class YouTubeSubtitleEnhancer {
             
             const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
             const cachedData = await this.getCache(cacheKey);
-            
+
             if (cachedData && cachedData.translatedTrack) {
                 this._log('[決策] 發現有效暫存，直接載入。');
                 this.state.translatedTrack = cachedData.translatedTrack;
-                this.activate(cachedData.rawPayload); // 觸發翻譯
+                // 【關鍵修正點】: v4.1.3 - 從快取讀取 vssId 並傳遞
+                const vssIdFromCache = cachedData.vssId || ''; // 添加 fallback
+                this.activate(cachedData.rawPayload, vssIdFromCache); // 觸發翻譯
             } else {
                 this._log(`[決策] 無暫存，命令特工啟用軌道 [${tier2Match.languageCode}]...`);
                 this.state.targetVssId = tier2Match.vssId;
@@ -196,8 +217,11 @@ class YouTubeSubtitleEnhancer {
 
             // 【關鍵修正點】開始: v2.1.2 - 完整重構 TIMEDTEXT_DATA 處理邏輯
             case 'TIMEDTEXT_DATA':
+                // 【關鍵修正點】: v4.1.3 - 從 payload 解構出 vssId (之前已存在，此處僅為註記)
                 const { payload: timedTextPayload, lang, vssId } = payload;
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
+                // 【關鍵修正點】: v4.1.3 - 儲存當前 vssId 到 state，供快取使用
+                this.state.currentVssId = vssId || ''; // 確保是字串
 
                 // 步驟 0: 全域開關防護機制
                 if (!this.settings.isEnabled && !this.state.isOverride) {
@@ -256,46 +280,46 @@ class YouTubeSubtitleEnhancer {
                 }
 
                 // 步驟 3: 執行激活流程 (適用於「首次激活」或「語言切換後的再激活」)
-                if (!this.state.hasActivated) { 
+            if (!this.state.hasActivated) {
                     this._log(`[決策 v2.1.2/手動] 收到語言 [${lang}]，執行三層決策樹...`);
 
                     const playerResponse = this.state.playerResponse;
                     const availableTracks = this.getAvailableLanguagesFromData(playerResponse, true);
                     const { native_langs = [], auto_translate_priority_list = [] } = this.settings;
 
-                    this.state.sourceLang = lang;
-                    this.state.hasActivated = true;
-                    this._log(`狀態更新: hasActivated -> true`);
+                this.state.sourceLang = lang;
+                this.state.hasActivated = true;
+                this._log(`狀態更新: hasActivated -> true`);
 
-                    // 1. 執行 Tier 1 檢查
-                    const isTier1Match = native_langs.some(settingLang => this.checkLangEquivalency(lang, settingLang));
+                // 1. 執行 Tier 1 檢查
+                const isTier1Match = native_langs.some(settingLang => this.checkLangEquivalency(lang, settingLang));
 
-                    if (isTier1Match) {
-                        this._log(`[決策 v2.1.2/手動] -> Tier 1 命中 (${lang})。`);
-                        this.state.isNativeView = true;
-                        this.activateNativeView(timedTextPayload);
-                        return; // Tier 1 流程結束
-                    }
+                if (isTier1Match) {
+                    this._log(`[決策 v2.1.2/手動] -> Tier 1 命中 (${lang})。`);
+                    this.state.isNativeView = true;
+                    // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                    this.activateNativeView(timedTextPayload, vssId);
+                    return; // Tier 1 流程結束
+                }
 
-                    // 2. 執行 Tier 2 檢查
-                    const tier2Config = auto_translate_priority_list.find(item => this.checkLangEquivalency(lang, item.langCode));
-                    if (tier2Config) {
-                        this._log(`[決策 v2.1.2/手動] -> Tier 2 命中 (${lang})。`);
-                        this.state.isNativeView = false; 
+                // 2. 執行 Tier 2 檢查
+                const tier2Config = auto_translate_priority_list.find(item => this.checkLangEquivalency(lang, item.langCode));
+                if (tier2Config) {
+                    this._log(`[決策 v2.1.2/手動] -> Tier 2 命中 (${lang})。`);
+                    this.state.isNativeView = false; 
                         document.getElementById('enhancer-ondemand-button')?.remove(); 
                         this.state.onDemandButton = null;
-                        
-                        this.activate(timedTextPayload); // 觸發完整翻譯
-                        return; // Tier 2 流程結束
-                    }
 
-                    // 3. 執行 Tier 3 (Fallback)
-                    this._log(`[決策 v2.1.2/手動] -> Tier 3 觸發 (${lang})。`);
-                    
-                    // 【關鍵修正點】 v2.1.2: 使用 checkLangEquivalency 查找軌道物件
-                    const trackToEnable = availableTracks.find(t => this.checkLangEquivalency(t.languageCode, lang));
-                    
-                    if (trackToEnable) {
+                    // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                    this.activate(timedTextPayload, vssId); // 觸發完整翻譯
+                    return; // Tier 2 流程結束
+                }
+
+                // 3. 執行 Tier 3 (Fallback)
+                this._log(`[決策 v2.1.2/手動] -> Tier 3 觸發 (${lang})。`);
+                const trackToEnable = availableTracks.find(t => this.checkLangEquivalency(t.languageCode, lang));
+
+                if (trackToEnable) {
                          // 1. 建立按鈕
                         const playerContainer = document.getElementById('movie_player');
                         if (playerContainer && !document.getElementById('enhancer-ondemand-button')) {
@@ -309,21 +333,21 @@ class YouTubeSubtitleEnhancer {
                             this.state.onDemandButton = btn; // 儲存參照
                         }
                         
-                        // 2. 顯示原文
-                        this.state.isNativeView = true;
-                        this.activateNativeView(timedTextPayload);
-
-                    } else {
+                     // 2. 顯示原文
+                     this.state.isNativeView = true;
+                     // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                     this.activateNativeView(timedTextPayload, vssId);
+                } else {
                         // 【關鍵修正點】 v2.1.2: 修正兜底邏輯
                         // 兜底：找不到軌道物件 (例如 playerResponse 中只有 zh-Hant，但 timedtext 卻回傳 en)
                         // 這種情況極不可能發生，但如果發生了，我們也不應該觸發翻譯。
                          this._log(`[決策 v2.1.2/手動] 找不到 ${lang} 的軌道物件，但收到了字幕。執行 Tier 3 (僅原文)。`);
-                         this.state.isNativeView = true;
-                         this.activateNativeView(timedTextPayload);
-                    }
+                     this.state.isNativeView = true;
+                     // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                     this.activateNativeView(timedTextPayload, vssId);
                 }
-                break;
-            // 【關鍵修正點】結束
+            }
+            break;
         }
     }
 
@@ -612,7 +636,9 @@ class YouTubeSubtitleEnhancer {
         if (cachedData && cachedData.translatedTrack) {
             this._log('[Tier 3->2] 發現快取，直接載入。');
             this.state.translatedTrack = cachedData.translatedTrack;
-            this.activate(cachedData.rawPayload); // 觸發完整翻譯
+            // 【關鍵修正點】: v4.1.3 - 從快取讀取 vssId 並傳遞
+            const vssIdFromCache = cachedData.vssId || ''; // 添加 fallback
+            this.activate(cachedData.rawPayload, vssIdFromCache); // 觸發完整翻譯
         } else {
             this._log(`[Tier 3->2] 無快取，命令特工重新獲取軌道...`);
             // 注意：此時軌道應已在原文模式下載入，
@@ -625,9 +651,12 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 【關鍵修正點】 v2.0 - 新增 Tier 1/3 的啟動函式 (activate 簡化版)
-    activateNativeView(initialPayload) {
-        // 功能: 啟動原文顯示流程 (不翻譯)。
+    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
+    // 功能: (v4.1.3) 啟動原文顯示流程 (不翻譯)。
+    // input: initialPayload (object), vssId (string)
+    // output: (DOM 操作)
+    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseRawSubtitles
+    activateNativeView(initialPayload, vssId = '') {
         this.removeGuidancePrompt();
         this.state.rawPayload = initialPayload;
         this.state.videoElement = document.querySelector('video');
@@ -635,7 +664,7 @@ class YouTubeSubtitleEnhancer {
         if (!this.state.videoElement || !playerContainer) {
             this.handleCriticalFailure('activateNativeView', "找不到播放器元件，啟動失敗。");
             return;
-        }
+        } 
         
         // (不建立狀態圓環 Orb)
         this.createSubtitleContainer(playerContainer);
@@ -644,7 +673,8 @@ class YouTubeSubtitleEnhancer {
         
         // (不呼叫 parseAndTranslate)
         if (!this.state.translatedTrack) {
-            this.state.translatedTrack = this.parseRawSubtitles(initialPayload);
+            // v4.1.3: 傳入 vssId
+            this.state.translatedTrack = this.parseRawSubtitles(initialPayload, vssId);
         }
         if (!this.state.translatedTrack.length) {
             this._log("解析後無有效字幕句段。");
@@ -655,8 +685,12 @@ class YouTubeSubtitleEnhancer {
         this._log(`[Tier 1/3] 原文模式 (activateNativeView) 啟動完畢。`);
     }
 
-    async activate(initialPayload) {
-        // 功能: 翻譯流程的正式啟動函式。
+    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
+    // 功能: (v4.1.3) 翻譯流程的正式啟動函式。
+    // input: initialPayload (object), vssId (string)
+    // output: (DOM 操作, API 呼叫)
+    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseAndTranslate
+    async activate(initialPayload, vssId = '') {
         this.removeGuidancePrompt();
         this.state.rawPayload = initialPayload;
         this.state.videoElement = document.querySelector('video');
@@ -670,34 +704,387 @@ class YouTubeSubtitleEnhancer {
         this.applySettingsToUI();
         this.toggleNativeSubtitles(true);
         this.setOrbState('translating');
-        await this.parseAndTranslate(initialPayload);
+        // 【關鍵修正點】: v4.1.3 - 將 vssId 傳遞給 parseAndTranslate
+        await this.parseAndTranslate(initialPayload, vssId);
     }
 
-    parseRawSubtitles(payload) {
-        // 功能: 將原始 timedtext JSON 格式化為內部使用的標準化字幕物件陣列。
+    // 功能: (v4.1.3) 將原始 timedtext JSON 格式化為內部使用的標準化字幕物件陣列。
+    //      此函式為 HQS (高品質分句) 引擎的整合點。
+    // input: payload (object) - 來自 injector.js 的 timedtext 原始資料。
+    //        vssId (string, optional) - 字幕軌道的 vssId (保留參數)。
+    // output: (Array) - 格式化為 [{ start, end, text, translatedText: null }, ...]
+    // 其他補充: v4.1.3 - 增加比例判斷。增加詳細日誌以驗證比例計算。
+    parseRawSubtitles(payload, vssId = '') {
+        const isJapanese = this.checkLangEquivalency(this.state.sourceLang || '', 'ja');
+        const isHqsEnabledByUser = this.settings.hqsEnabledForJa === true;
+
+        if (isJapanese && isHqsEnabledByUser) {
+            this._log('[HQS Engine] 日文且啟用 HQS，開始預分析多 Seg 比例...');
+            let totalEventsIterated = 0;
+            let newlineEventsSkipped = 0;
+            let emptyEventsSkipped = 0;
+            let totalContentEventCount = 0;
+            let multiSegCount = 0;
+
+            // --- 預分析迴圈 ---
+            if (payload && Array.isArray(payload.events)) {
+                totalEventsIterated = payload.events.length;
+                for (const event of payload.events) {
+                    // 跳過非內容事件
+                    if (!event || !event.segs || event.segs.length === 0) {
+                        emptyEventsSkipped++;
+                        continue;
+                    }
+                    const isNewlineEvent = event.aAppend === 1 &&
+                                        event.segs.length === 1 &&
+                                        event.segs[0].utf8 === "\\n";
+                    if (isNewlineEvent) {
+                        newlineEventsSkipped++;
+                        continue;
+                    }
+
+                    // 到這裡的是內容事件
+                    totalContentEventCount++;
+                    if (event.segs.length > 1) {
+                        multiSegCount++;
+                        // 【關鍵修正點】: v4.1.3 - 打印出被錯誤計為 MultiSeg 的事件
+                        this._log(`[HQS Engine DEBUG] 偵測到 MultiSeg 事件 (segs.length = ${event.segs.length})，計入 multiSegCount:`, JSON.parse(JSON.stringify(event))); // 使用深拷貝打印，防止後續修改影響
+                    }
+                }
+            }
+            // --- 預分析結束 ---
+
+            const ratio = totalContentEventCount > 0 ? (multiSegCount / totalContentEventCount) : 0;
+
+            // 打印詳細計算結果 (保持不變)
+            this._log(`[HQS Engine] 預分析統計:`);
+            this._log(`  - 總事件數 (payload.events): ${totalEventsIterated}`);
+            this._log(`  - 跳過空/無 Segs 事件: ${emptyEventsSkipped}`);
+            this._log(`  - 跳過換行 (\\n) 事件: ${newlineEventsSkipped}`);
+            this._log(`  - ===> 內容事件總數 (分母): ${totalContentEventCount}`);
+            this._log(`  - ===> 多 Seg (>1) 事件數 (分子): ${multiSegCount}`);
+            this._log(`  - ===> 計算比例: ${ratio.toFixed(3)}`);
+            this._log(`  - 閾值 (HQS_MULTI_SEG_THRESHOLD): ${HQS_MULTI_SEG_THRESHOLD}`);
+
+            // 根據比例決定是否執行 HQS (保持不變)
+            if (ratio >= HQS_MULTI_SEG_THRESHOLD) {
+                this._log(`[HQS Engine] 決策: 比例達到閾值 (${(HQS_MULTI_SEG_THRESHOLD * 100).toFixed(0)}%)，執行 HQS 三階段管線。`);
+                try {
+                    // ... (執行 HQS 管線) ...
+                } catch (e) {
+                    // ... (錯誤處理) ...
+                }
+            } else {
+                this._log(`[HQS Engine] 決策: 比例未達閾值，回退至舊版解析器。`);
+                return this._fallbackParseRawSubtitles(payload);
+            }
+        } else {
+            // --- 非 HQS 路徑，執行 Fallback ---
+            this._log(`[Parser] 未啟用 HQS 或語言非日文 (lang: ${this.state.sourceLang || 'N/A'})，使用舊版解析器。`);
+            return this._fallbackParseRawSubtitles(payload);
+        }
+    }
+    
+
+    // 功能: (v4.1.3 Fallback) 舊版 (v4.0.2) 的字幕解析邏輯。
+    // input: payload (object) - timedtext 原始資料。
+    // output: (Array) - 格式化為 [{ start, end, text, translatedText: null }, ...]
+    // 其他補充: 作為 HQS 不觸發時的回退。
+    _fallbackParseRawSubtitles(payload) {
+        // --- 這是 v4.0.2 parseRawSubtitles 的原始碼 ---
         if (!payload?.events) return [];
         const subtitles = payload.events
             .map(event => ({
                 start: event.tStartMs,
+                // 舊邏輯：結束時間 = 開始時間 + 持續時間 (可能與下一句重疊或有間隙)
                 end: event.tStartMs + (event.dDurationMs || 5000),
                 text: event.segs?.map(seg => seg.utf8).join('') || '',
             }))
-            .filter(sub => sub.text.trim());
+            .filter(sub => sub.text.trim()); // 過濾空字幕
+
+        // 舊邏輯：嘗試修正結束時間，使其等於下一句的開始時間
         for (let i = 0; i < subtitles.length - 1; i++) {
+            // 檢查下一句是否有有效的 start time
+            if (subtitles[i+1] && typeof subtitles[i+1].start === 'number') {
             subtitles[i].end = subtitles[i + 1].start;
+            }
+            // 【修正】確保 end 不會跑到 start 之前 (處理 YT 資料異常)
+            if (subtitles[i].end < subtitles[i].start) {
+                subtitles[i].end = subtitles[i].start + 1; // 至少給 1ms
+            }
         }
+        // 【修正】處理最後一句可能的異常 end time
+        if (subtitles.length > 0) {
+            const lastSub = subtitles[subtitles.length - 1];
+            if (lastSub.end < lastSub.start) {
+                lastSub.end = lastSub.start + (payload.events.find(e => e.tStartMs === lastSub.start)?.dDurationMs || 1000); // 嘗試用 dDurationMs 或預設 1s
+            }
+        }
+
+        // 格式化輸出
         return subtitles.map(sub => ({ ...sub, translatedText: null }));
+        // --- v4.0.2 原始碼結束 ---
     }
 
-    async parseAndTranslate(payload) {
-        // 功能: (v3.1.1 補丁) 解析字幕並啟動分批翻譯的總流程。
-        // input: payload (timedtext 物件)
-        // output: 無 (啟動 processNextBatch 遞迴)
-        // 其他補充: 【關鍵修正點】 移除了函式結尾的 this.state.isProcessing = false;
-        if (this.state.isProcessing) return;
-        this.state.isProcessing = true;
+    // 功能: (v4.1.3 HQS Phase 1) 清理 YT 原始事件，並建立包含絕對時間的 Segments。
+    // input: rawPayload (object) - 來自 injector.js 的 timedtext 原始資料。
+    // output: (Array) - 清理後的區塊 [{ block_start_ms, block_end_ms, segments: [{text, start_ms}, ...] }, ...]
+    // 其他補充: 對應 python segment_test.py -> clean_subtitle_events
+    //           v4.1.3 - 增加對漏網 newline 事件缺少 dDurationMs 的容錯
+    _phase1_cleanAndStructureEvents(rawPayload) {
+        // 1. 過濾 `\n` 事件
+        const content_events = [];
+        if (!rawPayload || !Array.isArray(rawPayload.events)) {
+            this._log('HQS P1: 警告: 找不到 .events 陣列或格式錯誤。');
+            return [];
+        }
+
+        for (const event of rawPayload.events) {
+            if (!event || !event.segs || event.segs.length === 0) continue;
+
+            // v4.1.3: 修正 newline 判斷，確保 utf8 存在
+            const is_newline_event = event.aAppend === 1 &&
+                                    event.segs.length === 1 &&
+                                    event.segs[0].utf8 === "\\n";
+
+            if (!is_newline_event) {
+                content_events.push(event);
+            }
+            // else: 如果是 newline 事件，會在此被過濾掉
+        }
+
+        // 2. 遍歷內容事件，計算實際結束時間，並建立絕對時間 segments
+        const cleaned_blocks = [];
+        const total_events = content_events.length;
+        if (total_events === 0) return [];
+
+        for (let i = 0; i < total_events; i++) {
+            const current_event = content_events[i];
+
+            // --- 【關鍵修正點】: v4.1.3 - 加固時間戳檢查 (Newline 容錯) START ---
+            if (typeof current_event.tStartMs !== 'number') {
+                // tStartMs 缺失是嚴重錯誤，必須跳過
+                this._log(`HQS P1: 警告: 跳過格式錯誤 event (缺少 tStartMs)。`);
+                continue;
+            } else if (typeof current_event.dDurationMs !== 'number') {
+                // dDurationMs 缺失，但檢查是否為漏網的 newline 事件
+                // (理論上 newline 應該在上面被過濾了，這是最後防線)
+                const isMissedNewline = current_event.aAppend === 1
+                                    && current_event.segs?.length === 1
+                                    && current_event.segs[0].utf8 === "\\n";
+                if (!isMissedNewline) {
+                    // 如果不是 newline 事件，才報警告並跳過
+                    const eventContentPreview = current_event.segs?.[0]?.utf8?.substring(0, 20) || 'N/A';
+                    this._log(`HQS P1: 警告: 跳過格式錯誤 event (缺少 dDurationMs 且非 newline)。內容預覽: "${eventContentPreview}"`, current_event);
+                    continue;
+                }
+                // else: 如果是漏網的 newline 事件，即使缺少 dDurationMs 也容忍，繼續處理
+                //       因為它後續不會產生有效文字 segment。
+            }
+            // --- 【關鍵修正點】: v4.1.3 - 加固時間戳檢查 (Newline 容錯) END ---
+
+
+            const start_ms = current_event.tStartMs;
+            // 使用 dDurationMs 計算 planned_end_ms (如果 dDurationMs 存在)
+            // 對於漏網的 newline (dDurationMs 可能不存在)，給一個預設值 (例如 100ms)，雖然不影響結果
+            const planned_end_ms = start_ms + (current_event.dDurationMs || 100);
+
+            // 計算 actual_end_ms (取 planned_end_ms 和 next_event.tStartMs 的最小值)
+            let actual_end_ms = planned_end_ms;
+            if (i + 1 < total_events) {
+                const next_event = content_events[i+1];
+                if (typeof next_event.tStartMs === 'number') {
+                    actual_end_ms = Math.min(planned_end_ms, next_event.tStartMs);
+                }
+            }
+
+            // 3. 建立包含絕對時間的 segments
+            let full_text = "";
+            const segments_with_absolute_time = [];
+            // 確保 segs 存在才遍歷
+            if (Array.isArray(current_event.segs)) {
+                for (const seg of current_event.segs) {
+                    // 確保 seg 和 utf8 存在
+                    const text = (seg && seg.utf8 || '').replace('\n', '').trim();
+                    if (text) {
+                        full_text += text;
+                        const offset_ms = seg.tOffsetMs || 0;
+                        const seg_start_ms = start_ms + offset_ms;
+
+                        // 確保 seg_start_ms 不超過 actual_end_ms
+                        if (seg_start_ms < actual_end_ms) {
+                            segments_with_absolute_time.push({
+                                text: text,
+                                start_ms: seg_start_ms
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 4. 僅在 full_text 非空時才加入
+            if (full_text) {
+                cleaned_blocks.push({
+                    block_start_ms: start_ms,
+                    block_end_ms: actual_end_ms,
+                    segments: segments_with_absolute_time
+                });
+            }
+            // else: 如果是漏網的 newline 事件，full_text 會是空，自然被過濾
+        }
+
+        return cleaned_blocks;
+    }
+
+    // 功能: (v4.1.3 HQS Phase 2) 依據時間間隔 (Gaps) 和語言標記 (Linguistics) 進行分句。
+    // input: cleanedBlocks (Array) - 來自 Phase 1 的輸出。
+    // output: (Array) - 中間句子列表 [{ text, start_ms, end_ms, reason }, ...]
+    // 其他補充: 對應 python segment_test.py -> segment_blocks_by_internal_gaps
+    _phase2_segmentByGapsAndLinguistics(cleanedBlocks) {
+        const intermediateSentences = [];
+        
+        // 從 'this' (class 實例) 獲取常數
+        const pause_threshold_ms = HQS_PAUSE_THRESHOLD_MS;
+        const linguistic_markers = HQS_LINGUISTIC_MARKERS;
+        const linguistic_pause_ms = HQS_LINGUISTIC_PAUSE_MS;
+
+        for (const event of cleanedBlocks) {
+            const segments = event.segments;
+            if (!segments || segments.length === 0) continue;
+            
+            let current_sentence_segs_text = [];
+            let current_sentence_start_ms = segments[0].start_ms;
+
+            for (let i = 0; i < segments.length; i++) {
+                const current_seg = segments[i];
+                const current_seg_text = current_seg.text;
+                current_sentence_segs_text.push(current_seg_text);
+
+                let split_reason = null;
+                const is_last_segment_in_block = (i === segments.length - 1);
+
+                if (!is_last_segment_in_block) {
+                    const next_seg = segments[i+1];
+                    const pause_duration = next_seg.start_ms - current_seg.start_ms;
+                    
+                    // 檢查語言標記是否命中
+                    const marker_found = linguistic_markers.some(marker => current_seg_text.includes(marker));
+
+                    // 決策 1: 時間間隔 > 500ms
+                    if (pause_duration > pause_threshold_ms) {
+                        if (current_sentence_segs_text.length > 1) { // 避免單一 seg 被切分
+                            split_reason = `Time Gap (${pause_duration}ms)`;
+                        }
+                    // 決策 2: 語言標記 + 暫停 > 150ms
+                    } else if (marker_found && pause_duration > linguistic_pause_ms) {
+                        if (current_sentence_segs_text.length > 1) { // 避免單一 seg 被切分
+                            split_reason = `Linguistic + Pause (${pause_duration}ms)`;
+                        }
+                    }
+                
+                // 決策 3: 區塊結尾
+                } else if (is_last_segment_in_block) {
+                    split_reason = "End of Block";
+                }
+
+                // 執行切分
+                if (split_reason) {
+                    const sentence_end_ms = is_last_segment_in_block ? event.block_end_ms : segments[i+1].start_ms;
+                    const final_text = current_sentence_segs_text.join("");
+                    
+                    if (final_text) {
+                        intermediateSentences.push({
+                            text: final_text,
+                            start_ms: current_sentence_start_ms,
+                            end_ms: sentence_end_ms,
+                            reason: split_reason
+                        });
+                    }
+                    
+                    current_sentence_segs_text = [];
+                    if (!is_last_segment_in_block) {
+                        current_sentence_start_ms = segments[i+1].start_ms;
+                    }
+                }
+            }
+        }
+        
+        return intermediateSentences;
+    }
+
+    // 功能: (v4.1.3 HQS Phase 3) 後處理。使用迭代方法合併 'End of Block' 或 '助詞結尾' 的句子。
+    // input: intermediateSentences (Array) - 來自 Phase 2 的輸出。
+    // output: (Array) - 最終句子列表 [{ text, start_ms, end_ms, reason }, ...]
+    // 其他補充: 對應 python segment_test.py -> post_process_merges
+    _phase3_mergeSentences(intermediateSentences) {
+        if (!intermediateSentences || intermediateSentences.length === 0) {
+            return [];
+        }
+
+        const final_merged = [];
+        const connective_markers = HQS_CONNECTIVE_PARTICLES_TO_MERGE; // 從 Set 獲取
+
+        for (const current of intermediateSentences) {
+            const current_text_cleaned = current.text.trim();
+            
+            // 跳過空的句子
+            if (!current_text_cleaned) continue;
+
+            // 如果 final_merged 是空的，直接加入
+            if (final_merged.length === 0) {
+                final_merged.push(current);
+                continue;
+            }
+
+            // 取出 final_merged 中的最後一句 (即 previous)
+            const previous = final_merged[final_merged.length - 1];
+            const previous_text_cleaned = previous.text.trim();
+
+            // --- 判斷 previous 是否需要與 current 合併 ---
+            let should_merge = false;
+            
+            // 條件 1: 前一句是 'End of Block'
+            const is_prev_end_of_block = previous.reason === 'End of Block';
+            
+            // 條件 2: 前一句以「連接助詞」結尾
+            let does_prev_end_with_particle = false;
+            if (previous_text_cleaned.length > 0) {
+                // 檢查最後一個字元是否在 Set 中
+                does_prev_end_with_particle = connective_markers.has(previous_text_cleaned.slice(-1));
+            }
+
+            if (is_prev_end_of_block || does_prev_end_with_particle) {
+                should_merge = true;
+            }
+            
+            // --- 執行合併或新增 ---
+            if (should_merge) {
+                // 合併：修改 final_merged 的最後一個元素 (in-place)
+                previous.text = previous_text_cleaned + current_text_cleaned; // 合併文字
+                previous.end_ms = current.end_ms; // 更新結束時間
+                previous.reason = current.reason; // 繼承當前句 (current) 的 reason
+            } else {
+                // 新增：將 current 作為新句子加入
+                final_merged.push(current);
+            }
+        }
+        
+        // 最後清理一次所有合併後的文本 (雖然合併時已 trim, 這裡再確保一次)
+        return final_merged
+            .filter(s => s.text.trim()) // 再次過濾空字串
+            .map(s => ({ ...s, text: s.text.trim() }));
+    }
+
+    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
+    // 功能: (v4.1.3 v3.1.1 補丁) 解析字幕並啟動分批翻譯的總流程。
+    // input: payload (timedtext 物件), vssId (string)
+    // output: 無 (啟動 processNextBatch 遞迴)
+    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseRawSubtitles
+    async parseAndTranslate(payload, vssId = '') {
+        // ... (函式內部 isProcessing 檢查等保持不變) ...
         if (!this.state.translatedTrack) {
-            this.state.translatedTrack = this.parseRawSubtitles(payload);
+                // 【關鍵修正點】: v4.1.3 - 將 vssId 傳遞給 parseRawSubtitles
+                this.state.translatedTrack = this.parseRawSubtitles(payload, vssId);
         }
         if (!this.state.translatedTrack.length) {
             this._log("解析後無有效字幕句段，停止翻譯。");
@@ -753,16 +1140,19 @@ class YouTubeSubtitleEnhancer {
                     this.state.translatedTrack[indicesToUpdate[i]].translatedText = text;
                 }
             });
+            // 更新快取
             if (this.currentVideoId) {
                 const cacheKey = `yt-enhancer-cache-${this.currentVideoId}`;
                 const currentDoneCount = this.state.translatedTrack.filter(t => t.translatedText).length;
                 await this.setCache(cacheKey, {
                     translatedTrack: this.state.translatedTrack,
-                    rawPayload: this.state.rawPayload
+                    rawPayload: this.state.rawPayload,
+                    // 【關鍵修正點】: v4.1.3 - 將 vssId 存入快取
+                    vssId: this.state.currentVssId || '' // 從 state 讀取
                 });
                 this._log(`批次完成 (${currentDoneCount}/${this.state.translationProgress.total})，進度已暫存。`);
             }
-            await this.processNextBatch();
+            await this.processNextBatch(); // 遞迴
 
         // 【關鍵修正點】: v3.1.0 - 重構 catch 區塊以響應智慧錯誤
         } catch (e) {
@@ -1056,7 +1446,9 @@ class YouTubeSubtitleEnhancer {
             // 4. 儲存快取並立即刷新 UI
             await this.setCache(`yt-enhancer-cache-${this.currentVideoId}`, {
                 translatedTrack: this.state.translatedTrack,
-                rawPayload: this.state.rawPayload
+                rawPayload: this.state.rawPayload,
+                // 【關鍵修正點】: v4.1.3 - 將 vssId 存入快取
+                vssId: this.state.currentVssId || '' // 從 state 讀取
             });
             this.handleTimeUpdate(); // 立即刷新當前字幕
             this._log('[插隊重試] 成功，快取已更新。');

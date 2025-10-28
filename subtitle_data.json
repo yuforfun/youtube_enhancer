@@ -1,0 +1,7276 @@
+{
+    "wireMagic": "pb3",
+    "pens": [
+        {}
+    ],
+    "wsWinStyles": [
+        {},
+        {
+            "mhModeHint": 2,
+            "juJustifCode": 0,
+            "sdScrollDir": 3
+        }
+    ],
+    "wpWinPositions": [
+        {},
+        {
+            "apPoint": 6,
+            "ahHorPos": 20,
+            "avVerPos": 100,
+            "rcRows": 2,
+            "ccCols": 40
+        }
+    ],
+    "events": [
+        {
+            "tStartMs": 0,
+            "dDurationMs": 1031950,
+            "id": 1,
+            "wpWinPosId": 1,
+            "wsWinStyleId": 1
+        },
+        {
+            "tStartMs": 120,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いや、あ、いいね。い、",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 3590,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 3600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "暗いやろ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 7550,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 7560,
+            "dDurationMs": 2520,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "俺が取ってあげる。じゃあ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 9310,
+            "dDurationMs": 770,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 9320,
+            "dDurationMs": 1560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 10070,
+            "dDurationMs": 810,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 10080,
+            "dDurationMs": 1960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "明日は",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 10870,
+            "dDurationMs": 1170,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 10880,
+            "dDurationMs": 4160,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "配信開始ますけど。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 12030,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 12040,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 15230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 15240,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ま、やるだけっつうか、ま、当たり前のことをやるだけって感じですかね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 21230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 21240,
+            "dDurationMs": 3720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "緊張されたりしですか?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 23150,
+            "dDurationMs": 1810,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 23160,
+            "dDurationMs": 2920,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "緊張",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 24950,
+            "dDurationMs": 1130,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 24960,
+            "dDurationMs": 2000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "でもそれって",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 26070,
+            "dDurationMs": 890,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 26080,
+            "dDurationMs": 3880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "入",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 26950,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 26960,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "緊張するって準備が足りてないってことだと思うんだよね。あ、",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 31349,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 31359,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やっぱり孫さんもすごい準備されるんですね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 35549,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 35559,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ま、俺はしないけど。あ、",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 38950,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 38960,
+            "dDurationMs": 2680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "じゃ、照明の位置高いよ、ちょっと。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 40190,
+            "dDurationMs": 1450,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 40200,
+            "dDurationMs": 4000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "すいません。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 41630,
+            "dDurationMs": 2570,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 41640,
+            "dDurationMs": 2680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "11",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時半でいいですか?",
+                    "tOffsetMs": 280,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "10",
+                    "tOffsetMs": 1399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時",
+                    "tOffsetMs": 1520,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "45",
+                    "tOffsetMs": 1640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "分から",
+                    "tOffsetMs": 2079,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 44190,
+            "dDurationMs": 130,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 44200,
+            "dDurationMs": 1120,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "10",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 44310,
+            "dDurationMs": 1010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 44320,
+            "dDurationMs": 4000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "時",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "45",
+                    "tOffsetMs": 160,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "分です。",
+                    "tOffsetMs": 399,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 45310,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 45320,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あの、現場に短なんてありえないから。すいません。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 50430,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 50440,
+            "dDurationMs": 2919,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今、今結構今までのキャラで",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 52549,
+            "dDurationMs": 810,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 52559,
+            "dDurationMs": 2000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "1",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "番良かった。",
+                    "tOffsetMs": 160,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 53349,
+            "dDurationMs": 1210,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 53359,
+            "dDurationMs": 2801,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あ、本当にいいキャラしてた。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 54549,
+            "dDurationMs": 1611,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 54559,
+            "dDurationMs": 2480,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今めっちゃかった。しか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 56150,
+            "dDurationMs": 889,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 56160,
+            "dDurationMs": 2680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "それかも。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 57029,
+            "dDurationMs": 1811,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 57039,
+            "dDurationMs": 3921,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "これか。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 58830,
+            "dDurationMs": 2130,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 58840,
+            "dDurationMs": 4600,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "次のステージ。それかも。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 60950,
+            "dDurationMs": 2490,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 60960,
+            "dDurationMs": 3839,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "街田だけちょっとわかん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 63430,
+            "dDurationMs": 1369,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 63440,
+            "dDurationMs": 3560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "街田だけ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 64789,
+            "dDurationMs": 2211,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 64799,
+            "dDurationMs": 5201,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ガ系でしょ。町田だけじゃない。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 66990,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 67000,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やぱ結構筋肉いるんすよ、これ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 81429,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 81439,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "頭から、え、ちょっとから",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 85270,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 85280,
+            "dDurationMs": 5360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "行きたいと思いますのでよろしくお願いいたします。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 88270,
+            "dDurationMs": 2370,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 88280,
+            "dDurationMs": 5360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "映像もいい感じでしたね。あ、良かった。あ、良かったです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 90630,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 90640,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "もう出しそうですか?坂本かしら最初の中めでベスを変藤無藤無直き",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 108870,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 108880,
+            "dDurationMs": 2199,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今何かがおかしかった。今",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 110469,
+            "dDurationMs": 610,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 110479,
+            "dDurationMs": 2481,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "2しした。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 111069,
+            "dDurationMs": 1891,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 111079,
+            "dDurationMs": 4881,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "なんかなんか",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 561,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回止まりませんでした。",
+                    "tOffsetMs": 680,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "2",
+                    "tOffsetMs": 1720,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 112950,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 112960,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "回押しそれ止めます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 116069,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 116079,
+            "dDurationMs": 3720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 117670,
+            "dDurationMs": 2129,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 117680,
+            "dDurationMs": 2920,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "なんか今音がね、かぶって聞こえました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 119789,
+            "dDurationMs": 811,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 119799,
+            "dDurationMs": 3801,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ダブルできたよね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 120590,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 120600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 124670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 124680,
+            "dDurationMs": 5039,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "これが無直きじゃ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 126709,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 126719,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "それがそう。これが正しい場所ってことです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 129949,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 129959,
+            "dDurationMs": 4321,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "この映像が入ってるじゃないですか。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 132710,
+            "dDurationMs": 1570,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 132720,
+            "dDurationMs": 4560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "映像のがこが正しい",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 134270,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 134280,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "正しい場所入ると",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 144110,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 144120,
+            "dDurationMs": 5240,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょい早い。ちょい早い。早。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 146350,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 146360,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "気持ち早い。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 156229,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 156239,
+            "dDurationMs": 7121,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やっぱり",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 159229,
+            "dDurationMs": 4131,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 159239,
+            "dDurationMs": 8841,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "を",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "開け",
+                    "tOffsetMs": 201,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "を",
+                    "tOffsetMs": 841,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "開く",
+                    "tOffsetMs": 961,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "の",
+                    "tOffsetMs": 1121,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "で",
+                    "tOffsetMs": 2360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "巻く",
+                    "tOffsetMs": 3161,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "タイミング",
+                    "tOffsetMs": 3401,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 3681,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "もっと",
+                    "tOffsetMs": 3881,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 163350,
+            "dDurationMs": 4730,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 163360,
+            "dDurationMs": 8120,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "早く",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "その",
+                    "tOffsetMs": 1000,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時",
+                    "tOffsetMs": 1200,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "に",
+                    "tOffsetMs": 1400,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "もっと",
+                    "tOffsetMs": 1879,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "見せ",
+                    "tOffsetMs": 2200,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ない",
+                    "tOffsetMs": 2440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "音",
+                    "tOffsetMs": 3599,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "を",
+                    "tOffsetMs": 4360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ずっと",
+                    "tOffsetMs": 4480,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 168070,
+            "dDurationMs": 3410,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 168080,
+            "dDurationMs": 7159,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "始まる",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時",
+                    "tOffsetMs": 360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "に",
+                    "tOffsetMs": 480,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "バン",
+                    "tOffsetMs": 720,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "てあ",
+                    "tOffsetMs": 879,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 171470,
+            "dDurationMs": 3769,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 171480,
+            "dDurationMs": 6759,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "で",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "は",
+                    "tOffsetMs": 80,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "音",
+                    "tOffsetMs": 280,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ください",
+                    "tOffsetMs": 520,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 1080,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "はい",
+                    "tOffsetMs": 1720,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 3000,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ここで",
+                    "tOffsetMs": 3240,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 175229,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 175239,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "Rてはこれをちょっとゆっくり開いてでここ全く開いてるけど見えて開いてるけど見えてないです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 178880,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 178890,
+            "dDurationMs": 22150,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 198229,
+            "dDurationMs": 2811,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 198239,
+            "dDurationMs": 6141,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "了解て直前ぐらいに秋切るぐらいのイメージのクリ開けたいってことですよね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 201030,
+            "dDurationMs": 3350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 201040,
+            "dDurationMs": 3340,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 206949,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 206959,
+            "dDurationMs": 3200,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "だから開けるたはもしかしたらちょっと待ってもいい?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 208990,
+            "dDurationMs": 1169,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 209000,
+            "dDurationMs": 4159,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "待ってもそうですね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 210149,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 210159,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そう。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 214270,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 214280,
+            "dDurationMs": 5840,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょっと早い。やっぱ相変わらずちょっと早い。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 217110,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 217120,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ゴ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 232710,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 232720,
+            "dDurationMs": 9560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "だ",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "から",
+                    "tOffsetMs": 79,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "スモーク",
+                    "tOffsetMs": 359,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "もっと",
+                    "tOffsetMs": 840,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "早く",
+                    "tOffsetMs": 1040,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "なっ",
+                    "tOffsetMs": 1599,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "たり",
+                    "tOffsetMs": 1799,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 235429,
+            "dDurationMs": 6851,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 235439,
+            "dDurationMs": 6841,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "スモーク",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "はい",
+                    "tOffsetMs": 720,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 880,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "今",
+                    "tOffsetMs": 2241,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "開い",
+                    "tOffsetMs": 3281,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "てる",
+                    "tOffsetMs": 3440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時",
+                    "tOffsetMs": 3640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "に",
+                    "tOffsetMs": 3841,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 242350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 242360,
+            "dDurationMs": 7760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "防衛",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "中",
+                    "tOffsetMs": 360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "に",
+                    "tOffsetMs": 560,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "絶対",
+                    "tOffsetMs": 840,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "勝",
+                    "tOffsetMs": 1120,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ない",
+                    "tOffsetMs": 1320,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "と",
+                    "tOffsetMs": 1439,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 246190,
+            "dDurationMs": 3930,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 246200,
+            "dDurationMs": 6599,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "じゃ",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "もう",
+                    "tOffsetMs": 200,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ちょ",
+                    "tOffsetMs": 399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "早く",
+                    "tOffsetMs": 520,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "は",
+                    "tOffsetMs": 1200,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "それ",
+                    "tOffsetMs": 1959,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 2080,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "こっち",
+                    "tOffsetMs": 2319,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "から",
+                    "tOffsetMs": 2599,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "も",
+                    "tOffsetMs": 2759,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "出",
+                    "tOffsetMs": 2920,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 250110,
+            "dDurationMs": 2689,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 250120,
+            "dDurationMs": 6440,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 160,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "今",
+                    "tOffsetMs": 280,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "こっち",
+                    "tOffsetMs": 399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "から",
+                    "tOffsetMs": 640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "こっち",
+                    "tOffsetMs": 1759,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "から",
+                    "tOffsetMs": 2039,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "も",
+                    "tOffsetMs": 2199,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "あれ",
+                    "tOffsetMs": 2319,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ば",
+                    "tOffsetMs": 2479,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 252789,
+            "dDurationMs": 3771,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 252799,
+            "dDurationMs": 3761,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いける",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 761,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 260449,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 260459,
+            "dDurationMs": 2231,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 261780,
+            "dDurationMs": 910,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 261790,
+            "dDurationMs": 7560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 262680,
+            "dDurationMs": 6670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 262690,
+            "dDurationMs": 8310,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 269340,
+            "dDurationMs": 1660,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 269350,
+            "dDurationMs": 2370,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 270990,
+            "dDurationMs": 730,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 271000,
+            "dDurationMs": 1039,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "よろしければ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 271710,
+            "dDurationMs": 329,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 271720,
+            "dDurationMs": 1560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 272029,
+            "dDurationMs": 1251,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 272039,
+            "dDurationMs": 3041,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。きたいと思います。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 273270,
+            "dDurationMs": 1810,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 273280,
+            "dDurationMs": 3040,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "それでは、え、車",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 275070,
+            "dDurationMs": 1250,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 275080,
+            "dDurationMs": 4240,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "30",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "終わり",
+                    "tOffsetMs": 640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "30",
+                    "tOffsetMs": 880,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 276310,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 276320,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "秒前から行きたいと思います。では行きたいと思います。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 280150,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 280160,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "3215",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 284350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 284360,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "になったチが息を返すに",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 287860,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 287870,
+            "dDurationMs": 11329,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 296870,
+            "dDurationMs": 2329,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 296880,
+            "dDurationMs": 5319,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "大丈夫です。はい、了解です。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 299189,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 299199,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "なんかすごいもろみんな動き違ったけどもっとこう大さでさ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 306310,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 306320,
+            "dDurationMs": 5280,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "んか全部同じ動きて",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 308590,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 308600,
+            "dDurationMs": 5520,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "大の展開が欲しい系になっ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 311590,
+            "dDurationMs": 2530,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 311600,
+            "dDurationMs": 3400,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "一応そのスモークとかはある",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 314110,
+            "dDurationMs": 890,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 314120,
+            "dDurationMs": 3880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "盛り上がりがなんか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 314990,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 315000,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちなみに大サでなんか別の",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 318870,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 318880,
+            "dDurationMs": 4640,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "力のピンスポきあかんね",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 321189,
+            "dDurationMs": 2331,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 321199,
+            "dDurationMs": 4840,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あちてこう",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 323510,
+            "dDurationMs": 2529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 323520,
+            "dDurationMs": 3040,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はいすいませんごめんなさいも久",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 326029,
+            "dDurationMs": 531,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 326039,
+            "dDurationMs": 2720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 326550,
+            "dDurationMs": 2209,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 326560,
+            "dDurationMs": 2199,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "まさ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 329629,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 329639,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょっと今前してます。お待ちくださいじゃないですけど。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 338590,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 338600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今落ちた。今",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 341790,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 341800,
+            "dDurationMs": 7449,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今青は確かに触れたのに夢かつけさよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 344350,
+            "dDurationMs": 4899,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 344360,
+            "dDurationMs": 4889,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 360029,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 360039,
+            "dDurationMs": 12151,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そもそもどれだけの意味だってるな。してブランクです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 361910,
+            "dDurationMs": 10280,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 361920,
+            "dDurationMs": 10270,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 372940,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 372950,
+            "dDurationMs": 7210,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 377150,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 377160,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "え、俺のマイクオンになっちゃ。俺出ちゃった。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 381309,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 381319,
+            "dDurationMs": 2401,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "中に入ってました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 382070,
+            "dDurationMs": 1650,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 382080,
+            "dDurationMs": 4640,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "中に入ったんすよ。",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "俺",
+                    "tOffsetMs": 1360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 1480,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 383710,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 383720,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "番最初もしかしてって歌ったら俺がめっちゃ出てきてやめたのわか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 390870,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 390880,
+            "dDurationMs": 3680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "邪魔。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 391550,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 391560,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いや、邪魔じゃないけど笑った。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 394909,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 394919,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "俺途中での手とか入れるよ。いや、ベイビーとか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 398550,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 398560,
+            "dDurationMs": 3400,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "対応できる",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 400510,
+            "dDurationMs": 1450,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 400520,
+            "dDurationMs": 3320,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "筋肉すごくなかった?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 401950,
+            "dDurationMs": 1890,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 401960,
+            "dDurationMs": 3519,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いや、すごくないすよ。全然",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 403830,
+            "dDurationMs": 1649,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 403840,
+            "dDurationMs": 4639,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "全然すごくない。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 405469,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 405479,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "じゃ、あの、多分ビフォーアフターの差のせい。うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 411189,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 411199,
+            "dDurationMs": 4221,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "煙の腕がいおいな、今。今のアングルいいっすね。なめてたね。なめてたな。さすが分かってらっしゃる。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 413190,
+            "dDurationMs": 2230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 413200,
+            "dDurationMs": 5349,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 415410,
+            "dDurationMs": 3139,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 415420,
+            "dDurationMs": 3129,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 423589,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 423599,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "改めましてこんばんは。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 428010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 428020,
+            "dDurationMs": 4820,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 430189,
+            "dDurationMs": 2651,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 430199,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "すごい人数だね。にしても",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 432830,
+            "dDurationMs": 369,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 432840,
+            "dDurationMs": 1680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "すごい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 433189,
+            "dDurationMs": 1331,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 433199,
+            "dDurationMs": 3921,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "マジでこんな感じ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 434510,
+            "dDurationMs": 2610,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 434520,
+            "dDurationMs": 3160,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あのだとしたらさ、結構もう近づいて",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 437110,
+            "dDurationMs": 570,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 437120,
+            "dDurationMs": 1960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "4",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "人だ。",
+                    "tOffsetMs": 120,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 437670,
+            "dDurationMs": 1410,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 437680,
+            "dDurationMs": 2519,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "もうこういうことの方がいい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 439070,
+            "dDurationMs": 1129,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 439080,
+            "dDurationMs": 4119,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "こうした方がいい",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 440189,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 440199,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "もはやね。手伝うか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 444070,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 444080,
+            "dDurationMs": 2880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "手伝いながら喋る。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 445990,
+            "dDurationMs": 970,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 446000,
+            "dDurationMs": 2280,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あの",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "30",
+                    "tOffsetMs": 560,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 446950,
+            "dDurationMs": 1330,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 446960,
+            "dDurationMs": 2760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "人はいたよね。さっき",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 448270,
+            "dDurationMs": 1450,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 448280,
+            "dDurationMs": 2960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょっと街田はちょっと座ってみて",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 1319,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 449710,
+            "dDurationMs": 1530,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 449720,
+            "dDurationMs": 1640,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "回俺が",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 451230,
+            "dDurationMs": 130,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 451240,
+            "dDurationMs": 2040,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "1",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 451350,
+            "dDurationMs": 1930,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 451360,
+            "dDurationMs": 2920,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "回気持ちで",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 559,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回気持ちで動いてみて。",
+                    "tOffsetMs": 720,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 453270,
+            "dDurationMs": 1010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 453280,
+            "dDurationMs": 3880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "気持ち?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 454270,
+            "dDurationMs": 2890,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 454280,
+            "dDurationMs": 3720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "うん。気持ちで",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 457150,
+            "dDurationMs": 850,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 457160,
+            "dDurationMs": 1439,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "違います。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 457990,
+            "dDurationMs": 609,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 458000,
+            "dDurationMs": 2090,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "なんか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 458589,
+            "dDurationMs": 1501,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 458599,
+            "dDurationMs": 4641,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "こんな白いふわふわあった。うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 460080,
+            "dDurationMs": 3160,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 460090,
+            "dDurationMs": 4669,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 463230,
+            "dDurationMs": 1529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 463240,
+            "dDurationMs": 4840,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "シートです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 464749,
+            "dDurationMs": 3331,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 464759,
+            "dDurationMs": 9321,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "永遠",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 681,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "僕",
+                    "tOffsetMs": 1081,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ら",
+                    "tOffsetMs": 1481,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "は",
+                    "tOffsetMs": 1720,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 468070,
+            "dDurationMs": 6010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 468080,
+            "dDurationMs": 7519,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "見",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "てかわいそう",
+                    "tOffsetMs": 160,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "な",
+                    "tOffsetMs": 1519,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "目",
+                    "tOffsetMs": 1720,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "を",
+                    "tOffsetMs": 1959,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "する",
+                    "tOffsetMs": 3000,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時爆",
+                    "tOffsetMs": 3360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "し",
+                    "tOffsetMs": 4360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "そう",
+                    "tOffsetMs": 4880,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "に",
+                    "tOffsetMs": 5160,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 474070,
+            "dDurationMs": 1529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 474080,
+            "dDurationMs": 4920,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "笑いせ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 475589,
+            "dDurationMs": 3411,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 475599,
+            "dDurationMs": 5101,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "た",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "あ",
+                    "tOffsetMs": 1000,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ピアノ",
+                    "tOffsetMs": 1201,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "が",
+                    "tOffsetMs": 1440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "聞こえ",
+                    "tOffsetMs": 1600,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ない",
+                    "tOffsetMs": 1801,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "な",
+                    "tOffsetMs": 1961,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 2081,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 478990,
+            "dDurationMs": 1710,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 479000,
+            "dDurationMs": 11589,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "と僕の中にある大事なもの勝ちの順番を勝てに入れ替える。そうそう。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 480690,
+            "dDurationMs": 9899,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 480700,
+            "dDurationMs": 9889,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 495110,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 495120,
+            "dDurationMs": 5720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "どんな感じで書いて書いてあ?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 498110,
+            "dDurationMs": 2730,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 498120,
+            "dDurationMs": 3479,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "じゃあ",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "31",
+                    "tOffsetMs": 240,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 500830,
+            "dDurationMs": 769,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 500840,
+            "dDurationMs": 3759,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "に書きました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 501589,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 501599,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ありがとうございます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 505830,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 505840,
+            "dDurationMs": 4400,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "寝る前に",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "本",
+                    "tOffsetMs": 520,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 507230,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 507240,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "マグネシウムありがとう。ありがとうござい",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 510270,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 510280,
+            "dDurationMs": 5480,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "お疲れ様です。様です。何を",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 512750,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 512760,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "お願いします。します。します。ないですね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 522980,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 522990,
+            "dDurationMs": 8810,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 528790,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 528800,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今ね、あの、ま、確認しながらよろしくは結構こう勢い欲しいから",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 544069,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 544079,
+            "dDurationMs": 4531,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "こういうワークしてる大宅になりますよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 546750,
+            "dDurationMs": 1860,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 546760,
+            "dDurationMs": 2030,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そんなに顔の寄りに詰めて狙わな狙いすぎなくてどれだけの意味",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 548600,
+            "dDurationMs": 190,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 548610,
+            "dDurationMs": 3050,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 548780,
+            "dDurationMs": 2880,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 548790,
+            "dDurationMs": 9349,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 551650,
+            "dDurationMs": 6489,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 551660,
+            "dDurationMs": 6479,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 558670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 558680,
+            "dDurationMs": 4360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やつについに",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 560030,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 560040,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "長かった",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 564160,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 564170,
+            "dDurationMs": 5530,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 576560,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 576570,
+            "dDurationMs": 5040,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 579630,
+            "dDurationMs": 1980,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 579640,
+            "dDurationMs": 5739,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "誰にもたことない。完定完定な。何の",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 581600,
+            "dDurationMs": 3779,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 581610,
+            "dDurationMs": 3769,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 585829,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 585839,
+            "dDurationMs": 5000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "これとかもしな。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 587829,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 587839,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あ、でも結構ね、これ大丈夫を向いてないか。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 592300,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 592310,
+            "dDurationMs": 8969,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 601870,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 601880,
+            "dDurationMs": 3160,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "1",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 602030,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 602040,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "話しか見てない人たちに対してこの先たくさん見てもらえるようなトークをすればもうそれで大丈夫を吹き返す",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 605850,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 605860,
+            "dDurationMs": 3090,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 617590,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 617600,
+            "dDurationMs": 3600,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "聞こえてる?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 618190,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 618200,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "オ大丈夫なら大丈夫?待せ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 622840,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 622850,
+            "dDurationMs": 3149,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 628590,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 628600,
+            "dDurationMs": 5000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 630590,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 630600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "もしかしたってもしかしなくてきたように見つかっ初めまして天ブランクです。あの佐藤です。本当に今日は皆さんありがとう。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 638900,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 638910,
+            "dDurationMs": 5120,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[拍手]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 647829,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 647839,
+            "dDurationMs": 3800,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "俺ここで",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "MC",
+                    "tOffsetMs": 521,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 648790,
+            "dDurationMs": 2849,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 648800,
+            "dDurationMs": 3479,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "をやらせてお願いしてもいいすか?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 651629,
+            "dDurationMs": 650,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 651639,
+            "dDurationMs": 3640,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "逆に",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 652269,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 652279,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やっぱそのバンドマンはあの顔は半分隠れてるぐらいがいいからね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 658230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 658240,
+            "dDurationMs": 3760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そうなの。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 658990,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 659000,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やっぱその俳優ってよくその写真チェックする時にやっぱこうちょっとごめんなさい。目髪が目にかかってるんでこの写真",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 665670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 665680,
+            "dDurationMs": 4159,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "NG",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "でとか",
+                    "tOffsetMs": 320,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 666829,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 666839,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "メイクさんにちょっと髪どかしてもらえていいですかってよく言われるじゃん僕たち",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 671350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 671360,
+            "dDurationMs": 4680,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "バンドマンは逆で",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 673030,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 673040,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "むしろちょっと髪をもっとくださいっていう",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 676230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 676240,
+            "dDurationMs": 3880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "分かる。",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "そこが",
+                    "tOffsetMs": 399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 719,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 677110,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 677120,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "番違うところ。俳優とミュージシャンの懐かしい歌が聞こえた。選んだ命。僕たちでこの作品をヒットさせて一緒に時代を動かそう。今日は本当にありがとう。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 682380,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 682390,
+            "dDurationMs": 16080,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 706190,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 706200,
+            "dDurationMs": 3600,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "また",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "会い",
+                    "tOffsetMs": 160,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ましょう",
+                    "tOffsetMs": 360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 600,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 710670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 710680,
+            "dDurationMs": 5719,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "グラス",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ハート",
+                    "tOffsetMs": 320,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "本日",
+                    "tOffsetMs": 1360,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "配信",
+                    "tOffsetMs": 1839,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "開始",
+                    "tOffsetMs": 2279,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 2719,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 717430,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 717440,
+            "dDurationMs": 6199,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "お",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "送り",
+                    "tOffsetMs": 120,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ください",
+                    "tOffsetMs": 440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 800,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ご",
+                    "tOffsetMs": 1320,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "協力",
+                    "tOffsetMs": 1440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "を",
+                    "tOffsetMs": 1800,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "よろしく",
+                    "tOffsetMs": 1920,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "お",
+                    "tOffsetMs": 2280,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "願い",
+                    "tOffsetMs": 2440,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 720069,
+            "dDurationMs": 3570,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 720079,
+            "dDurationMs": 3560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いたし",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ます",
+                    "tOffsetMs": 320,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "。",
+                    "tOffsetMs": 560,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 731550,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 731560,
+            "dDurationMs": 4360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "見てますよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 732910,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 732920,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ありがとうございます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 736949,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 736959,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "まあまあまあ本当に皆さんの反応が",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 743230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 743240,
+            "dDurationMs": 3760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 743990,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 744000,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あったかくてよかったと",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 747269,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 747279,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いつも皆さんに思ってることは伝えられたかな。タオの目覚です。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 758710,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 758720,
+            "dDurationMs": 1880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "佐藤",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 759710,
+            "dDurationMs": 890,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 759720,
+            "dDurationMs": 3880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "宮崎",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 760590,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 760600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "町田太もの",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 764590,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 764600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "とにかくその登場人物たちがとっても魅力的で僕原作読んだ時からランクのメンバーもそうだし他の登場人準物たちも大好きになってたので作品を作る上で",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 776790,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 776800,
+            "dDurationMs": 1960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 778590,
+            "dDurationMs": 170,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 778600,
+            "dDurationMs": 3160,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "1",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 778750,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 778760,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "番重視してるところがキャラクターの魅力なのでこんな原作をほっとくわけにはいかないなとさしてもらいま",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 786790,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 786800,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "劇中で藤谷は何回ごめんねというでしょうか?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 790870,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 790880,
+            "dDurationMs": 5880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "A",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "10",
+                    "tOffsetMs": 399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回、",
+                    "tOffsetMs": 600,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "B",
+                    "tOffsetMs": 1399,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "15",
+                    "tOffsetMs": 1920,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回、",
+                    "tOffsetMs": 2240,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "C",
+                    "tOffsetMs": 2840,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "20",
+                    "tOffsetMs": 3280,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回。",
+                    "tOffsetMs": 3600,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 795910,
+            "dDurationMs": 850,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 795920,
+            "dDurationMs": 1279,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ええ、",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 796750,
+            "dDurationMs": 449,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 796760,
+            "dDurationMs": 1840,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そんな",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 797189,
+            "dDurationMs": 1411,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 797199,
+            "dDurationMs": 2320,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "C",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "の",
+                    "tOffsetMs": 121,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "20",
+                    "tOffsetMs": 281,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "回です。",
+                    "tOffsetMs": 561,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 798590,
+            "dDurationMs": 929,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 798600,
+            "dDurationMs": 3599,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あ、じゃも",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 479,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "番に",
+                    "tOffsetMs": 640,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "1",
+                    "tOffsetMs": 840,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 799509,
+            "dDurationMs": 2690,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 799519,
+            "dDurationMs": 3760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "回ごめんね。ごめんね。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 802189,
+            "dDurationMs": 1090,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 802199,
+            "dDurationMs": 1961,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "それパッケージ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 803269,
+            "dDurationMs": 891,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 803279,
+            "dDurationMs": 3800,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "そうだよね。そうだ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 804150,
+            "dDurationMs": 2929,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 804160,
+            "dDurationMs": 5919,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "今回曲を作ってくれたラッドウインプス",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 807069,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 807079,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "で、僕はもう昔からずっと親友のワンオクロック藤谷のピアノマは藤井風さん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 812910,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 812920,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "いろんなアーティストのを見て、アーティストのこういい部分というか、こう天才だなと思う瞬間みたいなものを集めてこのドラマに注入しました。楽曲をもらう時にその全ての楽曲は",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 821500,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 821510,
+            "dDurationMs": 3100,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 829230,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 829240,
+            "dDurationMs": 2440,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "CD",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "音源用",
+                    "tOffsetMs": 440,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 830910,
+            "dDurationMs": 770,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 830920,
+            "dDurationMs": 1279,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "で",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 831670,
+            "dDurationMs": 529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 831680,
+            "dDurationMs": 3519,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "はい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 832189,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 832199,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "こうみんな作ってもらうんです。で、まずその",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 835749,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 835759,
+            "dDurationMs": 3361,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "CD",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 836110,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 836120,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "音源用のそれぞれの練習するんですけど、ライブそれをライブバージョンにアレンジするんです。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 842389,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 842399,
+            "dDurationMs": 3321,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "CD",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 842710,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 842720,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "と全く同じことをやるロックバンドって多分なくて、ま、例えば特に曲の終わり方とか",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 850829,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 850839,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "曲と曲との間のつぎの部分っていうのは",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 854030,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 854040,
+            "dDurationMs": 3719,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "CD",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 854749,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 854759,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ってないので、それをこう自分たちのライブをイメージしながらこう作っていく作業ってのが、ま、苦労したというか、ま、工夫したところですね。うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 867670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 867680,
+            "dDurationMs": 4100,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "それは以となります。ありがとうございました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 869870,
+            "dDurationMs": 1910,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 869880,
+            "dDurationMs": 4980,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ありがとうございました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 871770,
+            "dDurationMs": 3090,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 871780,
+            "dDurationMs": 3080,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 882269,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 882279,
+            "dDurationMs": 11041,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "お願いします。お願いします。します。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 884550,
+            "dDurationMs": 8770,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 884560,
+            "dDurationMs": 10399,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 893310,
+            "dDurationMs": 1649,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 893320,
+            "dDurationMs": 2560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やりましょう。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 894949,
+            "dDurationMs": 931,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 894959,
+            "dDurationMs": 2401,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あ、ああ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 895870,
+            "dDurationMs": 1490,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 895880,
+            "dDurationMs": 2720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "びっくり",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 897350,
+            "dDurationMs": 1250,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 897360,
+            "dDurationMs": 4240,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "びっくりだよ。これ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 898590,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 898600,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "俺この人と収録できないわ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 905470,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 905480,
+            "dDurationMs": 4560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "うん。いいんじゃないか。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 907030,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 907040,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "こんなのはどこ?こんなのはどこ?",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 910550,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 910560,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "せっかくなら俺たちもラジオのラジオで",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 913670,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 913680,
+            "dDurationMs": 1719,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "8",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 913870,
+            "dDurationMs": 1529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 913880,
+            "dDurationMs": 4360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "月",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "8",
+                    "tOffsetMs": 319,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "日金曜日夜",
+                    "tOffsetMs": 440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "10",
+                    "tOffsetMs": 1319,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 915389,
+            "dDurationMs": 2851,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 915399,
+            "dDurationMs": 3521,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "時になりました。今夜のオールナイト日本ゴールドは",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 918230,
+            "dDurationMs": 690,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 918240,
+            "dDurationMs": 3360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "Netflix",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 918910,
+            "dDurationMs": 2690,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 918920,
+            "dDurationMs": 2919,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "シリーズより誕生したバンド",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 921590,
+            "dDurationMs": 249,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 921600,
+            "dDurationMs": 2960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "10",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 921829,
+            "dDurationMs": 2731,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 921839,
+            "dDurationMs": 5041,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ブランクのメンバー全員でお送りしていきます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 924550,
+            "dDurationMs": 2330,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 924560,
+            "dDurationMs": 5320,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "よろしくお願いいたします。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 926870,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 926880,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "我々天ブランクから重大発表があります。じゃあ言わしていただきます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 930750,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 930760,
+            "dDurationMs": 3960,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 936069,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 936079,
+            "dDurationMs": 4081,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "うん。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 937150,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 937160,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "我々天ブランクファンミーティングを開催します。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 944110,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 944120,
+            "dDurationMs": 5600,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イエー。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 946710,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 946720,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "解散とか脱体じゃない。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 950389,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 950399,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イエーイ。しかもね、あの普通の規模じゃないと。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 955110,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 955120,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "これはすごいことですよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 956629,
+            "dDurationMs": 1491,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 956639,
+            "dDurationMs": 3241,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "やってくださいよ。パセ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 958110,
+            "dDurationMs": 1770,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 958120,
+            "dDurationMs": 4760,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "え、",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "10",
+                    "tOffsetMs": 600,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "月",
+                    "tOffsetMs": 800,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "11",
+                    "tOffsetMs": 1320,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 959870,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 959880,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "日にですね、え、横浜ピアリーナ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 964350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 964360,
+            "dDurationMs": 4440,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "MM",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "にて",
+                    "tOffsetMs": 440,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "12",
+                    "tOffsetMs": 1279,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時",
+                    "tOffsetMs": 1599,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "17",
+                    "tOffsetMs": 2120,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "時の",
+                    "tOffsetMs": 2520,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "2",
+                    "tOffsetMs": 2919,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 967430,
+            "dDurationMs": 1370,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 967440,
+            "dDurationMs": 1800,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "回公演をさせていただきます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 968790,
+            "dDurationMs": 450,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 968800,
+            "dDurationMs": 2560,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イエ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 969230,
+            "dDurationMs": 2130,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 969240,
+            "dDurationMs": 3360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "すごいですよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 971350,
+            "dDurationMs": 1250,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 971360,
+            "dDurationMs": 3080,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "すごいことですよ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 972590,
+            "dDurationMs": 1850,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 972600,
+            "dDurationMs": 4200,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イベントタイトルだけ言いたい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 974430,
+            "dDurationMs": 2370,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 974440,
+            "dDurationMs": 3879,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "あ、ちょっとじゃあイベントタイトルはさに任か。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 976790,
+            "dDurationMs": 1529,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 976800,
+            "dDurationMs": 4080,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イベントタイトルは",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 978309,
+            "dDurationMs": 2571,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 978319,
+            "dDurationMs": 2841,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "10",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "ブランク",
+                    "tOffsetMs": 241,
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "from",
+                    "tOffsetMs": 1041,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 980870,
+            "dDurationMs": 290,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 980880,
+            "dDurationMs": 3280,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "me",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 981150,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 981160,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ンフーチャイン武尊佐藤崎ケトダ純シソ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 988710,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 988720,
+            "dDurationMs": 3720,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "イベントタイトルが",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 990749,
+            "dDurationMs": 1691,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 990759,
+            "dDurationMs": 2880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "これなんだ正式名称初めて知",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 992430,
+            "dDurationMs": 1209,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 992440,
+            "dDurationMs": 1920,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょっとかっこよくない",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 993629,
+            "dDurationMs": 731,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 993639,
+            "dDurationMs": 3440,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "なんか",
+                    "acAsrConf": 0
+                },
+                {
+                    "utf8": "10",
+                    "tOffsetMs": 560,
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 994350,
+            "dDurationMs": 2729,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 994360,
+            "dDurationMs": 5360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ブランクフロムエグザイルトライブみたいな",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 997069,
+            "dDurationMs": 2651,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 997079,
+            "dDurationMs": 5641,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ちょっとね俺も今テンションで読んだでしょ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 999710,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 999720,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ということでお別れの時間です。最後までお付き合いくださってありがとうございました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1004269,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1004279,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ありがとうございました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1008150,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1008160,
+            "dDurationMs": 3400,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "宮崎",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1009110,
+            "dDurationMs": 2450,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1009120,
+            "dDurationMs": 2800,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "町田太でした。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1011550,
+            "dDurationMs": 370,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1011560,
+            "dDurationMs": 3360,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "バイバイ。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1011910,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1011920,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "バありがとうございました。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1015350,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1015360,
+            "dDurationMs": 3200,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "話はボリュームげてください。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1016370,
+            "dDurationMs": 2190,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1016380,
+            "dDurationMs": 3540,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1018550,
+            "dDurationMs": 1370,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1018560,
+            "dDurationMs": 2000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "ファンミーティングも待ってます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1019910,
+            "dDurationMs": 650,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1019920,
+            "dDurationMs": 1359,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "待ってます。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1020550,
+            "dDurationMs": 729,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1020560,
+            "dDurationMs": 1880,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "バイバ",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1021269,
+            "dDurationMs": 1171,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1021279,
+            "dDurationMs": 4161,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "サムズアップもね、見たら",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1022430,
+            "dDurationMs": 3010,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1022440,
+            "dDurationMs": 3000,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "おやすみなさい。みなさい。",
+                    "acAsrConf": 0
+                }
+            ]
+        },
+        {
+            "tStartMs": 1028740,
+            "wWinId": 1,
+            "aAppend": 1,
+            "segs": [
+                {
+                    "utf8": "\n"
+                }
+            ]
+        },
+        {
+            "tStartMs": 1028750,
+            "dDurationMs": 3200,
+            "wWinId": 1,
+            "segs": [
+                {
+                    "utf8": "[音楽]"
+                }
+            ]
+        }
+    ]
+}
