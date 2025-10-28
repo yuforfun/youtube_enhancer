@@ -177,8 +177,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 // input: request (物件) - 包含 action 和 payload 的訊息。
 //        sender (物件) - 訊息發送者的資訊，包含 tabId。
 //        sendResponse (函式) - 用於非同步回傳結果給發送者。
-// output: 透過 sendResponse 回傳處理結果。
-// 其他補充: 【關鍵修正點】 v1.1 - 新增 'translateBatch' 核心邏輯。
+// 其他補充: 【關鍵修正點】 v4.1.1 - 修改 'translateBatch' 並新增 'getDebugPrompts'。
     let isAsync = false;
 
     // 取得 tabId，popup 頁面發送時可能沒有 sender.tab。
@@ -186,78 +185,77 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     switch (request.action) {
         
-        // 【關鍵修正點】: v1.1 - 更新 'translateBatch' 以載入自訂 Prompts
-        // 【關鍵修正點】: v1.2 - 完整還原 backend.py 的金鑰冷卻機制
+        // 【關鍵修正點】: v4.1.1 - 'translateBatch' API 邏輯修改
         case 'translateBatch':
-            // 功能: (v3.1.2 補丁) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
-            // input: request.texts (字串陣列), request.source_lang (字串), request.models_preference (字串陣列)
+            // 功能: (v4.1.1) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
+            // input: request.texts (字串陣列), request.source_lang (字串), 
+            //        request.models_preference (字串陣列), 
+            //        request.overridePrompt (可選, 字串) - [v4.1.1 修改]
             // output: (成功) { data: [...] }
             //         (失敗) { error: 'TEMPORARY_FAILURE', retryDelay: X }
             //         (失敗) { error: 'PERMANENT_FAILURE', message: '...' }
             //         (失敗) { error: 'BATCH_FAILURE', message: '...' }
             // 其他補充: 實作金鑰/模型迴圈、冷卻機制，以及智慧錯誤分類。
+            // 其他補充: 支援 overridePrompt 的「完整 Prompt 覆蓋」模式。
             isAsync = true; 
             
-            // 功能: (v3.1.2 補丁) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
-            // input: request.texts (字串陣列), request.source_lang (字串), request.models_preference (字串陣列)
-            // output: (成功) { data: [...] }
-            //         (失敗) { error: 'TEMPORARY_FAILURE', retryDelay: X }
-            //         (失敗) { error: 'PERMANENT_FAILURE', message: '...' }
-            //         (失敗) { error: 'BATCH_FAILURE', message: '...' }
-            // 其他補充: 實作金鑰/模型迴圈、冷卻機制，以及智慧錯誤分類。
             (async () => {
-                // 【關鍵修正點】: v3.1.0 - 初始化錯誤統計物件
                 let errorStats = { temporary: 0, permanent: 0, batch: 0, totalAttempts: 0 };
-                // 【關鍵修正點】: v3.1.2 - 新增冷卻狀態追蹤
                 let keysInCooldown = 0;
-                let shortestRetryDelay = API_KEY_COOLDOWN_SECONDS + 1; // 初始化為比最大值稍大
+                let shortestRetryDelay = API_KEY_COOLDOWN_SECONDS + 1; 
 
-                // 【關鍵修正點】 v1.2: 載入金鑰冷卻列表
                 const now = Date.now();
                 const cooldownResult = await chrome.storage.session.get({ 'apiKeyCooldowns': {} });
                 const cooldowns = cooldownResult.apiKeyCooldowns;
-                let cooldownsUpdated = false; // 追蹤是否有冷卻期滿的金鑰被移除
+                let cooldownsUpdated = false; 
 
-                const { texts, source_lang, models_preference } = request; 
+                // 【關鍵修正點】: v4.1.1 - 接收 overridePrompt 參數
+                const { texts, source_lang, models_preference, overridePrompt } = request; 
                 if (!texts || texts.length === 0) {
                     sendResponse({ data: [] });
                     return;
                 }
 
-                // 1. 獲取金鑰 (同 階段 2)
+                // 1. 獲取金鑰 (同 v4.0.1)
                 const keyResult = await chrome.storage.local.get(['userApiKeys']);
                 const apiKeys = keyResult.userApiKeys || []; 
 
                 if (apiKeys.length === 0) { 
                     await writeToLog('ERROR', '翻譯失敗：未設定 API Key', null, '請至「診斷與日誌」分頁新增您的 API Key。'); 
-                    // 【關鍵修正點】: v3.1.0 - 回報永久性錯誤
                     sendResponse({ error: 'PERMANENT_FAILURE', message: '翻譯失敗：未設定 API Key。' }); 
                     return;
                 }
 
-                // 2. 組合 Prompt (v2.0 決策引擎更新)
-                const sourceLangName = LANG_MAP[source_lang] || '原文'; 
-                const corePrompt = DEFAULT_CORE_PROMPT_TEMPLATE.replace(/{source_lang}/g, sourceLangName); 
-                
-                // 【關鍵修正點】開始: v2.0 - 從 Tier 2 列表獲取自訂 Prompt
-                // 1. 獲取完整的設定
-                const settingsResult = await chrome.storage.local.get(['ytEnhancerSettings']);
-                const settings = settingsResult.ytEnhancerSettings || {};
-                
-                // 2. 從 Tier 2 列表中查找當前語言的設定
-                const tier2List = settings.auto_translate_priority_list || [];
-                const langConfig = tier2List.find(item => item.langCode === source_lang);
-                
-                // 3. 獲取自訂 Prompt，如果 Tier 2 列表沒有該語言，則 customPromptPart 為空字串
-                const customPromptPart = langConfig ? langConfig.customPrompt : "";
+                // 2. 組合 Prompt (v4.1.1 決策引擎更新)
+                // 【關鍵修正點】開始: v4.1.1 - Prompt 選擇邏輯 (完整覆蓋)
+                let fullPrompt;
+                if (overridePrompt) {
+                    // 情境 1: 請求來自 lab.js (開發者測試)
+                    // overridePrompt 已是 "完整" Prompt，我們只需替換 JSON
+                    const jsonInputText = JSON.stringify(texts);
+                    // 確保替換 {json_input_text}
+                    fullPrompt = overridePrompt.replace('{json_input_text}', jsonInputText);
+                } else {
+                    // 情境 2: 請求來自 content.js (正式翻譯)
+                    // 100% 執行 v4.0.1 的舊邏輯
+                    const sourceLangName = LANG_MAP[source_lang] || '原文'; 
+                    const corePrompt = DEFAULT_CORE_PROMPT_TEMPLATE.replace(/{source_lang}/g, sourceLangName); 
+                    
+                    const settingsResult = await chrome.storage.local.get(['ytEnhancerSettings']);
+                    const settings = settingsResult.ytEnhancerSettings || {};
+                    const tier2List = settings.auto_translate_priority_list || [];
+                    const langConfig = tier2List.find(item => item.langCode === source_lang);
+                    const customPromptPart = langConfig ? langConfig.customPrompt : "";
+                    
+                    const jsonInputText = JSON.stringify(texts);
+                    // 執行 v4.0.1 的拼接
+                    fullPrompt = `${customPromptPart}\n\n${corePrompt.replace('{json_input_text}', jsonInputText)}`;
+                }
                 // 【關鍵修正點】結束
-                
-                const jsonInputText = JSON.stringify(texts);
-                const fullPrompt = `${customPromptPart}\n\n${corePrompt.replace('{json_input_text}', jsonInputText)}`;
                 
                 const requestBody = {
                 "contents": [
-                    { "parts": [ { "text": fullPrompt } ] }
+                    { "parts": [ { "text": fullPrompt } ] } // 【關鍵修正點】: 使用新的 fullPrompt 變數
                 ],
                 "generationConfig": {
                     "responseMimeType": "application/json"
@@ -265,37 +263,32 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 "safetySettings": SAFETY_SETTINGS
                 };
 
-                // 3. 執行「金鑰-模型」雙重迴圈
+                // 3. 執行「金鑰-模型」雙重迴圈 (v4.0.1 邏輯不變)
                 for (const keyInfo of apiKeys) { 
                     
-                    // 【關鍵修正點】 v1.2: 檢查金鑰是否處於冷卻中
                     const keyId = keyInfo.id;
                     const keyName = keyInfo.name || '未命名金鑰';
                     const currentKey = keyInfo.key;
                     const cooldownTimestamp = cooldowns[keyId];
 
                     if (cooldownTimestamp && now < cooldownTimestamp + (API_KEY_COOLDOWN_SECONDS * 1000)) {
-                        // 【關鍵修正點】: v3.1.2 - 追蹤冷卻狀態
                         keysInCooldown++;
-                        // 計算剩餘冷卻秒數 (無條件進位)
                         const remainingTime = Math.ceil((cooldownTimestamp + (API_KEY_COOLDOWN_SECONDS * 1000) - now) / 1000);
                         if (remainingTime < shortestRetryDelay) {
-                            shortestRetryDelay = remainingTime; // 找到最短的剩餘時間
+                            shortestRetryDelay = remainingTime; 
                         }
                         
                         await writeToLog('INFO', `金鑰 '${keyName}' 仍在冷卻中 (剩餘 ${remainingTime}秒)，已跳過。`);
-                        continue; // 嘗試下一個金鑰
+                        continue; 
                     } else if (cooldownTimestamp) {
-                        // 2. 金鑰冷卻期已過，將其從列表移除
                         delete cooldowns[keyId];
-                        cooldownsUpdated = true; // 標記稍後需要儲存
+                        cooldownsUpdated = true; 
                     }
 
                     for (const modelName of models_preference) { 
                         
                         try {
-                            // 【關鍵修正點】: 修正 "generativelace" 為 "generativelanguage"
-                            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, { //
+                            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, { 
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -311,7 +304,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                             const responseData = await response.json();
                             
-                            // 4. 解析回應
                             const translatedList = JSON.parse(responseData.candidates[0].content.parts[0].text);
                             
                             if (Array.isArray(translatedList) && translatedList.length === texts.length && translatedList.every(item => typeof item === 'string')) {
@@ -321,66 +313,52 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                                 throw new Error('模型回傳格式錯誤 (陣列長度或型別不符)');
                             }
 
-                        // 【關鍵修正點】: v3.1.1 - 修正錯誤分類順序
                         } catch (e) {
 
                             const errorStr = String(e.message).toLowerCase();
-                            errorStats.totalAttempts++; // 統計嘗試次數
+                            errorStats.totalAttempts++; 
 
                             if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('503') || errorStr.includes('overloaded')) {
-                                // 暫時性錯誤 (配額/過載) - 優先判斷
                                 errorStats.temporary++;
                                 await writeToLog('WARN', `金鑰 '${keyName}' 遭遇暫時性錯誤 (Quota/Overload)，將冷卻 ${API_KEY_COOLDOWN_SECONDS} 秒。`, e.message, '系統將自動嘗試下一個金鑰。');
                                 
-                                cooldowns[keyId] = Date.now(); // 保留冷卻邏輯
+                                cooldowns[keyId] = Date.now(); 
                                 await chrome.storage.session.set({ apiKeyCooldowns: cooldowns }); 
                                 
-                                break; // 跳出模型迴圈，嘗試下一個金鑰
-
+                                break; 
                             } else if (errorStr.includes('billing') || errorStr.includes('api key not valid')) {
-                                // 永久性錯誤 (金鑰級)
                                 errorStats.permanent++;
                                 await writeToLog('ERROR', `金鑰 '${keyName}' 驗證失敗 (Billing/Invalid)，將永久跳過此金鑰。`, e.message, '請更換金鑰。');
-                                break; // 跳出模型迴圈，嘗試下一個金鑰
-
+                                break; 
                             } else {
-                                // 批次錯誤 (模型級)
                                 errorStats.batch++;
                                 await writeToLog('WARN', `金鑰 '${keyName}' 呼叫模型 '${modelName}' 失敗 (可能為格式/內容錯誤)。`, e.message, '系統將自動嘗試下一個模型。'); 
-                                continue; // 嘗試下一個模型
+                                continue; 
                             }
                         }
-                        // 【關鍵修正點】: 結束
-                    } // (結束 模型 迴圈)
-                } // (結束 金鑰 迴圈)
+                    } 
+                } 
 
-                // 5. 根據錯誤統計，回傳結構化錯誤
-                // 【關鍵修正點】 v1.2: 儲存因冷卻期滿而被移除的金鑰列表 (保留)
+                // 5. 根據錯誤統計，回傳結構化錯誤 (v4.0.1 邏輯不變)
                 if (cooldownsUpdated) {
                     await chrome.storage.session.set({ apiKeyCooldowns: cooldowns });
                 }
                 
-                // 【關鍵修正點】: v3.1.2 - 新增「全冷卻中」檢查
                 if (keysInCooldown > 0 && keysInCooldown === apiKeys.length) {
-                    // 情境零：所有金鑰都在冷卻中
-                    const retryDelay = shortestRetryDelay < 1 ? 1 : shortestRetryDelay; // 確保至少 1 秒
+                    const retryDelay = shortestRetryDelay < 1 ? 1 : shortestRetryDelay; 
                     await writeToLog('WARN', `所有金鑰均在冷卻中，將於 ${retryDelay} 秒後重試。`);
                     sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
-                    return; // *** 關鍵：在此處停止 ***
+                    return; 
                 }
 
-                // 【關鍵修正點】: v3.1.0 - 智慧錯誤回報
                 if (errorStats.temporary > 0) {
-                    // 情境一：只要有一次是 429/503，就優先回報為可重試的暫時錯誤
                     const result = await chrome.storage.session.get({ 'errorLogs': [] });
-                    const lastTemporaryError = result.errorLogs[0]; // 剛剛才寫入的日誌
-                    let retryDelay = 10; // 預設 10 秒
+                    const lastTemporaryError = result.errorLogs[0]; 
+                    let retryDelay = 10; 
                     
                     if (lastTemporaryError && lastTemporaryError.context) {
-                        // 嘗試從 'retryDelay": "10s"' 中解析
                         const match = lastTemporaryError.context.match(/retryDelay": "(\d+)/);
                         if (match && match[1]) {
-                            // API 回傳秒數，我們也使用秒
                             retryDelay = parseInt(match[1], 10);
                         }
                     }
@@ -388,26 +366,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
 
                 } else if (errorStats.permanent > 0 && errorStats.permanent === errorStats.totalAttempts) {
-                    // 情境二：所有嘗試均為永久性金鑰錯誤
                     await writeToLog('ERROR', '所有 API Key 均失效 (Billing/Invalid)。', '翻譯流程已停止。', '請檢查並更換您的 API Key。');
                     sendResponse({ error: 'PERMANENT_FAILURE', message: '所有 API Key 均失效 (Billing/Invalid)。' });
 
                 } else if (errorStats.batch > 0) {
-                    // 情境三：沒有暫時性或永久性金鑰錯誤，但模型無法處理內容
                     await writeToLog('WARN', '模型無法處理此批次內容。', '可能為格式或內容錯誤。', '前端將標記此批次為可點擊重試。');
                     sendResponse({ error: 'BATCH_FAILURE', message: '模型無法處理此批次內容。' });
                     
                 } else {
-                    // 兜底：其他未知情況 (例如，沒有金鑰，或 totalAttempts = 0)
                     await writeToLog('ERROR', '所有 API Key 與模型均嘗試失敗 (未知原因)。', '請檢查日誌。', '請確認金鑰有效性、用量配額與網路連線。');
                     sendResponse({ error: '所有模型與 API Key 均嘗試失敗。' });
                 }
-                // 【關鍵修正點】: 結束
 
             })(); // 立即執行 async 函式
             break;
         
-        // --- (以下為 階段 1.B 已修改的程式碼) ---
         case 'STORE_ERROR_LOG':
             // 功能: (已修改) 接收來自 content.js 的錯誤日誌並存入 chrome.storage.session。
             // input from: content.js -> setPersistentError 函式
@@ -589,32 +562,69 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 });
             });
             break;
-            
-        // 【關鍵修正點】: v1.1 - 新增 'diagnoseAllKeys' 核心功能
+        
+        // 【關鍵修正點】: v4.1.1 - 新增 getDebugPrompts 動作
+        case 'getDebugPrompts':
+            // 功能: [v4.1.1] 獲取實驗室所需的預設 Prompt 內容
+            // input from: lab.js
+            // output: { universalPrompt, savedCustomPrompt }
+            // 其他補充: 會從 storage 讀取 "真實" 的自訂 Prompt
+            isAsync = true;
+            (async () => {
+                try {
+                    // 使用 defaultSettings 作為 B 計畫
+                    const result = await chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings });
+                    const settings = result.ytEnhancerSettings;
+                    
+                    // 1. 獲取 "真實儲存的自訂 Prompt"
+                    const tier2List = settings.auto_translate_priority_list || [];
+                    const langConfig = tier2List.find(item => item.langCode === 'ja'); // 預設 'ja'
+                    
+                    let savedCustomPrompt;
+                    if (langConfig && langConfig.customPrompt) {
+                        // 情況 A: 找到使用者儲存的 'ja' Prompt
+                        savedCustomPrompt = langConfig.customPrompt;
+                    } else {
+                        // 情況 B: Fallback (B 計畫)，使用硬編碼的預設 'ja' Prompt
+                        savedCustomPrompt = DEFAULT_CUSTOM_PROMPTS['ja'];
+                    }
+                    
+                    // 2. 獲取 "通用 Prompt"
+                    const universalPrompt = DEFAULT_CORE_PROMPT_TEMPLATE;
+                    
+                    sendResponse({ success: true, universalPrompt, savedCustomPrompt });
+                    
+                } catch (e) {
+                    console.error('[Background] getDebugPrompts 失敗:', e);
+                    sendResponse({ success: false, error: e.message });
+                }
+            })();
+            break;
+
         case 'diagnoseAllKeys':
             isAsync = true;
             
             (async () => {
-                const results = []; //
+                const results = []; 
                 const keyResult = await chrome.storage.local.get(['userApiKeys']);
-                const apiKeys = keyResult.userApiKeys || []; //
+                const apiKeys = keyResult.userApiKeys || []; 
 
                 if (apiKeys.length === 0) {
-                    await writeToLog('WARN', '診斷失敗：未設定 API Key', null, '請至「診斷與日誌」分頁新增您的 API Key。'); //
-                    sendResponse([]); //
+                    await writeToLog('WARN', '診斷失敗：未設定 API Key', null, '請至「診斷與日誌」分頁新增您的 API Key。'); 
+                    sendResponse([]); 
                     return;
                 }
 
                 const testBody = {
                   "contents": [
-                    { "parts": [ { "text": "test" } ] } //
+                    { "parts": [ { "text": "test" } ] } 
                   ],
                   "generationConfig": {
-                    "responseMimeType": "text/plain" //
+                    "responseMimeType": "text/plain" 
                   }
                 };
 
-                for (const keyInfo of apiKeys) { //
+                for (const keyInfo of apiKeys) { 
                     const keyName = keyInfo.name || '未命名金鑰';
                     try {
                         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
@@ -631,18 +641,16 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                             throw new Error(`HTTP ${response.status}: ${errorText}`);
                         }
                         
-                        // 測試成功
-                        await writeToLog('INFO', `金鑰 '${keyName}' 診斷有效。`, null, null); //
-                        results.push({ name: keyName, status: 'valid' }); //
+                        await writeToLog('INFO', `金鑰 '${keyName}' 診斷有效。`, null, null); 
+                        results.push({ name: keyName, status: 'valid' }); 
 
                     } catch (e) {
-                        // 測試失敗
-                        await writeToLog('ERROR', `金鑰 '${keyName}' 診斷無效。`, e.message, '請確認金鑰是否複製正確、是否已啟用或已達用量上限。'); //
-                        results.push({ name: keyName, status: 'invalid', error: e.message }); //
+                        await writeToLog('ERROR', `金鑰 '${keyName}' 診斷無效。`, e.message, '請確認金鑰是否複製正確、是否已啟用或已達用量上限。'); 
+                        results.push({ name: keyName, status: 'invalid', error: e.message }); 
                     }
                 }
 
-                sendResponse(results); //
+                sendResponse(results); 
             })();
             
             break;
