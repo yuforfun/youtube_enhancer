@@ -4,19 +4,16 @@
  * @author [yuforfun]
  * @copyright 2025 [yuforfun]
  * @license MIT
- *
- * This program is free software distributed under the MIT License.
- * Version: 4.0.2
  */
 (function() {
     'use strict';
     if (window.ytEnhancerInjector) return;
 
-    // 【關鍵修正點】: 新增偵錯模式開關和計時器
+    // 偵錯模式開關和計時器
     const DEBUG_MODE = true;
     const scriptStartTime = performance.now();
 
-    // 【關鍵修正點】: 建立一個詳細的日誌記錄器
+    // 建立一個詳細的日誌記錄器
     const debugLog = (message, ...args) => {
         if (DEBUG_MODE) {
             const timestamp = (performance.now() - scriptStartTime).toFixed(2).padStart(7, ' ');
@@ -83,7 +80,7 @@
                 }
 
                 if (videoId) {
-                    // 【關鍵修正點】: 在確認是新影片時，立刻發送信號通知指揮中心
+                    // 在確認是新影片時，立刻發送信號通知指揮中心
                     debugLog(`📢 [導航通知] 偵測到新影片，正在通知指揮中心...`);
                     this.sendMessageToContent('YT_NAVIGATED', { videoId });
 
@@ -104,7 +101,7 @@
             const MAX_RETRIES = 50;
             const RETRY_INTERVAL = 100;
 
-            // 【關鍵修正點】: 增加輪詢嘗試日誌
+            // 輪詢嘗試日誌
             if (retryCount === 0) {
                 debugLog(`[main] 開始輪詢播放器元件...`);
             }
@@ -121,7 +118,7 @@
                         this.state.isDataSent = false;
 
                         this.state.playerResponse = playerResponse;
-                        this.state.isDataReady = true; // 【關鍵修正點】: 標記資料就緒
+                        this.state.isDataReady = true; // 標記資料就緒
                         debugLog(`[main] 狀態更新: isDataReady -> true`);
 
                         this.state.isPolling = false;
@@ -186,18 +183,11 @@
             debugLog('[系統] Fetch 和 XHR 雙攔截器已啟動。');
         }
 
-        /**
-         * 功能: 統一處理 timedtext 回應，並增加對無效回應的防禦性處理。
-         * input: 
-         * - responsePromise (Promise): Fetch 或 XHR 回應的 Promise 物件。
-         * - requestUrl (String | null): 可選的請求 URL 字串。
-         * output: 條件滿足時，發送 TIMEDTEXT_DATA 訊息給 content.js。
-         * 其他補充: 這是確保系統穩健性的關鍵函式，能夠過濾掉 YouTube 發出的無效或空的 timedtext 請求。
-         */
         handleTimedTextRequest(responsePromise, requestUrl = null) {
             // 功能: (vssId 最終修正版) 統一處理 timedtext 回應，確保 vssId 永不為 null。
             // input: responsePromise (Promise), requestUrl (可選的字串)。
             // output: 發送包含 vssId 的 TIMEDTEXT_DATA 訊息給 content.js。
+            // 其他補充: 這是確保系統穩健性的關鍵函式，能夠過濾掉 YouTube 發出的無效或空的 timedtext 請求。
             responsePromise.then(response => {
                 if (!response.ok) return;
 
@@ -223,7 +213,6 @@
                         debugLog(`✅ [攔截器] 成功捕獲並解析語言 [${lang}] (vssId: ${vssId || 'N/A'}) 的字幕，準備發送至指揮中心。`);
                         this.sendMessageToContent('TIMEDTEXT_DATA', { payload: data, lang, vssId });
                     })
-                    // 【關鍵修正點】開始: 增強 catch 區塊的日誌清晰度
                     .catch(err => {
                         // 這個 catch 區塊至關重要。它能處理 YouTube 返回空回應或無效 JSON 的情況。
                         // 我們不把這個視為致命錯誤，而是將其記錄為一個被「過濾掉」的事件，
@@ -234,7 +223,6 @@
                             debugLog(`❌ [攔截器] 處理 timedtext 時發生非預期錯誤:`, err);
                         }
                     });
-                    // 【關鍵修正點】結束
             });
             // 保持返回原始 promise 以維持 promise chain
             return responsePromise;
@@ -279,7 +267,7 @@
                             }
                         };
 
-                        // 【關鍵修正點】開始: 執行指令時，增加短期重試的保險機制
+                        // 開始: 執行指令時，增加短期重試的保險機制
                         // 第一次立即執行
                         command(1);
 
@@ -288,7 +276,6 @@
 
                         // 第三次再次延遲執行 (最終保險)
                         setTimeout(() => command(3), 500);
-                        // 【關鍵修正點】結束
 
                     } else {
                         debugLog('❌ [指令] 無法執行，缺少播放器實例或軌道資料。');

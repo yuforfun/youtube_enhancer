@@ -3,14 +3,8 @@
  * @author [yuforfun]
  * @copyright 2025 [yuforfun]
  * @license MIT
- *
- * This program is free software distributed under the MIT License.
- * Version: 4.0.2
- *
- * Handles logic for both popup.html (Remote Control) and options.html (Admin Panel).
  */
 
-// 【關鍵修正點】: v2.0 - 將所有邏輯包裹在 DOMContentLoaded 內部
 document.addEventListener('DOMContentLoaded', () => {
     // 功能: 整個 popup.html 和 options.html 腳本的啟動入口。
 
@@ -24,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'zh-TW': '繁體中文 (台灣)', 'zh-CN': '簡體中文 (中國)', 'zh-HK': '繁體中文 (香港)'
     };
 
-    // --- [v2.0] 新增常數 (步驟 2.B) ---
+    // 
     const LANGUAGE_DATABASE = [
         { code: 'ja', name: '日文', search: ['ja', 'japanese', '日文', '日語'] },
         { code: 'en', name: '英文', search: ['en', 'english', '英文', '英語'] },
@@ -45,15 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { code: 'tr', name: '土耳其文', search: ['tr', 'turkish', '土耳其文', '土耳其語'] }
     ];
 
-    const NEW_LANGUAGE_PROMPT_TEMPLATE = `**風格指南:**
-- 翻譯需符合台灣人的說話習慣，並保留說話者的情感語氣。
-- (可選) 翻譯風格應偏向 (口語化/書面語/專業/活潑)。
-
-**人名/專有名詞對照表 (優先級最高):**
-- (範例) 原文名稱/讀音 -> 應翻譯的專有名詞
-`;
-    // --- [v2.0] 常數結束 ---
-
     const ALL_MODELS = {
         'gemini-2.5-pro': { name: 'Gemini 2.5 Pro', tip: '最高品質，適合複雜推理任務。' },
         'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', tip: '效能與速度的平衡點。' },
@@ -62,7 +47,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'gemini-2.0-flash-lite': { name: 'Gemini 2.0 Flash-Lite', tip: '舊版最快模型。' }
     };
 
-    // 【關鍵修正點】: v1.1 - 從 backend.py 遷移預設 Prompts
+    const NEW_LANGUAGE_PROMPT_TEMPLATE = `**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者的情感語氣。
+- (可選) 翻譯風格應偏向 (口語化/書面語/專業/活潑)。
+
+**人名/專有名詞對照表 (優先級最高):**
+- (範例) 原文名稱/讀音 -> 應翻譯的專有名詞
+`;
+    // **「舊使用者」的版本升級「資料庫遷移」
     const DEFAULT_CUSTOM_PROMPTS = {
         "ja": `**風格指南:**
 - 翻譯需符合台灣人的說話習慣，並保留說話者(日本偶像)的情感語氣。
@@ -83,8 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
 - 菅田將暉 -> 菅田暉
 - ノブ -> ノブ
 `,
-        "ko": "--- 韓文自訂 Prompt (請在此輸入風格與對照表) ---",
-        "en": "--- 英文自訂 Prompt (請在此輸入風格與對照表) ---"
+        "ko": `**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者(偶像)的情感語氣。
+
+**人名/專有名詞對照表 (優先級最高):**
+無論上下文如何，只要看到左側的原文或讀音，就必須嚴格地翻譯為右側的詞彙。
+`,
+        "en": `**風格指南:**
+- 翻譯需符合台灣人的說話習慣，並保留說話者的情感語氣。
+
+**人名/專有名詞對照表 (優先級最高):**
+無論上下文如何，只要看到左側的原文或讀音，就必須嚴格地翻譯為右側的詞彙。
+`
     };
 
     // --- 通用函數 ---
@@ -107,9 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let settings = {};
 
-    // 功能: [v2.0] 獲取設定，並包含從 v1.x 到 v2.0 的資料庫自動遷移邏輯。
+    // 功能: 獲取設定，並包含從 v1.x 版本升級的資料庫自動遷移邏輯。
     async function loadSettings() {
-        console.log('[v2.0] 開始載入設定...');
+        console.log('開始載入設定...');
         
         const minimumDefaults = {
             fontSize: 22,
@@ -119,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // 【關鍵修正點】: v2.G - 一次性獲取所有 storage 資料，避免 get(['key']) 的不穩定
+            // 一次性獲取所有 storage 資料，避免 get(['key']) 的不穩定
             const allStorageData = await chrome.storage.local.get(null);
             
             let currentSettings = allStorageData.ytEnhancerSettings;
@@ -130,14 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let needsSave = false; // 追蹤是否執行了遷移
 
-            // 【關鍵修正點】開始: v2.0 資料庫遷移邏輯 (v2.G 修復版)
+            // 資料庫遷移邏輯
             if (currentSettings.preferred_langs) {
-                console.log('[v2.0 Migration] 偵測到旧版設定 (preferred_langs)，正在執行資料庫遷移...');
+                console.log('[Migration] 偵測到舊版設定 (preferred_langs)，正在執行資料庫遷移...');
                 if (isOptionsPage) { 
                     showOptionsToast('偵測到舊版設定，正在升級資料庫...', 4000);
                 }
 
-                // 1. 【關鍵修正點】: 從 allStorageData 中安全地獲取 userPrompts
+                // 1. 從 allStorageData 中安全地獲取 userPrompts
                 const userPrompts = allStorageData.customPrompts; // 絕對讀取，如果不存在才是 undefined
 
                 // 2. 正確合併 Prompt (以 DEFAULT 為基底，用 userPrompts 覆蓋)
@@ -163,14 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 7. [關鍵] 刪除舊的頂層 customPrompts 儲存金鑰
                 await chrome.storage.local.remove('customPrompts');
-                console.log('[v2.0 Migration] 舊的 customPrompts 鍵已移除。');
+                console.log('[Migration] 舊的 customPrompts 鍵已移除。');
             }
-            // 【關鍵修正點】結束
 
             settings = { ...minimumDefaults, ...currentSettings };
             
             if (needsSave) {
-                console.log('[v2.0 Migration] 遷移完成，正在儲存 v2.0 設定...');
+                console.log('[Migration] 遷移完成，正在儲存新版本設定...');
                 await sendMessage({ action: 'updateSettings', data: settings });
             }
             
@@ -186,20 +187,15 @@ document.addEventListener('DOMContentLoaded', () => {
             settings = minimumDefaults;
             updateUI();
         }
-        console.log('[v2.0] 設定載入完畢。');
+        console.log('設定載入完畢。');
     }
 
-    // 【關鍵修正點】: (Phase 2 Bug Fix) 替換此函式
-    // 功能: [v2.2.0 修復] 將使用者在 UI 上的設定變動儲存到 background.js
+    // 功能: 將使用者在 UI 上的設定變動儲存到 background.js
     // input: showToast (boolean) - 是否顯示儲存提示
     // output: (Promise) 儲存操作
-    // 其他補充: (Plan.md) 移除了 models_preference 的 DOM 讀取邏輯
     async function saveSettings(showToast = false) {
-        // 功能: 將使用者在 UI 上的設定變動儲存到 background.js
         if (isOptionsPage) {
-            // [v2.0] Tier 1/2 的 settings 已由各自的處理函式 (handleTier1Add/Remove, handleTier2SavePrompt, etc.) 即時更新
-            
-            // 【關鍵修正點】: (Phase 2 Bug Fix) 移除此行錯誤的覆蓋程式碼
+            // Tier 1/2 的 settings 已由各自的處理函式 (handleTier1Add/Remove, handleTier2SavePrompt, etc.) 即時更新
             // const selectedList = document.getElementById('selected-models');
             // if (selectedList) { 
             //      settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
@@ -217,13 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (showToast && isOptionsPage) showOptionsToast('設定已儲存！');
     }
-    // 功能: [v4.1.3] 根據 settings 更新所有 UI 元件
+    // 功能: 根據 settings 更新所有 UI 元件
     // input: 無 (從全域 settings 變數讀取)
     // output: (DOM 操作) 更新 popup.html 或 options.html 的 UI 狀態
-    // 其他補充: v4.1.3 - 新增更新 #hqsToggleJa 的邏輯
     function updateUI() {
         if (isOptionsPage) {
-            // Options Page 邏輯 (保持不變)
             populateModelLists();
             const fontFamilySelect = document.getElementById('fontFamilySelect');
             if (fontFamilySelect) fontFamilySelect.value = settings.fontFamily;
@@ -240,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const showTranslated = document.getElementById('showTranslated');
             if (showTranslated) showTranslated.checked = settings.showTranslated ?? true;
 
-            // 【關鍵修正點】: v4.1.3 - 更新 HQS 開關狀態
+            // 更新 HQS 開關狀態
             const hqsToggle = document.getElementById('hqsToggleJa');
             if (hqsToggle) {
                 // 從 settings 讀取 hqsEnabledForJa 的值 (若不存在則預設 false)
@@ -252,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Options Page 專屬邏輯 ---
     if (isOptionsPage) {
 
-        // --- [保留] 頁籤 (Tab) 邏輯 ---
+        // 頁籤 (Tab) 邏輯 ---
         const tabLinks = document.querySelectorAll('.tab-link');
         const tabContents = document.querySelectorAll('.tab-content');
         tabLinks.forEach(link => {
@@ -264,43 +258,30 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
-        // 【關鍵修正點】: (Phase 2) 替換此函式
-        // 功能: [v2.2.0 重構] 綁定模型偏好設定 UI (單一列表 + 標籤) 的事件
+        // 功能: 綁定模型偏好設定 UI (單一列表 + 標籤) 的事件
         // input: 無 (DOM 事件)
         // output: (DOM 事件綁定)
-        // 其他補充: (Plan.md) 移除舊的雙列表邏輯，新增「添加」和「移除」事件
         function initializeModelSelector() {
             const selectedList = document.getElementById('selected-models');
-            // 【關鍵修正點】: (Plan.md) 獲取新的標籤容器
             const availablePillsContainer = document.getElementById('available-model-pills');
 
-            if (!selectedList || !availablePillsContainer) return; // [修復] 增加 null 檢查
+            if (!selectedList || !availablePillsContainer) return; 
 
-            // 【關鍵修正點】: (Plan.md) 移除舊的 #add-model, #remove-model 監聽器
-            // (DOM 元素已在 options.html 中被刪除)
-
-            // 【關鍵修正點】: (Plan.md) 移除舊的 li.selected 點擊切換邏輯
-            // (舊的 list.addEventListener('click', (e) => ... li.classList.toggle('selected') ...); 已被移除)
-
-            // 【關鍵修正點】: (Plan.md) 保留拖曳排序功能
             initializeSortableList('selected-models', () => {
                 // 拖曳結束後，從 DOM 讀取順序並儲存
                 settings.models_preference = [...selectedList.querySelectorAll('li')].map(li => li.dataset.id);
                 saveSettings(true); // 顯示提示
             });
 
-            // 【關鍵修正點】: (Plan.md) 新增: 監聽「已選用列表」中的「移除」按鈕
             selectedList.addEventListener('click', (e) => {
                 if (e.target.classList.contains('remove-model-item')) {
                     const modelId = e.target.dataset.id;
-                    // 從陣列中移除
                     settings.models_preference = (settings.models_preference || []).filter(id => id !== modelId);
                     saveSettings(true); // 儲存並顯示提示
                     populateModelLists(); // 立即重繪兩個列表
                 }
             });
 
-            // 【關鍵修正點】: (Plan.md) 新增: 監聽「可添加模型」標籤的點擊
             availablePillsContainer.addEventListener('click', (e) => {
                 if (e.target.classList.contains('add-model-pill')) {
                     const modelId = e.target.dataset.id;
@@ -313,17 +294,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } 
 
-        // 【關鍵修正點】: (Phase 2) 替換此函式
-        // 功能: [v2.2.0 重構] 渲染「已選用模型」列表和「可添加模型」標籤
+        // 功能: 渲染「已選用模型」列表和「可添加模型」標籤
         // input: 無 (從 settings 讀取)
         // output: (DOM 操作) 更新 #selected-models 和 #available-model-pills
         // 其他補充: (Plan.md) 根據 settings.models_preference 動態分配模型到兩個容器
         function populateModelLists() {
             const selectedList = document.getElementById('selected-models');
-            // 【關鍵修正點】: (Plan.md) 獲取新的標籤容器
             const availablePillsContainer = document.getElementById('available-model-pills');
             
-            if (!selectedList || !availablePillsContainer) return; // [修復] 增加 null 檢查
+            if (!selectedList || !availablePillsContainer) return;
             
             selectedList.innerHTML = '';
             availablePillsContainer.innerHTML = '';
@@ -331,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const preferred = settings.models_preference || [];
             const preferredSet = new Set(preferred);
 
-            // 【關鍵修正點】: 1. 渲染「已選用模型」列表
+            // 1. 渲染「已選用模型」列表
             preferred.forEach(modelId => {
                 if (ALL_MODELS[modelId]) {
                     // 使用 createModelListItem 建立帶有「移除」按鈕的 li
@@ -339,10 +318,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // 【關鍵修正點】: 2. 渲染「可添加模型」標籤
+            // 2. 渲染「可添加模型」標籤
             Object.keys(ALL_MODELS).forEach(modelId => {
                 if (!preferredSet.has(modelId)) {
-                    // (Plan.md) 動態生成 "Available Pills"
+                    // 動態生成 "Available Pills"
                     const pill = document.createElement('button');
                     pill.className = 'add-model-pill';
                     pill.dataset.id = modelId;
@@ -352,15 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 【關鍵修正點】: (Phase 2) 替換此函式
-        // 功能: [v2.2.0 重構] 建立一個用於「已選用模型」列表的 li 元素 (含移除按鈕)
+        // 功能: 建立一個用於「已選用模型」列表的 li 元素 (含移除按鈕)
         // input: id (string) - 模型 ID (例如 'gemini-2.5-flash')
         // output: li (HTMLElement) - 包含移除按鈕的列表項
         function createModelListItem(id) {
             const li = document.createElement('li');
             li.dataset.id = id;
             li.draggable = true;
-            // 【關鍵修正點】: (Plan.md) 新增 <div> 包裹內容，並添加「移除」按鈕
             li.innerHTML = `
                 <div class="model-list-item-content">
                     <span>${ALL_MODELS[id].name}</span>
@@ -372,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         initializeModelSelector();
         
-        // --- [保留] 進階外觀 ---
+        // --- 進階外觀 ---
         const fontFamilySelect = document.getElementById('fontFamilySelect');
         if (fontFamilySelect) {
             fontFamilySelect.addEventListener('change', (e) => {
@@ -381,11 +358,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 【關鍵修正點】: (Phase 1) 替換此函式
-        // 功能: [v2.2.0] 讀取 userApiKeys 陣列並將其渲染為可編輯的 input 列表
+        // 功能: 讀取 userApiKeys 陣列並將其渲染為可編輯的 input 列表
         // input: 無 (從 chrome.storage.local 讀取)
         // output: (DOM 操作) 更新 #apiKeyList
-        // 其他補充: (Plan.md) 最後會動態附加「+ 新增金鑰」按鈕
         async function loadAndRenderApiKeys() {
             const listElement = document.getElementById('apiKeyList');
             if (!listElement) return;
@@ -397,10 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (keys.length === 0) {
                     // listElement.innerHTML = '<li style="color: var(--text-light-color); justify-content: center;">尚無金鑰</li>';
-                    // (v2.2.0: 不顯示 "尚無金鑰"，直接顯示新增按鈕)
                 }
 
-                // 【關鍵修正點】: (Plan.md) 渲染已儲存的金鑰
                 keys.forEach(key => {
                     const li = document.createElement('li');
                     li.className = 'api-key-item-saved'; // 標記為已儲存
@@ -409,11 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="password" class="key-value-input" value="${key.key || ''}" data-id="${key.id}" placeholder="請在此貼上您的 Google API">
                         <button class="delete-key" data-id="${key.id}">×</button>
                     `;
-                    // 【關鍵修正點】: 上一行 <button> 內容從 "刪除" 改為 "×"
                     listElement.appendChild(li);
                 });
 
-                // 【關鍵修正點】: (Plan.md) 在 ul 內部渲染「+ 新增金鑰」按鈕
                 const addRow = document.createElement('li');
                 addRow.className = 'add-key-row';
                 addRow.innerHTML = `<button id="addNewKeyRowButton" class="button-secondary add-lang-button" style="width: 100%;">+ 新增金鑰</button>`;
@@ -425,32 +396,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 【關鍵修正點】: (Phase 1) 替換此函式
-        // 功能: [v2.2.0 重構] 綁定金鑰管理區塊 (新增/刪除/更新) 的所有事件監聽器
-        // input: 無 (DOM 事件)
-        // output: (chrome.storage.local 操作)
-        // 其他補充: (Plan.md) 採用事件委派模式，處理暫時列 (blur 儲存) 與已儲存列 (change 更新)
         function setupApiKeyListeners() {
-            // 功能: 
-            // input:
-            // output:
-            // 其他補充:
-            
-            // 【關鍵修正點】: (Plan.md) 移除舊的 input 和 add-button 參照
+            // 功能: 綁定金鑰管理區塊 (新增/刪除/更新) 的所有事件監聽器
+            // input: 無 (DOM 事件)
+            // output: (chrome.storage.local 操作)
+            // 其他補充: 採用事件委派模式，處理暫時列 (blur 儲存) 與已儲存列 (change 更新)
             const listElement = document.getElementById('apiKeyList');
             if (!listElement) return;
 
-            // --- 1. [v2.2.0] 點擊事件委派 (新增/刪除) ---
+            // --- 1. 點擊事件委派 (新增/刪除) ---
             listElement.addEventListener('click', async (e) => {
                 const target = e.target;
 
-                // [保留] 邏輯: 點擊「刪除」 (已儲存的金鑰)
+                // 點擊「刪除」 (已儲存的金鑰)
                 if (target.classList.contains('delete-key')) {
                     const keyId = target.dataset.id;
                     if (!keyId || !confirm('您確定要刪除此 API Key 嗎？')) return;
                     try {
                         target.disabled = true;
-                        // 【關鍵修正點】: 將 "刪除中..." 修改為 "..." 以適應圓形按鈕
                         target.textContent = '...';
                         const result = await chrome.storage.local.get(['userApiKeys']);
                         let keys = (result.userApiKeys || []).filter(key => key.id !== keyId);
@@ -464,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // [新增] 邏輯: 點擊「+ 新增金鑰」按鈕
+                // 點擊「+ 新增金鑰」按鈕
                 if (target.id === 'addNewKeyRowButton') {
                     // 檢查是否已存在暫時列，避免重複新增
                     const existingTempRow = listElement.querySelector('li.api-key-item-new');
@@ -480,25 +443,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="text" class="new-key-value-input" placeholder="請在此貼上您的 Google API">
                         <button class="delete-temp-row-button">×</button>
                     `;
-                    // 【關鍵修正點】: 上一行 <button> 內容從 "刪除" 改為 "×"
-                    // 插在「新增」按鈕之前
                     listElement.insertBefore(newLi, target.closest('li.add-key-row'));
                     newLi.querySelector('.new-key-name-input').focus();
                 }
 
-                // [新增] 邏輯: 點擊「刪除」 (暫時列)
+                // 點擊「刪除」 (暫時列)
                 if (target.classList.contains('delete-temp-row-button')) {
                     target.closest('li.api-key-item-new').remove();
                 }
             });
 
-            // --- 2. [v2.2.0] 儲存 (on blur) 事件委派 (for 暫時列) ---
+            // --- 2. 儲存 (on blur) 事件委派 (for 暫時列) ---
             // 使用 'blur' (capture: true) 來捕捉 input 失去焦點
             listElement.addEventListener('blur', async (e) => {
                 const li = e.target.closest('li.api-key-item-new');
                 if (!li) return; // 不是暫時列
 
-                // 【關鍵修正點】: (Plan.md) 檢查焦點是否移出整個 li
+                // 檢查焦點是否移出整個 li
                 // relatedTarget 是焦點 *將要* 移往的元素
                 const relatedTarget = e.relatedTarget;
                 if (relatedTarget && li.contains(relatedTarget)) {
@@ -510,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nameInput = li.querySelector('.new-key-name-input');
                 const keyInput = li.querySelector('.new-key-value-input');
 
-                // 【關鍵修正點】: (Plan.md) 兩者都必須有值才儲存
+                // 兩者都必須有值才儲存
                 if (nameInput.value.trim() && keyInput.value.trim()) {
                     const name = nameInput.value.trim();
                     const key = keyInput.value.trim();
@@ -530,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         await chrome.storage.local.set({ userApiKeys: keys });
                         
                         showOptionsToast(`金鑰 "${name}" 已成功新增！`);
-                        await loadAndRenderApiKeys(); // 【關鍵修正點】: 儲存後立即重新渲染整個列表
+                        await loadAndRenderApiKeys(); // 儲存後立即重新渲染整個列表
 
                     } catch (err) {
                         console.error('新增 API Key 失敗:', err);
@@ -541,11 +502,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 如果任一為空，on blur 不做事，等待使用者刪除或填寫
             }, true); // 使用 capture: true
 
-            // --- 3. [v2.2.0] 更新 (on change) 事件委派 (for 已儲存的金鑰) ---
+            // --- 3. 更新 (on change) 事件委派 (for 已儲存的金鑰) ---
             // 'change' 事件會在 input 失去焦點 *且* 值已改變時觸發
             listElement.addEventListener('change', async (e) => {
                 const target = e.target;
-                // 【關鍵修正點】: (Plan.md) 只響應 "已儲存" 金鑰的 input
+                // 只響應 "已儲存" 金鑰的 input
                 if (!target.classList.contains('key-name-input') && !target.classList.contains('key-value-input')) {
                     return;
                 }
@@ -583,14 +544,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // --- 4. [v2.2.0] 密碼框點擊顯示/隱藏 (UX 優化) ---
-            // [新增] 點擊 (focusin) 密碼框時顯示文字
+            // --- 4. 密碼框點擊顯示/隱藏 ---
             listElement.addEventListener('focusin', (e) => {
                 if (e.target.classList.contains('key-value-input')) {
                     e.target.type = 'text';
                 }
             });
-            // [新增] 移開 (focusout) 密碼框時隱藏文字
             listElement.addEventListener('focusout', (e) => {
                 if (e.target.classList.contains('key-value-input')) {
                     e.target.type = 'password';
@@ -601,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAndRenderApiKeys();
         setupApiKeyListeners();
 
-        // --- [保留] 診斷與日誌 ---
+        // --- 診斷與日誌 ---
         document.getElementById('clearCacheButton')?.addEventListener('click', async () => {
             const res = await sendMessage({ action: 'clearAllCache' });
             showOptionsToast(`成功清除了 ${res.count} 個影片的暫存！`);
@@ -640,10 +599,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         async function loadErrorLogs() {
-            // 功能: (已修改) 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
+            // 功能: 從 background.js 獲取錯誤日誌並顯示在診斷頁面。
             // input from: (自動執行)
             // output to: (DOM 操作) #error-log-container
-            // 其他補充: 【關鍵修正點】 v1.1 - 重寫以渲染豐富的 LogEntry 物件
             const logContainer = document.getElementById('error-log-container');
             if (!logContainer) return;
             const response = await sendMessage({ action: 'getErrorLogs' }); 
@@ -670,10 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         loadErrorLogs();
 
-        // --- [v2.0] Tier 1: 原文顯示 (Badge/Token) 邏輯 (步驟 2.C) ---
-        // 【關鍵修正點】: v2.1 - 完全重寫 Tier 1 邏輯以支援拖曳排序
-
-        // 功能: [v2.1] 將 native_langs 陣列渲染為可拖曳的 <li> 列表
+        // --- Tier 1: 原文顯示 (Badge/Token) 邏輯 ---
         function renderTier1Badges(langs = []) {
             const container = document.getElementById('tier-1-badge-list');
             if (!container) return; 
@@ -693,11 +648,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.appendChild(li);
             });
 
-            // 【關鍵修正點】: v2.1 - 綁定拖曳排序功能
+            // 綁定拖曳排序功能
             initializeSortableList('tier-1-badge-list', saveTier1Settings);
         }
 
-        // 功能: [v2.1.2 修正] 儲存 Tier 1 列表的當前 DOM 順序
+        // 功能: 儲存 Tier 1 列表的當前 DOM 順序
         async function saveTier1Settings(showToast = false) {
             const listElement = document.getElementById('tier-1-badge-list');
             if (!listElement) return;
@@ -705,7 +660,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // 根據 DOM 順序讀取 langCode
             const newList = [...listElement.querySelectorAll('li')].map(li => li.dataset.langCode);
             
-            // 【關鍵修正點】: 移除錯誤的 if 檢查。
             // 必須無條件以 DOM 的當前狀態為準，更新全域 settings 並儲存。
             const hasChanged = JSON.stringify(settings.native_langs) !== JSON.stringify(newList);
             
@@ -718,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 功能: [v2.1] 處理新增語言到 Tier 1
+        // 功能: 處理新增語言到 Tier 1
         function handleTier1Add() {
             openLanguagePopover((selectedLang) => {
                 if (!settings.native_langs) settings.native_langs = [];
@@ -737,21 +691,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 settings.native_langs.push(selectedLang.code);
                 renderTier1Badges(settings.native_langs); 
-                saveTier1Settings(false); // 【關鍵修正點】: 呼叫 saveTier1Settings 而不是 saveSettings
+                saveTier1Settings(false); // 呼叫 saveTier1Settings 而不是 saveSettings
                 
                 showOptionsToast(`已新增 "${selectedLang.name}" 到清單 A`, 3000);
             });
         }
 
-        // 功能: [v2.1] 處理從 Tier 1 移除語言
+        // 功能: 處理從 Tier 1 移除語言
         function handleTier1Remove(langCode) {
             settings.native_langs = (settings.native_langs || []).filter(lang => lang !== langCode);
             renderTier1Badges(settings.native_langs);
-            saveTier1Settings(false); // 【關鍵修正點】: 呼叫 saveTier1Settings 而不是 saveSettings
+            saveTier1Settings(false); // 呼叫 saveTier1Settings 而不是 saveSettings
             showOptionsToast(`已從清單 A 移除 (${langCode})`, 3000);
         }
 
-        // --- [v2.0] Tier 2: 自動翻譯 (Accordion) 邏輯 (步驟 2.C) ---
+        // ---Tier 2: 自動翻譯 (Accordion) 邏輯 ---
         function renderTier2Accordions(list = []) {
             const container = document.getElementById('tier-2-accordion-list');
             if (!container) return; 
@@ -865,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- [v2.0] Popover: 語言搜尋 (共用) 邏輯 (步驟 2.C) ---
+        // --- \Popover: 語言搜尋 (共用) 邏輯 ---
         let currentPopoverCallback = null;
 
         function openLanguagePopover(onSelectCallback) {
@@ -917,10 +871,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // --- [v2.0] 綁定所有 v2.0 事件監聽器 (步驟 2.C) ---
+        // --- 綁定所有事件監聽器 ---
         document.getElementById('tier-1-add-button')?.addEventListener('click', handleTier1Add);
         
-        // 【關鍵修正點】: v2.1 - 修改監聽器以適配 ul > li 結構
         document.getElementById('tier-1-badge-list')?.addEventListener('click', (e) => {
             const removeButton = e.target.closest('.remove-badge');
             if (removeButton) {
@@ -963,7 +916,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('language-search-input')?.addEventListener('input', (e) => {
             renderLanguageSearchResults(e.target.value);
         });
-        // --- [v2.0] 事件監聽器結束 ---
 
     } else {
         // --- Popup Page 專屬邏輯 ---
@@ -1033,7 +985,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         async function loadAvailableLangs() {
-            // 【關鍵修正點】: v2.0 - overrideSelect 已被廢除，安全檢查
             if (!overrideSelect) return; 
             
             const response = await sendMessage({ action: 'getAvailableLangs' });
@@ -1056,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         loadAvailableLangs();
-        // 【關鍵修正點】: v4.1.3 - 新增 HQS 開關事件監聽 START
+        // HQS 開關事件監聽 START
         const hqsToggle = document.getElementById('hqsToggleJa');
         if (hqsToggle) {
             hqsToggle.addEventListener('change', (e) => {
@@ -1066,7 +1017,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveSettings();
             });
         }
-        // 【關鍵修正點】: v4.1.3 - 新增 HQS 開關事件監聽 END
         document.getElementById('openOptionsButton').addEventListener('click', () => {
             chrome.runtime.openOptionsPage();
         });

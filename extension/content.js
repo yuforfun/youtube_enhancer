@@ -4,38 +4,35 @@
  * @author [yuforfun]
  * @copyright 2025 [yuforfun]
  * @license MIT
- *
- * This program is free software distributed under the MIT License.
- * Version: 4.0.2
  */
 
-// 【關鍵修正點】: 新增偵錯模式開關和計時器
+// 偵錯模式開關和計時器
 const DEBUG_MODE = true;
 const scriptStartTime = performance.now();
 
-// 【關鍵修正點】: v4.1.3 - 植入 HQS (高品質分句) 引擎常數
+// 植入 HQS (高品質分句) 引擎常數
 const HQS_PAUSE_THRESHOLD_MS = 500;
 const HQS_LINGUISTIC_PAUSE_MS = 150;
-// 來自 python: LINGUISTIC_MARKERS
+
 const HQS_LINGUISTIC_MARKERS = [
     'です', 'でした', 'ます', 'ました', 'ません','ますか','ない',
     'だ','かな﻿','かしら',
     'ください',
     '。', '？', '！'
 ];
-// 來自 python: CONNECTIVE_PARTICLES_TO_MERGE
+
 // 使用 Set 物件以優化查找效能
 const HQS_CONNECTIVE_PARTICLES_TO_MERGE = new Set([
     'に', 'を', 'は', 'で', 'て', 'と', 'も', 'の' ,'本当','やっぱ','ども','お'
 ]);
-// 【關鍵修正點】: v4.1.3 - 新增 HQS 多 Seg 事件比例閾值
+// HQS 多 Seg 事件比例閾值
 const HQS_MULTI_SEG_THRESHOLD = 0.35; // 70% (可調整 0.0 - 1.0)
 // --- HQS 引擎常數結束 ---
 
 class YouTubeSubtitleEnhancer {
     constructor() {
         // 功能: 初始化 class 實例。
-        // 【關鍵修正點】: 建立一個詳細的日誌記錄器
+        // 建立一個詳細的日誌記錄器
         this._log = (message, ...args) => {
             if (DEBUG_MODE) {
                 const timestamp = (performance.now() - scriptStartTime).toFixed(2).padStart(7, ' ');
@@ -54,7 +51,7 @@ class YouTubeSubtitleEnhancer {
 
     async initialSetup() {
         // 功能: (偵錯版) 腳本總入口，主動向 injector.js 請求資料，包含詳細日誌。
-        this._log('v8.0 (偵錯模式) 已啟動。');
+        this._log('(偵錯模式) 已啟動。');
         const response = await this.sendMessageToBackground({ action: 'getSettings' });
         this.settings = response?.data || {};
         this._log('初始設定讀取完畢:', this.settings);
@@ -80,7 +77,7 @@ class YouTubeSubtitleEnhancer {
                 clearInterval(this.requestIntervalId);
                 return;
             }
-            // 【關鍵修正點】: 每次請求都打印日誌
+            // 每次請求都打印日誌
             this._log(`🤝 [握手] 發送第 ${attempts + 1} 次 REQUEST_PLAYER_RESPONSE 信號...`);
             window.postMessage({ from: 'YtEnhancerContent', type: 'REQUEST_PLAYER_RESPONSE' }, '*');
             attempts++;
@@ -90,9 +87,9 @@ class YouTubeSubtitleEnhancer {
     }
 
     // 功能: (vssId 驗證版) 主流程入口，在發出指令前鎖定目標 vssId。
-    // 【關鍵修正點】: v2.1 - 完全重寫 TIER 1 檢查邏輯以尊重使用者排序
+    // TIER 1 檢查邏輯尊重使用者排序
     async start() {
-        this._log(`[決策 v2.0] --- 主流程 Start ---`);
+        this._log(`[決策] --- 主流程 Start ---`);
         if (!this.currentVideoId || !this.state.playerResponse) {
             this._log(`❌ [決策] 啟動失敗，缺少 VideoID 或 playerResponse。`);
             return;
@@ -102,19 +99,19 @@ class YouTubeSubtitleEnhancer {
         const availableLangs = availableTracks.map(t => t.languageCode);
         this._log(`[決策] 可用語言: [${availableLangs.join(', ')}]`);
 
-        // 【關鍵修正點】 v2.0 - 讀取新的 Tier 1/2 設定
+        // 讀取 Tier 1/2 設定
         const { native_langs = [], auto_translate_priority_list = [] } = this.settings;
         this._log(`[決策] Tier 1 (原文): [${native_langs.join(', ')}]`);
         this._log(`[決策] Tier 2 (自動): [${auto_translate_priority_list.map(t => t.langCode).join(', ')}]`);
 
-        // 【關鍵修正點】開始: v2.1.1 - 升級 Tier 1/2 檢查邏輯
-        // --- TIER 1 檢查 (v2.1.1 修正：使用 checkLangEquivalency) ---
+        // Tier 1/2 檢查邏輯
+        // --- TIER 1 檢查 (使用 checkLangEquivalency) ---
         let nativeMatch = null;
         const orderedNativeLangs = this.settings.native_langs || [];
         
         // 遍歷使用者偏好的 Tier 1 順序
         for (const preferredLang of orderedNativeLangs) { // e.g., 'zh-Hant'
-            // 檢查影片是否提供此語言 (使用新的等價性檢查)
+            // 檢查影片是否提供此語言 (使用等價性檢查)
             const matchingVideoLang = availableLangs.find(videoLang => this.checkLangEquivalency(videoLang, preferredLang)); // e.g., 'zh-TW' matches 'zh-Hant'
             
             if (matchingVideoLang) {
@@ -124,16 +121,16 @@ class YouTubeSubtitleEnhancer {
         }
         
         if (nativeMatch) {
-            this._log(`[決策 v2.1.1] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`); 
+            this._log(`[決策] -> Tier 1 命中：匹配到最高優先級原文 (${nativeMatch})。`); 
             const trackToEnable = availableTracks.find(t => t.languageCode === nativeMatch); 
             if (trackToEnable) this.runTier1_NativeView(trackToEnable); 
             return; // 流程結束
         }
 
-        // --- TIER 2 檢查 (v2.1.1 修正：使用 checkLangEquivalency) ---
+        // --- TIER 2 檢查 (使用 checkLangEquivalency) ---
         let tier2Match = null;
         for (const priorityItem of auto_translate_priority_list) {
-            // 檢查影片是否提供此語言 (使用新的等價性檢查)
+            // 檢查影片是否提供此語言 (使用等價性檢查)
             const matchingVideoLang = availableLangs.find(videoLang => this.checkLangEquivalency(videoLang, priorityItem.langCode));
             
             if (matchingVideoLang) {
@@ -145,7 +142,6 @@ class YouTubeSubtitleEnhancer {
         if (tier2Match) {
             this._log(`[決策] -> Tier 2 命中：匹配到自動翻譯語言 (${tier2Match.languageCode})。`);
             
-            // (重用舊的 activate 邏輯)
             this.state.sourceLang = tier2Match.languageCode;
             this._log('[意圖鎖定] 已將期望語言 sourceLang 設為:', this.state.sourceLang);
             
@@ -155,7 +151,7 @@ class YouTubeSubtitleEnhancer {
             if (cachedData && cachedData.translatedTrack) {
                 this._log('[決策] 發現有效暫存，直接載入。');
                 this.state.translatedTrack = cachedData.translatedTrack;
-                // 【關鍵修正點】: v4.1.3 - 從快取讀取 vssId 並傳遞
+                // 從快取讀取 vssId 並傳遞
                 const vssIdFromCache = cachedData.vssId || ''; // 添加 fallback
                 this.activate(cachedData.rawPayload, vssIdFromCache); // 觸發翻譯
             } else {
@@ -169,7 +165,7 @@ class YouTubeSubtitleEnhancer {
         }
 
         // --- TIER 3 檢查：按需翻譯 (Fallback) ---
-        // 【關鍵修正點】 v2.0 - 優先選擇非 'a.' (自動) 的軌道
+        // 優先選擇非 'a.' (自動) 的軌道
         const nonAutoTrack = availableTracks.find(t => !t.vssId.startsWith('a.'));
         const fallbackTrack = nonAutoTrack || availableTracks[0];
 
@@ -182,7 +178,7 @@ class YouTubeSubtitleEnhancer {
     }
 
     async onMessageFromInjector(event) {
-        // 功能: (v2.1.2) 處理來自 injector.js 的所有訊息，包含修復後的語言切換邏輯。
+        // 功能: 處理來自 injector.js 的所有訊息，包含修復後的語言切換邏輯。
         // input: event (MessageEvent) - 來自 injector.js 的訊息事件。
         // output: 根據訊息類型觸發對應的核心流程。
         // 其他補充: 這是擴充功能邏輯的核心中樞，處理導航、資料接收和字幕處理。
@@ -215,12 +211,11 @@ class YouTubeSubtitleEnhancer {
                 }
                 break;
 
-            // 【關鍵修正點】開始: v2.1.2 - 完整重構 TIMEDTEXT_DATA 處理邏輯
             case 'TIMEDTEXT_DATA':
-                // 【關鍵修正點】: v4.1.3 - 從 payload 解構出 vssId (之前已存在，此處僅為註記)
+                // 從 payload 解構出 vssId
                 const { payload: timedTextPayload, lang, vssId } = payload;
                 this._log(`收到 [${lang}] (vssId: ${vssId || 'N/A'}) 的 TIMEDTEXT_DATA。`);
-                // 【關鍵修正點】: v4.1.3 - 儲存當前 vssId 到 state，供快取使用
+                // 儲存當前 vssId 到 state，供快取使用
                 this.state.currentVssId = vssId || ''; // 確保是字串
 
                 // 步驟 0: 全域開關防護機制
@@ -234,12 +229,12 @@ class YouTubeSubtitleEnhancer {
                         this.state.hasActivated = false;
                         if(this.state.subtitleContainer) this.state.subtitleContainer.innerHTML = '';
                     }
-                    return; // 關鍵：在此處停止
+                    return;
                 }
 
                 // 步驟 1: 處理與看門狗相關的初始啟用驗證
                 if (this.state.activationWatchdog) {
-                    // (v2.1.1 修正：使用 checkLangEquivalency 進行驗證)
+                    // (使用 checkLangEquivalency 進行驗證)
                     const isVssIdMatch = this.state.targetVssId && vssId === this.state.targetVssId;
                     const isLangMatch = this.state.sourceLang && this.checkLangEquivalency(lang, this.state.sourceLang);
                     
@@ -256,7 +251,6 @@ class YouTubeSubtitleEnhancer {
                 this.state.targetVssId = null;
 
                 // 步驟 2: 判斷是「語言切換」還是「重複數據」
-                // (v2.1.1 修正：使用 checkLangEquivalency 比較)
                 if (this.state.hasActivated) {
                     if (!this.checkLangEquivalency(lang, this.state.sourceLang)) {
                         // 語言發生變化，執行「溫和重置」
@@ -281,7 +275,7 @@ class YouTubeSubtitleEnhancer {
 
                 // 步驟 3: 執行激活流程 (適用於「首次激活」或「語言切換後的再激活」)
             if (!this.state.hasActivated) {
-                    this._log(`[決策 v2.1.2/手動] 收到語言 [${lang}]，執行三層決策樹...`);
+                    this._log(`[決策/手動] 收到語言 [${lang}]，執行三層決策樹...`);
 
                     const playerResponse = this.state.playerResponse;
                     const availableTracks = this.getAvailableLanguagesFromData(playerResponse, true);
@@ -295,9 +289,9 @@ class YouTubeSubtitleEnhancer {
                 const isTier1Match = native_langs.some(settingLang => this.checkLangEquivalency(lang, settingLang));
 
                 if (isTier1Match) {
-                    this._log(`[決策 v2.1.2/手動] -> Tier 1 命中 (${lang})。`);
+                    this._log(`[決策/手動] -> Tier 1 命中 (${lang})。`);
                     this.state.isNativeView = true;
-                    // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                    // 傳遞 vssId
                     this.activateNativeView(timedTextPayload, vssId);
                     return; // Tier 1 流程結束
                 }
@@ -305,18 +299,18 @@ class YouTubeSubtitleEnhancer {
                 // 2. 執行 Tier 2 檢查
                 const tier2Config = auto_translate_priority_list.find(item => this.checkLangEquivalency(lang, item.langCode));
                 if (tier2Config) {
-                    this._log(`[決策 v2.1.2/手動] -> Tier 2 命中 (${lang})。`);
+                    this._log(`[決策] -> Tier 2 命中 (${lang})。`);
                     this.state.isNativeView = false; 
                         document.getElementById('enhancer-ondemand-button')?.remove(); 
                         this.state.onDemandButton = null;
 
-                    // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                    // 傳遞 vssId
                     this.activate(timedTextPayload, vssId); // 觸發完整翻譯
                     return; // Tier 2 流程結束
                 }
 
                 // 3. 執行 Tier 3 (Fallback)
-                this._log(`[決策 v2.1.2/手動] -> Tier 3 觸發 (${lang})。`);
+                this._log(`[決策/手動] -> Tier 3 觸發 (${lang})。`);
                 const trackToEnable = availableTracks.find(t => this.checkLangEquivalency(t.languageCode, lang));
 
                 if (trackToEnable) {
@@ -335,15 +329,14 @@ class YouTubeSubtitleEnhancer {
                         
                      // 2. 顯示原文
                      this.state.isNativeView = true;
-                     // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                     // 傳遞 vssId
                      this.activateNativeView(timedTextPayload, vssId);
                 } else {
-                        // 【關鍵修正點】 v2.1.2: 修正兜底邏輯
                         // 兜底：找不到軌道物件 (例如 playerResponse 中只有 zh-Hant，但 timedtext 卻回傳 en)
                         // 這種情況極不可能發生，但如果發生了，我們也不應該觸發翻譯。
-                         this._log(`[決策 v2.1.2/手動] 找不到 ${lang} 的軌道物件，但收到了字幕。執行 Tier 3 (僅原文)。`);
+                         this._log(`[決策/手動] 找不到 ${lang} 的軌道物件，但收到了字幕。執行 Tier 3 (僅原文)。`);
                      this.state.isNativeView = true;
-                     // 【關鍵修正點】: v4.1.3 - 傳遞 vssId
+                     // 傳遞 vssId
                      this.activateNativeView(timedTextPayload, vssId);
                 }
             }
@@ -411,9 +404,9 @@ class YouTubeSubtitleEnhancer {
         return true;
     }
 
-    // 【關鍵修正點】 v2.1.3: 新增語言等價性檢查函式 (納入 'zh')
+    // 語言等價性檢查函式 (納入 'zh')
     checkLangEquivalency(videoLang, settingLang) {
-        // 功能: 檢查影片語言是否滿足設定語言 (v2.1.3 繁簡-TW-HK-zh 修正)
+        // 功能: 檢查影片語言是否滿足設定語言
         // input: videoLang (e.g., 'zh-TW'), settingLang (e.g., 'zh-Hant')
         // output: boolean
         if (videoLang === settingLang) return true;
@@ -425,7 +418,6 @@ class YouTubeSubtitleEnhancer {
         }
 
         // 檢查是否同屬「簡體中文」群組
-        // 【關鍵修正點】: v2.1.3 - 將 'zh' 納入簡體中文群組
         const simplifiedGroup = ['zh-Hans', 'zh-CN', 'zh'];
         if (simplifiedGroup.includes(videoLang) && simplifiedGroup.includes(settingLang)) {
             return true;
@@ -451,8 +443,8 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 功能: (v3.1.2 修改) 重置狀態，增加目標 vssId 鎖定與重試監聽旗標。
-    // 【關鍵修正點】: v2.0 - 新增 isNativeView 和 onDemandButton 旗標
+    // 功能: 重置狀態，增加目標 vssId 鎖定與重試監聽旗標。
+    // 新增 isNativeView 和 onDemandButton 旗標
     resetState() {
         this._log('[狀態] resetState() 執行，所有狀態還原為初始值。');
         this.state = {
@@ -462,10 +454,10 @@ class YouTubeSubtitleEnhancer {
             isInitialized: false,
             pendingTimedText: null,
             activationWatchdog: null,
-            targetVssId: null, // 【關鍵修正點】: 新增目標 vssId 鎖定
-            hasRetryListener: false, // 【關鍵修正點】: v3.1.0 - 新增批次重試監聽旗標
-            isNativeView: false, // 【關鍵修正點】 v2.0 - Tier 1/3 旗標
-            onDemandButton: null // 【關鍵修正點】 v2.0 - Tier 3 按鈕 DOM 參照
+            targetVssId: null, // 目標 vssId 鎖定
+            hasRetryListener: false, // 批次重試監聽旗標
+            isNativeView: false, // Tier 1/3 旗標
+            onDemandButton: null // Tier 3 按鈕 DOM 參照
         };
     }
 
@@ -489,13 +481,12 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 功能: (v3.1.2 修改) 清理所有UI與狀態，確保停止看門狗並移除重試監聽。
-    // 【關鍵修正點】: v2.0 - 新增移除 onDemandButton 邏輯
+    // 功能: 清理所有UI與狀態，確保停止看門狗並移除重試監聽。
     async cleanup() {
         this._log('--- 🧹 cleanup() 開始 ---');
         this.state.abortController?.abort();
 
-        // 【關鍵修正點】: 在清理時，一併清除尚未觸發的看門狗計時器
+        // 在清理時，一併清除尚未觸發的看門狗計時器
         if (this.state.activationWatchdog) {
             clearTimeout(this.state.activationWatchdog);
             this._log('[看門狗] 已清除看門狗計時器。');
@@ -507,7 +498,7 @@ class YouTubeSubtitleEnhancer {
             this.requestIntervalId = null;
         }
         
-        // 【關鍵修正點】: v3.1.0 - 移除批次重試點擊監聽器
+        // 移除批次重試點擊監聽器
         if (this.state.subtitleContainer && this.state.hasRetryListener) {
             this.state.subtitleContainer.removeEventListener('click', this.handleRetryBatchClick);
             this._log('已移除批次重試點擊監聽器。');
@@ -518,7 +509,7 @@ class YouTubeSubtitleEnhancer {
         document.getElementById('enhancer-subtitle-container')?.remove();
         document.getElementById('enhancer-manual-prompt')?.remove();
         
-        // 【關鍵修正點】 v2.0 - 移除 Tier 3 按鈕
+        // 移除 Tier 3 按鈕
         document.getElementById('enhancer-ondemand-button')?.remove();
         
         this._log('已移除所有 UI DOM 元素。');
@@ -537,7 +528,7 @@ class YouTubeSubtitleEnhancer {
     handleActivationFailure() {
         this._log('❌ [看門狗] 自動啟用字幕超時！');
         this.state.activationWatchdog = null;
-        // 【關鍵修正點】: 失敗時也要清除鎖定，以便後續手動操作能正常運作
+        // 失敗時也要清除鎖定，以便後續手動操作能正常運作
         this.state.targetVssId = null; 
         
         if (!this.state.subtitleContainer) {
@@ -549,7 +540,7 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 【關鍵修正點】 v2.0 - 新增 Tier 1 啟動函式
+    // 新增 Tier 1 啟動函式
     runTier1_NativeView(trackToEnable) {
         // 功能: 僅顯示原文，不翻譯 (Tier 1)。
         this._log(`[Tier 1] 執行 runTier1_NativeView，語言: ${trackToEnable.languageCode}`);
@@ -570,7 +561,7 @@ class YouTubeSubtitleEnhancer {
         window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
     }
 
-    // 【關鍵修正點】 v2.0 - 新增 Tier 3 啟動函式
+    // 新增 Tier 3 啟動函式
     runTier3_OnDemand(trackToEnable) {
         // 功能: 顯示原文 + 右上角 Hover 按鈕 (Tier 3)。
         this._log(`[Tier 3] 執行 runTier3_OnDemand，語言: ${trackToEnable.languageCode}`);
@@ -607,7 +598,7 @@ class YouTubeSubtitleEnhancer {
         window.postMessage({ from: 'YtEnhancerContent', type: 'FORCE_ENABLE_TRACK', payload: trackToEnable }, '*');
     }
 
-    // 【關鍵修正點】 v2.0 - 新增 Tier 3 點擊處理函式
+    // 新增 Tier 3 點擊處理函式
     async handleOnDemandTranslateClick(trackToEnable) {
         // 功能: Tier 3 按鈕的點擊事件處理。
         this._log(`[Tier 3] 按鈕被點擊，開始翻譯 ${trackToEnable.languageCode}`);
@@ -636,7 +627,7 @@ class YouTubeSubtitleEnhancer {
         if (cachedData && cachedData.translatedTrack) {
             this._log('[Tier 3->2] 發現快取，直接載入。');
             this.state.translatedTrack = cachedData.translatedTrack;
-            // 【關鍵修正點】: v4.1.3 - 從快取讀取 vssId 並傳遞
+            // 從快取讀取 vssId 並傳遞
             const vssIdFromCache = cachedData.vssId || ''; // 添加 fallback
             this.activate(cachedData.rawPayload, vssIdFromCache); // 觸發完整翻譯
         } else {
@@ -651,11 +642,9 @@ class YouTubeSubtitleEnhancer {
         }
     }
 
-    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
-    // 功能: (v4.1.3) 啟動原文顯示流程 (不翻譯)。
+    // 功能: 啟動原文顯示流程 (不翻譯)。
     // input: initialPayload (object), vssId (string)
     // output: (DOM 操作)
-    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseRawSubtitles
     activateNativeView(initialPayload, vssId = '') {
         this.removeGuidancePrompt();
         this.state.rawPayload = initialPayload;
@@ -673,7 +662,7 @@ class YouTubeSubtitleEnhancer {
         
         // (不呼叫 parseAndTranslate)
         if (!this.state.translatedTrack) {
-            // v4.1.3: 傳入 vssId
+            // 傳入 vssId
             this.state.translatedTrack = this.parseRawSubtitles(initialPayload, vssId);
         }
         if (!this.state.translatedTrack.length) {
@@ -685,11 +674,9 @@ class YouTubeSubtitleEnhancer {
         this._log(`[Tier 1/3] 原文模式 (activateNativeView) 啟動完畢。`);
     }
 
-    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
-    // 功能: (v4.1.3) 翻譯流程的正式啟動函式。
+    // 功能: 翻譯流程的正式啟動函式。
     // input: initialPayload (object), vssId (string)
     // output: (DOM 操作, API 呼叫)
-    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseAndTranslate
     async activate(initialPayload, vssId = '') {
         this.removeGuidancePrompt();
         this.state.rawPayload = initialPayload;
@@ -704,16 +691,15 @@ class YouTubeSubtitleEnhancer {
         this.applySettingsToUI();
         this.toggleNativeSubtitles(true);
         this.setOrbState('translating');
-        // 【關鍵修正點】: v4.1.3 - 將 vssId 傳遞給 parseAndTranslate
         await this.parseAndTranslate(initialPayload, vssId);
     }
 
-    // 功能: (v4.1.3) 將原始 timedtext JSON 格式化為內部使用的標準化字幕物件陣列。
+    // 功能: 將原始 timedtext JSON 格式化為內部使用的標準化字幕物件陣列。
     //      此函式為 HQS (高品質分句) 引擎的整合點。
     // input: payload (object) - 來自 injector.js 的 timedtext 原始資料。
     //        vssId (string, optional) - 字幕軌道的 vssId (保留參數)。
     // output: (Array) - 格式化為 [{ start, end, text, translatedText: null }, ...]
-    // 其他補充: v4.1.3 - 增加比例判斷。增加詳細日誌以驗證比例計算。
+    // 其他補充: 增加比例判斷。增加詳細日誌以驗證比例計算。
     parseRawSubtitles(payload, vssId = '') {
         const isJapanese = this.checkLangEquivalency(this.state.sourceLang || '', 'ja');
         const isHqsEnabledByUser = this.settings.hqsEnabledForJa === true;
@@ -747,7 +733,7 @@ class YouTubeSubtitleEnhancer {
                     totalContentEventCount++;
                     if (event.segs.length > 1) {
                         multiSegCount++;
-                        // 【關鍵修正點】: v4.1.3 - 打印出被錯誤計為 MultiSeg 的事件
+                        // 打印出被錯誤計為 MultiSeg 的事件
                         this._log(`[HQS Engine DEBUG] 偵測到 MultiSeg 事件 (segs.length = ${event.segs.length})，計入 multiSegCount:`, JSON.parse(JSON.stringify(event))); // 使用深拷貝打印，防止後續修改影響
                     }
                 }
@@ -770,9 +756,22 @@ class YouTubeSubtitleEnhancer {
             if (ratio >= HQS_MULTI_SEG_THRESHOLD) {
                 this._log(`[HQS Engine] 決策: 比例達到閾值 (${(HQS_MULTI_SEG_THRESHOLD * 100).toFixed(0)}%)，執行 HQS 三階段管線。`);
                 try {
-                    // ... (執行 HQS 管線) ...
+                    const cleanedBlocks = this._phase1_cleanAndStructureEvents(payload);
+                    const intermediateSentences = this._phase2_segmentByGapsAndLinguistics(cleanedBlocks);
+                    const finalSentences = this._phase3_mergeSentences(intermediateSentences);
+
+                    // 格式化為 translateTrack 結構
+                    return finalSentences.map(s => ({
+                        start: s.start_ms,
+                        end: s.end_ms,
+                        text: s.text.trim(),
+                        translatedText: null
+                    }));
                 } catch (e) {
-                    // ... (錯誤處理) ...
+                    this._log('❌ HQS parseRawSubtitles 在 HQS 管線中發生嚴重錯誤:', e, payload);
+                    this.setPersistentError(`[HQS] 字幕解析失敗: ${e.message}`, true);
+                    // 發生錯誤時，回退到舊邏輯
+                    return this._fallbackParseRawSubtitles(payload);
                 }
             } else {
                 this._log(`[HQS Engine] 決策: 比例未達閾值，回退至舊版解析器。`);
@@ -786,12 +785,11 @@ class YouTubeSubtitleEnhancer {
     }
     
 
-    // 功能: (v4.1.3 Fallback) 舊版 (v4.0.2) 的字幕解析邏輯。
+    // 功能: 預設的字幕解析邏輯。
     // input: payload (object) - timedtext 原始資料。
     // output: (Array) - 格式化為 [{ start, end, text, translatedText: null }, ...]
     // 其他補充: 作為 HQS 不觸發時的回退。
     _fallbackParseRawSubtitles(payload) {
-        // --- 這是 v4.0.2 parseRawSubtitles 的原始碼 ---
         if (!payload?.events) return [];
         const subtitles = payload.events
             .map(event => ({
@@ -808,12 +806,12 @@ class YouTubeSubtitleEnhancer {
             if (subtitles[i+1] && typeof subtitles[i+1].start === 'number') {
             subtitles[i].end = subtitles[i + 1].start;
             }
-            // 【修正】確保 end 不會跑到 start 之前 (處理 YT 資料異常)
+            // 確保 end 不會跑到 start 之前 (處理 YT 資料異常)
             if (subtitles[i].end < subtitles[i].start) {
                 subtitles[i].end = subtitles[i].start + 1; // 至少給 1ms
             }
         }
-        // 【修正】處理最後一句可能的異常 end time
+        // 處理最後一句可能的異常 end time
         if (subtitles.length > 0) {
             const lastSub = subtitles[subtitles.length - 1];
             if (lastSub.end < lastSub.start) {
@@ -823,14 +821,13 @@ class YouTubeSubtitleEnhancer {
 
         // 格式化輸出
         return subtitles.map(sub => ({ ...sub, translatedText: null }));
-        // --- v4.0.2 原始碼結束 ---
     }
 
-    // 功能: (v4.1.3 HQS Phase 1) 清理 YT 原始事件，並建立包含絕對時間的 Segments。
+    // 功能: 清理 YT 原始事件，並建立包含絕對時間的 Segments。
     // input: rawPayload (object) - 來自 injector.js 的 timedtext 原始資料。
     // output: (Array) - 清理後的區塊 [{ block_start_ms, block_end_ms, segments: [{text, start_ms}, ...] }, ...]
     // 其他補充: 對應 python segment_test.py -> clean_subtitle_events
-    //           v4.1.3 - 增加對漏網 newline 事件缺少 dDurationMs 的容錯
+    //          增加對漏網 newline 事件缺少 dDurationMs 的容錯
     _phase1_cleanAndStructureEvents(rawPayload) {
         // 1. 過濾 `\n` 事件
         const content_events = [];
@@ -842,7 +839,6 @@ class YouTubeSubtitleEnhancer {
         for (const event of rawPayload.events) {
             if (!event || !event.segs || event.segs.length === 0) continue;
 
-            // v4.1.3: 修正 newline 判斷，確保 utf8 存在
             const is_newline_event = event.aAppend === 1 &&
                                     event.segs.length === 1 &&
                                     event.segs[0].utf8 === "\\n";
@@ -861,7 +857,7 @@ class YouTubeSubtitleEnhancer {
         for (let i = 0; i < total_events; i++) {
             const current_event = content_events[i];
 
-            // --- 【關鍵修正點】: v4.1.3 - 加固時間戳檢查 (Newline 容錯) START ---
+            // --- 加固時間戳檢查 (Newline 容錯) START ---
             if (typeof current_event.tStartMs !== 'number') {
                 // tStartMs 缺失是嚴重錯誤，必須跳過
                 this._log(`HQS P1: 警告: 跳過格式錯誤 event (缺少 tStartMs)。`);
@@ -881,8 +877,6 @@ class YouTubeSubtitleEnhancer {
                 // else: 如果是漏網的 newline 事件，即使缺少 dDurationMs 也容忍，繼續處理
                 //       因為它後續不會產生有效文字 segment。
             }
-            // --- 【關鍵修正點】: v4.1.3 - 加固時間戳檢查 (Newline 容錯) END ---
-
 
             const start_ms = current_event.tStartMs;
             // 使用 dDurationMs 計算 planned_end_ms (如果 dDurationMs 存在)
@@ -936,7 +930,7 @@ class YouTubeSubtitleEnhancer {
         return cleaned_blocks;
     }
 
-    // 功能: (v4.1.3 HQS Phase 2) 依據時間間隔 (Gaps) 和語言標記 (Linguistics) 進行分句。
+    // 功能: 依據時間間隔 (Gaps) 和語言標記 (Linguistics) 進行分句。
     // input: cleanedBlocks (Array) - 來自 Phase 1 的輸出。
     // output: (Array) - 中間句子列表 [{ text, start_ms, end_ms, reason }, ...]
     // 其他補充: 對應 python segment_test.py -> segment_blocks_by_internal_gaps
@@ -1012,7 +1006,7 @@ class YouTubeSubtitleEnhancer {
         return intermediateSentences;
     }
 
-    // 功能: (v4.1.3 HQS Phase 3) 後處理。使用迭代方法合併 'End of Block' 或 '助詞結尾' 的句子。
+    // 功能: HQS Phase 3 後處理。使用迭代方法合併 'End of Block' 或 '助詞結尾' 的句子。
     // input: intermediateSentences (Array) - 來自 Phase 2 的輸出。
     // output: (Array) - 最終句子列表 [{ text, start_ms, end_ms, reason }, ...]
     // 其他補充: 對應 python segment_test.py -> post_process_merges
@@ -1075,15 +1069,14 @@ class YouTubeSubtitleEnhancer {
             .map(s => ({ ...s, text: s.text.trim() }));
     }
 
-    // 【關鍵修正點】: v4.1.3 - 新增 vssId 參數
-    // 功能: (v4.1.3 v3.1.1 補丁) 解析字幕並啟動分批翻譯的總流程。
+    // 功能: 解析字幕並啟動分批翻譯的總流程。
     // input: payload (timedtext 物件), vssId (string)
     // output: 無 (啟動 processNextBatch 遞迴)
-    // 其他補充: v4.1.3 新增 vssId 以傳遞給 parseRawSubtitles
     async parseAndTranslate(payload, vssId = '') {
-        // ... (函式內部 isProcessing 檢查等保持不變) ...
+        if (this.state.isProcessing) return;
+        this.state.isProcessing = true;
         if (!this.state.translatedTrack) {
-                // 【關鍵修正點】: v4.1.3 - 將 vssId 傳遞給 parseRawSubtitles
+                // 將 vssId 傳遞給 parseRawSubtitles
                 this.state.translatedTrack = this.parseRawSubtitles(payload, vssId);
         }
         if (!this.state.translatedTrack.length) {
@@ -1099,17 +1092,16 @@ class YouTubeSubtitleEnhancer {
         this.beginDisplay();
         await this.processNextBatch();
         
-        // 【關鍵修正點】: (v3.1.1 補丁)
         // 移除: this.state.isProcessing = false;
         // 說明: isProcessing 旗標的關閉，將交由 processNextBatch 內部
         //       在「真正成功」或「永久失敗」時自行處理，以確保 setTimeout 得以正常運作。
     }
 
     async processNextBatch() {
-        // 功能: (v3.1.1 補丁) 處理翻譯批次，並在正確的出口管理 isProcessing 旗標。
+        // 功能: 處理翻譯批次，並在正確的出口管理 isProcessing 旗標。
         // input: 無 (從 this.state.translatedTrack 讀取)
         // output: (遞迴呼叫) 或 (觸發錯誤 UI)
-        // 其他補充: 【關鍵修正點】 在 3 個流程終點新增 this.state.isProcessing = false;
+        // 其他補充: 在 3 個流程終點新增 this.state.isProcessing = false;
         const BATCH_SIZE = 30;
         const segmentsToTranslate = [];
         const indicesToUpdate = [];
@@ -1123,7 +1115,7 @@ class YouTubeSubtitleEnhancer {
         if (segmentsToTranslate.length === 0) {
             this._log("所有翻譯批次處理完成！");
             this.setOrbState('success');
-            this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 1. 成功出口
+            this.state.isProcessing = false; // 1. 成功出口
             return;
         }
         const alreadyDone = this.state.translatedTrack.filter(t => t.translatedText).length;
@@ -1147,18 +1139,18 @@ class YouTubeSubtitleEnhancer {
                 await this.setCache(cacheKey, {
                     translatedTrack: this.state.translatedTrack,
                     rawPayload: this.state.rawPayload,
-                    // 【關鍵修正點】: v4.1.3 - 將 vssId 存入快取
+                    // 將 vssId 存入快取
                     vssId: this.state.currentVssId || '' // 從 state 讀取
                 });
                 this._log(`批次完成 (${currentDoneCount}/${this.state.translationProgress.total})，進度已暫存。`);
             }
             await this.processNextBatch(); // 遞迴
 
-        // 【關鍵修正點】: v3.1.0 - 重構 catch 區塊以響應智慧錯誤
+        //  重構 catch 區塊以響應智慧錯誤
         } catch (e) {
             const errorMsg = String(e.message);
 
-            // 1. (v1.2 Bug 修正) 處理 AbortError
+            // 1. 處理 AbortError
             if (errorMsg.includes('AbortError')) {
                 this._log("翻譯任務已中止 (AbortError)，此為正常操作。");
                 // (注意: AbortError 也算 'isProcessing = false'，但通常由 cleanup 觸發)
@@ -1168,7 +1160,7 @@ class YouTubeSubtitleEnhancer {
 
             this._log("❌ 翻譯批次失敗:", e);
 
-            // 2. 響應 v3.1.0 智慧錯誤
+            // 2. 智慧錯誤
             if (errorMsg.includes('TEMPORARY_FAILURE')) {
                 // 情境一：暫時性錯誤 (429/503)
                 // (流程仍在繼續，*不*設定 isProcessing = false)
@@ -1181,8 +1173,6 @@ class YouTubeSubtitleEnhancer {
                 
                 setTimeout(() => {
                     // 檢查狀態，如果使用者已導航離開，則不重試
-                    // (v3.1.1 補丁: 移除 isProcessing 檢查，因為它會被 parseAndTranslate 錯誤地關閉)
-                    // (v3.1.2 補丁: 恢復 isProcessing 檢查，因為 parseAndTranslate 已修復)
                     if (this.state.isProcessing && this.state.abortController) { 
                          this.processNextBatch();
                     }
@@ -1190,7 +1180,7 @@ class YouTubeSubtitleEnhancer {
 
             } else if (errorMsg.includes('PERMANENT_FAILURE')) {
                 // 情境二：永久性金鑰錯誤
-                this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 2. 永久失敗出口
+                this.state.isProcessing = false; // 2. 永久失敗出口
                 this.handleTranslationError("所有 API Key 均失效或帳單錯誤，翻譯已停止。");
             
             } else if (errorMsg.includes('BATCH_FAILURE')) {
@@ -1208,7 +1198,7 @@ class YouTubeSubtitleEnhancer {
 
             } else {
                 // 兜底：處理其他永久性錯誤 (例如 "未設定金鑰" 或舊的錯誤)
-                this.state.isProcessing = false; // 【關鍵修正點】: (補丁) 3. 兜底失敗出口
+                this.state.isProcessing = false; // 3. 兜底失敗出口
                 this.handleTranslationError(e.message);
             }
         }
@@ -1222,10 +1212,9 @@ class YouTubeSubtitleEnhancer {
     }
 
     async sendBatchForTranslation(texts, signal) {
-        // 功能: (v3.1.0 修改) 將批次文字發送到 background.js，並拋出結構化的錯誤。
+        // 功能: 將批次文字發送到 background.js，並拋出結構化的錯誤。
         // input: texts (字串陣列), signal (AbortSignal)
         // output: (Promise) 翻譯後的字串陣列
-        // 其他補充: 【關鍵修正點】 v1.1 - 移除 fetch 127.0.0.1
         try {
             const response = await this.sendMessageToBackground({
                 action: 'translateBatch', //
@@ -1238,7 +1227,7 @@ class YouTubeSubtitleEnhancer {
                 throw new Error('AbortError'); // 模擬 AbortError
             }
 
-            // 【關鍵修正點】: v3.1.0 - 組合並拋出結構化錯誤
+            // 組合並拋出結構化錯誤
             if (response?.error) {
                 // 如果 background.js 處理失敗 (例如 TEMPORARY_FAILURE)
                 // 將包含 retryDelay 的完整錯誤訊息拋出
@@ -1267,9 +1256,7 @@ class YouTubeSubtitleEnhancer {
 
     handleTranslationError(errorMessage) {
         // 功能: 處理翻譯過程中的錯誤。
-        // 其他補充: 【關鍵修正點】 v1.1 - 移除 tempErrorCount 邏輯。
-        // 【關鍵修正點】 v1.2 (討論): 將 logThisError 設為 false，
-        //           因為 background.js (日誌 1) 已經記錄了這個錯誤的根本原因。
+        // 將 logThisError 設為 false，因為 background.js (日誌 1) 已經記錄了這個錯誤的根本原因。
         this.setPersistentError(errorMessage, false);
     }
 
@@ -1277,7 +1264,7 @@ class YouTubeSubtitleEnhancer {
         // 功能: 顯示一個永久性的錯誤圖示，並將錯誤記錄到 background。
         this.state.persistentError = message;
 
-        // 【關鍵修正點】 v1.2 (討論): 增加 logThisError 參數，避免 background.js 和 content.js 重複記錄日誌 (日誌 2)
+        // 增加 logThisError 參數，避免 background.js 和 content.js 重複記錄日誌 (日誌 2)
         if (logThisError) {
             this.sendMessageToBackground({
                 action: 'STORE_ERROR_LOG',
@@ -1292,16 +1279,6 @@ class YouTubeSubtitleEnhancer {
         this.setOrbState('error', message);
     }
 
-    showTemporaryError(message) {
-        // 功能: (已修改) 在字幕區域顯示一個帶有重試按鈕的臨時錯誤訊息。
-        // 其他補充: 【關鍵修正點】 v1.1 - 此功能已廢除。
-        //           所有錯誤現在都由 setPersistentError 處理，
-        //           並顯示在右上角的狀態圓環 (orb) 中，
-        //           不再於字幕區域 顯示錯誤訊息。
-        
-        // (原函式內容 已被清空)
-    }
-
     beginDisplay() {
         // 功能: 開始字幕的顯示流程。
         if (!this.state.videoElement || !this.state.translatedTrack) return;
@@ -1311,20 +1288,17 @@ class YouTubeSubtitleEnhancer {
     }
 
     handleTimeUpdate() {
-        // 功能: (v3.1.0 修改) 根據影片當前播放時間，更新字幕畫面。
+        // 功能: 根據影片當前播放時間，更新字幕畫面。
         // input: 無 (從 this.state 讀取)
         // output: 呼叫 updateSubtitleDisplay
-        // 其他補充: 移除傳遞參數，因為 updateSubtitleDisplay 已被修改為自行處理。
         const { videoElement, translatedTrack, subtitleContainer } = this.state;
         if (!videoElement || !translatedTrack || !subtitleContainer) return;
         
-        // 【關鍵修正點】: v3.1.0 - 不再傳遞參數
         this.updateSubtitleDisplay();
     }
 
     updateSubtitleDisplay() {
-        // 功能: (v3.1.0 修改) 將原文/譯文/批次失敗UI 渲染到自訂的字幕容器中。
-        // 【關鍵修正點】: v2.0 - 新增 isNativeView 邏輯
+        // 功能: 將原文/譯文/批次失敗UI 渲染到自訂的字幕容器中。
         // input: 無 (自行從 this.state 獲取)
         // output: (DOM 操作)
         if (!this.state.subtitleContainer || !this.state.videoElement || !this.state.translatedTrack) return;
@@ -1332,7 +1306,7 @@ class YouTubeSubtitleEnhancer {
         const currentTime = this.state.videoElement.currentTime * 1000;
         const currentSub = this.state.translatedTrack.find(sub => currentTime >= sub.start && currentTime < sub.end);
 
-        // 【關鍵修正點】: v3.1.0 - 新增情境三 (批次失敗) UI 邏輯
+        // 情境三 (批次失敗) UI 邏輯
         if (currentSub && currentSub.tempFailed) {
             // 1. 渲染批次失敗 UI
             const html = `<div class="enhancer-line enhancer-error-line" data-start-ms="${currentSub.start}">此批次翻譯失敗，<a class="retry-link" role="button" tabindex="0">點擊重試</a></div>`;
@@ -1346,7 +1320,7 @@ class YouTubeSubtitleEnhancer {
         const originalText = currentSub?.text;
         const translatedText = currentSub?.translatedText;
         
-        // 【關鍵修正點】 v2.0 - Tier 1/3 原文模式邏輯
+        // Tier 1/3 原文模式邏輯
         if (this.state.isNativeView) {
             let html = '';
             if (originalText) {
@@ -1389,7 +1363,6 @@ class YouTubeSubtitleEnhancer {
         this._log('[重試] 批次重試監聽器已綁定。');
     }
 
-    // 【關鍵修正點】: v3.1.0 - 新增函式
     async handleRetryBatchClick(e) {
         // 功能: 處理「點擊重試」事件，執行插隊翻譯。
         // input: e (ClickEvent)
@@ -1447,7 +1420,6 @@ class YouTubeSubtitleEnhancer {
             await this.setCache(`yt-enhancer-cache-${this.currentVideoId}`, {
                 translatedTrack: this.state.translatedTrack,
                 rawPayload: this.state.rawPayload,
-                // 【關鍵修正點】: v4.1.3 - 將 vssId 存入快取
                 vssId: this.state.currentVssId || '' // 從 state 讀取
             });
             this.handleTimeUpdate(); // 立即刷新當前字幕
@@ -1514,10 +1486,9 @@ class YouTubeSubtitleEnhancer {
     }
 
     setOrbState(state, errorMsg = '') {
-        // 功能: (v3.1.0 修改) 控制右上角狀態圓環的顯示狀態。
+        // 功能: 控制右上角狀態圓環的顯示狀態。
         // input: state (字串), errorMsg (可選字串)
         // output: (DOM 操作)
-        // 其他補充: 【關鍵修正點】 v3.1.0 - 修改 'retrying' 狀態的 UI。
         const orb = this.state.statusOrb;
         if (!orb) return;
         orb.className = 'enhancer-status-orb';
@@ -1541,7 +1512,6 @@ class YouTubeSubtitleEnhancer {
                 setTimeout(() => orb?.classList.add('fade-out'), 1500);
                 break;
             
-            // 【關鍵修正點】 v3.1.0: 修改 "重試中" 狀態
             case 'retrying':
                 if (progress && progress.total > 0) {
                     const percent = Math.round((progress.done / progress.total) * 100);

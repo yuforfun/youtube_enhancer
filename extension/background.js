@@ -3,13 +3,9 @@
  * @author [yuforfun]
  * @copyright 2025 [yuforfun]
  * @license MIT
- *
- * This program is free software distributed under the MIT License.
- * Version: 4.0.2
  */
 'use strict';
 
-// 【關鍵修正點】: v1.1 - 從 backend.py 遷移常數
 // 區塊: DEFAULT_CORE_PROMPT_TEMPLATE
 const DEFAULT_CORE_PROMPT_TEMPLATE = `你是一位頂尖的繁體中文譯者與{source_lang}校對專家，專為台灣的使用者翻譯 YouTube 影片的自動字幕。
 你收到的{source_lang}原文雖然大多正確，但仍可能包含 ASR 造成的錯字或專有名詞錯誤。
@@ -36,9 +32,10 @@ const SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
 ];
-// 【關鍵修正點】 v1.2: 還原 backend.py 中的金鑰冷卻時間
+
 const API_KEY_COOLDOWN_SECONDS = 60; // 金鑰因配額失敗後的冷卻時間（秒）
-// 【關鍵修正點】: v1.1 - 從 backend.py 遷移預設 Prompts
+
+// **「新使用者」的「初始預設值」
 const DEFAULT_CUSTOM_PROMPTS = {
     "ja": `**風格指南:**
 - 翻譯需符合台灣人的說話習慣，並保留說話者(日本偶像)的情感語氣。
@@ -81,8 +78,8 @@ const sessionData = {
 // output: 供 content.js 和 popup.js 讀取。
 // 其他補充: lastPlayerData 作為一個「信箱」，解決了 injector.js 和 content.js 之間因載入時序不同而造成的通訊問題。
     lastPlayerData: {},
-    availableLangs: {}, // 【關鍵修正點】: 新增用於儲存每個 Tab 可用語言的結構
-    sessionCache: {} // 【關鍵修正點】: 新增用於儲存影片翻譯暫存的結構    
+    availableLangs: {}, // 新增用於儲存每個 Tab 可用語言的結構
+    sessionCache: {} // 新增用於儲存影片翻譯暫存的結構    
 };
 
 
@@ -90,7 +87,7 @@ const sessionData = {
 // 功能: 定義擴充功能的預設設定值。
 // input: 無 (靜態物件)
 // output: 在使用者首次安裝或清除儲存資料時，作為基礎設定寫入 chrome.storage。
-// 其他補充: v4.1.3 - 新增 hqsEnabledForJa: false
+// 其他補充: 新增 hqsEnabledForJa: false
 const defaultSettings = {
     isEnabled: true,
     fontSize: 22,
@@ -120,7 +117,7 @@ const defaultSettings = {
             customPrompt: DEFAULT_CUSTOM_PROMPTS.en
         }
     ],
-    // 【關鍵修正點】: v4.1.3 - 新增 HQS 引擎啟用開關 (預設關閉)
+    // HQS 引擎啟用開關 (預設關閉)
     hqsEnabledForJa: false
 };
 
@@ -145,7 +142,7 @@ chrome.runtime.onInstalled.addListener(async () => {
         }
     }
 
-    // 【關鍵修正點】: 無論註銷是否成功，都必定會執行這裡的註冊新腳本的步驟。
+    // 無論註銷是否成功，都必定會執行這裡的註冊新腳本的步驟。
     try {
         await chrome.scripting.registerContentScripts([{
             id: "injector-script",
@@ -174,7 +171,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 // input: request (物件) - 包含 action 和 payload 的訊息。
 //        sender (物件) - 訊息發送者的資訊，包含 tabId。
 //        sendResponse (函式) - 用於非同步回傳結果給發送者。
-// 其他補充: 【關鍵修正點】 v4.1.1 - 修改 'translateBatch' 並新增 'getDebugPrompts'。
+// 其他補充: 修改 'translateBatch' 並新增 'getDebugPrompts'。
     let isAsync = false;
 
     // 取得 tabId，popup 頁面發送時可能沒有 sender.tab。
@@ -182,12 +179,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     switch (request.action) {
         
-        // 【關鍵修正點】: v4.1.1 - 'translateBatch' API 邏輯修改
+        
         case 'translateBatch':
-            // 功能: (v4.1.1) 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
+            // 功能: 接收、翻譯批次文字，並回傳結構化的成功或失敗回應。
             // input: request.texts (字串陣列), request.source_lang (字串), 
             //        request.models_preference (字串陣列), 
-            //        request.overridePrompt (可選, 字串) - [v4.1.1 修改]
+            //        request.overridePrompt (可選, 字串)
             // output: (成功) { data: [...] }
             //         (失敗) { error: 'TEMPORARY_FAILURE', retryDelay: X }
             //         (失敗) { error: 'PERMANENT_FAILURE', message: '...' }
@@ -213,7 +210,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     return;
                 }
 
-                // 1. 獲取金鑰 (同 v4.0.1)
+                // 1. 獲取金鑰
                 const keyResult = await chrome.storage.local.get(['userApiKeys']);
                 const apiKeys = keyResult.userApiKeys || []; 
 
@@ -223,8 +220,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     return;
                 }
 
-                // 2. 組合 Prompt (v4.1.1 決策引擎更新)
-                // 【關鍵修正點】開始: v4.1.1 - Prompt 選擇邏輯 (完整覆蓋)
+                // 2. 組合 Prompt
+                // 開始: Prompt 選擇邏輯 (完整覆蓋)
                 let fullPrompt;
                 if (overridePrompt) {
                     // 情境 1: 請求來自 lab.js (開發者測試)
@@ -234,7 +231,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     fullPrompt = overridePrompt.replace('{json_input_text}', jsonInputText);
                 } else {
                     // 情境 2: 請求來自 content.js (正式翻譯)
-                    // 100% 執行 v4.0.1 的舊邏輯
+                    
                     const sourceLangName = LANG_MAP[source_lang] || '原文'; 
                     const corePrompt = DEFAULT_CORE_PROMPT_TEMPLATE.replace(/{source_lang}/g, sourceLangName); 
                     
@@ -245,14 +242,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     const customPromptPart = langConfig ? langConfig.customPrompt : "";
                     
                     const jsonInputText = JSON.stringify(texts);
-                    // 執行 v4.0.1 的拼接
+                    
                     fullPrompt = `${customPromptPart}\n\n${corePrompt.replace('{json_input_text}', jsonInputText)}`;
                 }
-                // 【關鍵修正點】結束
                 
                 const requestBody = {
                 "contents": [
-                    { "parts": [ { "text": fullPrompt } ] } // 【關鍵修正點】: 使用新的 fullPrompt 變數
+                    { "parts": [ { "text": fullPrompt } ] } // 使用新的 fullPrompt 變數
                 ],
                 "generationConfig": {
                     "responseMimeType": "application/json"
@@ -260,7 +256,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 "safetySettings": SAFETY_SETTINGS
                 };
 
-                // 3. 執行「金鑰-模型」雙重迴圈 (v4.0.1 邏輯不變)
+                // 3. 執行「金鑰-模型」雙重迴圈
                 for (const keyInfo of apiKeys) { 
                     
                     const keyId = keyInfo.id;
@@ -336,7 +332,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     } 
                 } 
 
-                // 5. 根據錯誤統計，回傳結構化錯誤 (v4.0.1 邏輯不變)
+                // 5. 根據錯誤統計，回傳結構化錯誤
                 if (cooldownsUpdated) {
                     await chrome.storage.session.set({ apiKeyCooldowns: cooldowns });
                 }
@@ -379,10 +375,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
         
         case 'STORE_ERROR_LOG':
-            // 功能: (已修改) 接收來自 content.js 的錯誤日誌並存入 chrome.storage.session。
+            // 功能: 接收來自 content.js 的錯誤日誌並存入 chrome.storage.session。
             // input from: content.js -> setPersistentError 函式
             // output to: content.js (透過 sendResponse 確認收到)
-            // 其他補充: 【關鍵修正點】 v1.1 - 將舊格式錯誤轉換為新 LogEntry 格式
+            // 其他補充: 將舊格式錯誤轉換為新 LogEntry 格式
             isAsync = true;
             writeToLog('ERROR', request.payload.message)
                 .then(() => sendResponse({ success: true }))
@@ -390,7 +386,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
             
         case 'getErrorLogs': 
-            // 功能: (已修改) 從 chrome.storage.session 讀取所有已儲存的錯誤日誌。
+            // 功能: 從 chrome.storage.session 讀取所有已儲存的錯誤日誌。
             // input from: popup.js (options.html) -> loadErrorLogs 函式
             // output to: popup.js (透過 sendResponse 回傳日誌陣列)
             isAsync = true;
@@ -403,7 +399,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             // 功能: 清除所有與此擴充功能相關的暫存和日誌資料。
             // input from: popup.js (options.html) -> clearCacheButton 的點擊事件
             // output to: popup.js (透過 sendResponse 確認完成)
-            // 其他補充: 【關鍵修正點】 v1.1 - 現在會同時清除 local (影片暫存) 和 session (日誌)
+            // 其他補充: 現在會同時清除 local (影片暫存) 和 session (日誌)
             isAsync = true;
             let clearedCount = 0;
             chrome.storage.local.get(null, (items) => {
@@ -433,7 +429,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'getCache':
-            // 功能: (已修改) 從 chrome.storage.local 獲取指定 key 的暫存資料。
+            // 功能: 從 chrome.storage.local 獲取指定 key 的暫存資料。
             // input: key (字串) - 暫存鍵值。
             // output: (物件 | null) - 暫存的資料或 null。
             isAsync = true;
@@ -448,11 +444,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
 
         case 'setCache':
-            // 功能: (已修改) 將資料透過 chrome.storage.local 存入指定 key 的暫存。
+            // 功能: 將資料透過 chrome.storage.local 存入指定 key 的暫存。
             // input: key (字串) - 暫存鍵值。
             //        data (物件) - 要暫存的資料。
             // output: 無
-            isAsync = true; // 【關鍵修正點】: 由於 storage 操作是非同步的，必須設為 true
+            isAsync = true; // 由於 storage 操作是非同步的，必須設為 true
             const { key: cacheKeySet, data } = request;
             if (tabId && cacheKeySet) {
                 if (data === null || data === undefined) {
@@ -560,9 +556,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
             break;
         
-        // 【關鍵修正點】: v4.1.1 - 新增 getDebugPrompts 動作
+        // 新增 getDebugPrompts 動作
         case 'getDebugPrompts':
-            // 功能: [v4.1.1] 獲取實驗室所需的預設 Prompt 內容
+            // 功能: 獲取實驗室所需的預設 Prompt 內容
             // input from: lab.js
             // output: { universalPrompt, savedCustomPrompt }
             // 其他補充: 會從 storage 讀取 "真實" 的自訂 Prompt
@@ -659,34 +655,34 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return isAsync;
 });
 
-// 【關鍵修正點】: 根據規格 1.B，新增標準化日誌函式
+// 新增標準化日誌函式
 // 功能: 將標準化的日誌條目寫入 chrome.storage.session
 // input: level ('ERROR' | 'WARN' | 'INFO')
 //        message (string) - 白話說明
 //        context (string | null) - 原始錯誤資訊
 //        solution (string | null) - 解決方法
 // output: (Promise) 寫入 storage
-// 其他補充: 這是 v1.1 藍圖中的核心日誌公用函式
+// 其他補充: 核心日誌公用函式
 async function writeToLog(level, message, context = null, solution = null) {
     try {
         const newEntry = {
-            timestamp: Date.now(), //
+            timestamp: Date.now(),
             level: level,
             message: message,
             context: context,
             solution: solution
         };
 
-        const result = await chrome.storage.session.get({ 'errorLogs': [] }); //
+        const result = await chrome.storage.session.get({ 'errorLogs': [] }); 
         const logs = result.errorLogs;
         
         logs.unshift(newEntry); // (最新在前)
 
-        if (logs.length > 20) { //
+        if (logs.length > 20) {
             logs.length = 20; // 維持最大長度
         }
 
-        await chrome.storage.session.set({ 'errorLogs': logs }); //
+        await chrome.storage.session.set({ 'errorLogs': logs });
     } catch (e) {
         console.error('[Background] writeToLog 函式執行失敗:', e);
     }
