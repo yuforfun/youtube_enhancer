@@ -180,40 +180,7 @@
 #movie_player.yt-enhancer-active .ytp-caption-window-container {
     display: none !important;
 }
-/* --- 手動啟用提示 (5秒箭頭) --- */
-#enhancer-manual-prompt {
-    /* 初始狀態為透明，透過 JS 修改 opacity 來觸發淡入效果 */
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
-    z-index: 2147483647;
-    pointer-events: none;
-    text-align: center;
-}
 
-.enhancer-manual-box {
-    background-color: #181818;
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    position: relative;
-    display: inline-block;
-    white-space: nowrap;
-}
-
-/* 提示框下方的向下箭頭 */
-.enhancer-manual-box::after {
-    content: '';
-    position: absolute;
-    bottom: -8px; /* 箭頭位置 */
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 8px 8px 0;
-    border-style: solid;
-    border-color: #181818 transparent transparent transparent;
-}
 /* --- Tier 3: 按需翻譯按鈕 --- */
 #enhancer-ondemand-button {
     position: absolute;

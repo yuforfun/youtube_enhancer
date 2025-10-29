@@ -984,29 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        async function loadAvailableLangs() {
-            if (!overrideSelect) return; 
-            
-            const response = await sendMessage({ action: 'getAvailableLangs' });
-            overrideSelect.innerHTML = '<option value="auto">自動 (推薦)</option>';
-            if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
-                response.data.forEach(lang => {
-                    const option = document.createElement('option');
-                    option.value = lang;
-                    option.textContent = LANG_CODE_MAP[lang] ? `${LANG_CODE_MAP[lang]} (${lang})` : lang;
-                    overrideSelect.appendChild(option);
-                });
-                overrideSelect.disabled = false; 
-            } else {
-                const placeholderOption = document.createElement('option');
-                placeholderOption.value = 'none';
-                placeholderOption.textContent = '無可用語言';
-                placeholderOption.disabled = true;
-                overrideSelect.appendChild(placeholderOption);
-                overrideSelect.disabled = true;
-            }
-        }
-        loadAvailableLangs();
+        // 【關鍵修正點】: 移除 loadAvailableLangs(); 函式呼叫
         // HQS 開關事件監聽 START
         const hqsToggle = document.getElementById('hqsToggleJa');
         if (hqsToggle) {

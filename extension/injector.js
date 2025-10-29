@@ -48,7 +48,7 @@
             // 功能: 腳本總入口。
             // output: 無
             // 其他補充: 整合新的日誌系統
-            debugLog('v8.0 (偵錯模式) 已啟動，採用「播放器優先 + 雙攔截器」架構。');
+            debugLog('(偵錯模式) 已啟動，採用「播放器優先 + 雙攔截器」架構。');
             document.addEventListener('yt-navigate-finish', this.onNavigate);
             this.setupInterceptors();
             window.addEventListener('message', this.handleContentMessage);

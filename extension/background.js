@@ -71,15 +71,14 @@ const DEFAULT_CUSTOM_PROMPTS = {
 };
 
 const sessionData = {
-// 區塊: sessionData
 // 功能: 一個在記憶體中運行的全域變數，用於儲存與特定分頁 (Tab) 相關的臨時資料。
 //      它會在瀏覽器關閉時被清除。
 // input: 由 content.js 和 injector.js 寫入。
 // output: 供 content.js 和 popup.js 讀取。
 // 其他補充: lastPlayerData 作為一個「信箱」，解決了 injector.js 和 content.js 之間因載入時序不同而造成的通訊問題。
-    lastPlayerData: {},
-    availableLangs: {}, // 新增用於儲存每個 Tab 可用語言的結構
-    sessionCache: {} // 新增用於儲存影片翻譯暫存的結構    
+// 【關鍵修正點】: 移除 availableLangs: {}
+// 【關鍵修正點】: 移除 lastPlayerData: {},
+// 【關鍵修正點】: 移除 sessionCache: {}
 };
 
 
@@ -155,15 +154,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     } catch (error) {
         console.error("[Background] 註冊新的 injector 腳本時發生嚴重錯誤:", error);
     }
-});
-
-chrome.tabs.onRemoved.addListener((tabId) => {
-// 區塊: chrome.tabs.onRemoved.addListener
-// 功能: 監聽瀏覽器分頁關閉事件。
-// input: tabId (整數) - 被關閉的分頁 ID。
-// output: 無 (操作 sessionData)
-// 其他補充: 當一個 YouTube 分頁被關閉時，從 sessionData 中清除該分頁的暫存資料，以防止記憶體洩漏。
-    delete sessionData.lastPlayerData[tabId];
 });
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -413,9 +403,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     }
                 });
                 const sessionClearPromise = chrome.storage.session.remove('errorLogs');
-                sessionData.lastPlayerData = {};
-                sessionData.availableLangs = {};
-                sessionData.sessionCache = {}; 
+                // 【關鍵修正點】: 移除 sessionData.availableLangs = {};
+                // 【關鍵修正點】: 移除 sessionData.lastPlayerData = {};
+                // 【關鍵修正點】: 移除 sessionData.sessionCache = {};
                 Promise.all([localClearPromise, sessionClearPromise])
                     .then(() => {
                         console.log(`[Background] 成功清除了 ${clearedCount} 個影片的暫存與所有日誌。`);
@@ -495,30 +485,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
             break;
 
-        case 'STORE_AVAILABLE_LANGS': 
-            // 功能: 儲存特定分頁影片所提供的所有可用字幕語言代碼。
-            // input from: content.js -> startActivationProcess 函式
-            // output to: content.js (透過 sendResponse 確認收到)
-            // 其他補充: 這些資料主要由 popup.js 讀取，用於動態生成「自訂來源語言」下拉選單。
-            if (tabId && request.payload) { 
-                sessionData.availableLangs[tabId] = request.payload;
-                sendResponse({ success: true });
-            } else {
-                sendResponse({ success: false });
-            }
-            break;
-            
-        case 'getAvailableLangs':
-            // 功能: 獲取當前分頁可用的字幕語言列表。
-            // input from: popup.js -> loadAvailableLangs 函式
-            // output to: popup.js (透過 sendResponse 回傳語言代碼陣列)
-            isAsync = true;
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const activeTabId = tabs[0] ? tabs[0].id : null;
-                const langs = activeTabId ? sessionData.availableLangs[activeTabId] || [] : [];
-                sendResponse({ success: true, data: langs });
-            });
-            break;
+            // 【關鍵修正點】: 'STORE_AVAILABLE_LANGS' case 已被移除
+                        
+            // 【關鍵修正點】: 'getAvailableLangs' case 已被移除
 
         case 'updateSettings':
             // 功能: 更新使用者設定，將其儲存到 chrome.storage，並廣播通知所有開啟的 YouTube 分頁。

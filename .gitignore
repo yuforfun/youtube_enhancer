@@ -39,9 +39,5 @@ dist/
 # 忽略所有以 .spec 結尾的檔案
 *.spec
 
-# 忽略個人計畫檔案
-Plan.md
-
-# 忽略測試程式碼
-python segment_test.py
-subtitle_data.json
+# 忽略個人檔案
+.local/

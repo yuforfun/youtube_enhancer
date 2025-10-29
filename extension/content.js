@@ -346,13 +346,7 @@ class YouTubeSubtitleEnhancer {
 
     async onMessageFromBackground(request, sender, sendResponse) {
         // 功能: 監聽來自 background.js 和 popup.js 的訊息。
-        if (request.action === 'getAvailableLangsFromContent') {
-            const availableLangs = this.state.playerResponse ?
-                this.getAvailableLanguagesFromData(this.state.playerResponse) :
-                [];
-            sendResponse({ success: true, data: availableLangs });
-            return true;
-        }
+        // 【關鍵修正點】: 移除了 'getAvailableLangsFromContent' 的 if 區塊。
         if (request.action === 'settingsChanged') {
             this._log('收到設定變更通知，正在更新...');
             const oldIsEnabled = this.settings.isEnabled;
@@ -1445,38 +1439,6 @@ class YouTubeSubtitleEnhancer {
     removeGuidancePrompt() {
         // 功能: 移除手動模式下的引導提示框。
         document.getElementById('enhancer-prompt-guide')?.remove();
-    }
-
-    showManualActivationPrompt() {
-        // 功能: 顯示一個5秒後自動消失的提示，引導使用者手動開啟字幕。
-        if (document.getElementById('enhancer-manual-prompt')) return;
-        const playerContainer = document.getElementById('movie_player');
-        if (!playerContainer) return;
-
-        const promptContainer = document.createElement('div');
-        promptContainer.id = 'enhancer-manual-prompt';
-        promptContainer.className = 'enhancer-prompt-guide';
-        promptContainer.innerHTML = `<div class="enhancer-prompt-box enhancer-manual-box">可以手動開啟字幕進行翻譯</div>`;
-        playerContainer.appendChild(promptContainer);
-
-        const ccButton = document.querySelector('.ytp-subtitles-button');
-        if (ccButton) {
-            const playerRect = playerContainer.getBoundingClientRect();
-            const ccRect = ccButton.getBoundingClientRect();
-            promptContainer.style.position = 'absolute';
-            promptContainer.style.left = `${ccRect.left - playerRect.left + (ccRect.width / 2)}px`;
-            promptContainer.style.bottom = `${playerRect.height - (ccRect.top - playerRect.top) + 15}px`;
-            promptContainer.style.transform = 'translateX(-50%)';
-        }
-
-        setTimeout(() => {
-            promptContainer.style.opacity = '0';
-            setTimeout(() => promptContainer.remove(), 500);
-        }, 5000);
-
-        setTimeout(() => {
-            promptContainer.style.opacity = '1';
-        }, 50);
     }
 
     getFriendlyLangName(langCode) {

@@ -342,32 +342,6 @@ textarea { resize: vertical; margin-top: 12px; }
     border-color: var(--accent-pill-border);
     color: var(--accent-pill-text);
 }
-/* Language Reference List */
-.reference-details {
-    margin-top: 16px;
-    font-size: 12px;
-}
-.reference-details summary {
-    cursor: pointer;
-    color: var(--text-light-color);
-    font-weight: 500;
-}
-.reference-list {
-    list-style-type: none;
-    padding: 8px 12px;
-    margin: 8px 0 0 0;
-    background-color: #fafafa;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-}
-.reference-list li { padding: 4px 0; }
-.reference-list li code {
-    background-color: #e5e7eb;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-size: 11px;
-    margin-right: 8px;
-}
 
 /* Diagnostics & Logs */
 #diagnose-results { margin-top: 12px; }
