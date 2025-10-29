@@ -123,20 +123,30 @@
                 <br>
                 本擴充功能不提供金鑰，所有翻譯請求均由您自己的金鑰發起，請注意您的用量。
             </p>
-            <p class="card-hint">
-                設定金鑰後，將存儲在瀏覽器本地，並且可以設定多組金鑰來避免單一金鑰的配額限制。
-            </p>
-
-            <p class="card-hint warning-box" style="margin-top: 12px; padding: 10px; line-height: 1.6;">
-                ⚠️ <strong>金鑰儲存機制：</strong>
-                <br>
+            <h2 class="card-title">金鑰儲存機制：</h2>
+            <p class="card-hint" style="margin-bottom: 12px;">
                 1. [新增]：填入名稱和金鑰後，請<b>點擊頁面空白處</b>，系統即會自動儲存。
                 <br>
                 2. [更新]：修改已儲存的金鑰後，點擊空白處系統即會自動儲存。您會看到該列變為可編輯的密碼欄狀態，代表儲存成功。
                 <br>
                 3. [顯示]：點擊密碼輸入框，即可顯示完整的金鑰。
             </p>
-            <h3 class="card-subtitle" style="margin-top: 12px;">金鑰列表 (輸入、儲存)</h3>
+            <div class="card-hint warning-box" style="margin-top: 12px; padding: 10px; line-height: 1.6;">
+                ⚠️ <strong>金鑰費用提醒</strong>
+                <br>
+                本擴充功能採用無伺服器架構，所有翻譯請求均<b>直接</b>透過您(使用者本人)提供的 API Key 發送。
+                <br>
+                如果您啟用了Billing功能，也就是需要付費的API，API 服務將採用「即付即用」計價。
+                <br>
+                <b>您必須自行對您金鑰產生的所有費用負責。</b>
+                <br><br>
+                <strong>強烈建議您：</strong>
+                <ol style="margin: 8px 0 0 20px; padding: 0; line-height: 1.6;">
+                    <li>定期登入您的 Google Cloud 帳戶<strong>檢視帳單</strong>。</li>
+                    <li>在 GCP 設定「<strong>預算與快訊</strong>」，以便在用量接近上限時收到通知。</li>
+                </ol>
+            </div>
+            <h3 class="card-subtitle" style="margin-top: 12px;">金鑰列表 (Key Name、API key)</h3>
             
             <ul id="apiKeyList" class="api-key-list">
                 </ul>
