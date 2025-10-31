@@ -7,7 +7,7 @@
  */
 
 // 偵錯模式開關和計時器
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 const scriptStartTime = performance.now();
 
 // 植入 HQS (高品質分句) 引擎常數

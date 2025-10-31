@@ -133,9 +133,9 @@ chrome.runtime.onInstalled.addListener(async () => {
         // 如果在註銷時發生錯誤（例如首次安裝時找不到腳本），
         // 我們可以在控制台記錄下來除錯，但不會因此停止執行。
         if (error.message.includes("Nonexistent script ID")) {
-            console.log("[Background] 無需註銷舊的 injector 腳本，直接進行安裝。");
+            // // console.log("[Background] 無需註銷舊的 injector 腳本，直接進行安裝。");
         } else {
-            console.error("[Background] 註銷舊的 injector 腳本時發生非預期錯誤:", error);
+            // console.error("[Background] 註銷舊的 injector 腳本時發生非預期錯誤:", error);
         }
     }
 
@@ -148,9 +148,9 @@ chrome.runtime.onInstalled.addListener(async () => {
             runAt: "document_start",
             world: "MAIN",
         }]);
-        console.log("[Background] 新的 injector 腳本已成功註冊。");
+        // // console.log("[Background] 新的 injector 腳本已成功註冊。");
     } catch (error) {
-        console.error("[Background] 註冊新的 injector 腳本時發生嚴重錯誤:", error);
+        // console.error("[Background] 註冊新的 injector 腳本時發生嚴重錯誤:", error);
     }
 });
 
@@ -285,7 +285,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                             const rawText = responseData.candidates[0].content.parts[0].text;
                             
                             // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 1
-                            console.log(`[v4.1.3 Debug] 來自 ${modelName} 的原始 rawText:`, rawText);
+                            // console.log(`[v4.1.3 Debug] 來自 ${modelName} 的原始 rawText:`, rawText);
 
                             const startIndex = rawText.indexOf('[');
                             const endIndex = rawText.lastIndexOf(']');
@@ -296,7 +296,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                             }
 
                             // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 2
-                            console.log(`[v4.1.3 Debug] 提取的 jsonText:`, jsonText);
+                            // console.log(`[v4.1.3 Debug] 提取的 jsonText:`, jsonText);
 
                             if (!jsonText) {
                                 throw new Error('模型回傳內容中未找到有效的 JSON 陣列');
@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                             const translatedList = JSON.parse(jsonText);
                             
                             // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 3
-                            console.log(`[v4.1.3 Debug] 解析的 List Length: ${translatedList.length}, 請求的 Length: ${texts.length}`);
+                            // console.log(`[v4.1.3 Debug] 解析的 List Length: ${translatedList.length}, 請求的 Length: ${texts.length}`);
                             
                             if (Array.isArray(translatedList) && translatedList.length === texts.length && translatedList.every(item => typeof item === 'string')) {
                                 sendResponse({ data: translatedList });
@@ -497,7 +497,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                 Promise.all([localClearPromise, sessionClearPromise])
                     .then(() => {
-                        console.log(`[Background] 成功清除了 ${clearedCount} 個影片的暫存與所有日誌。`);
+                        // console.log(`[Background] 成功清除了 ${clearedCount} 個影片的暫存與所有日誌。`);
                         sendResponse({ success: true, count: clearedCount });
                     })
                     .catch((e) => {

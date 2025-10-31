@@ -10,7 +10,7 @@
     if (window.ytEnhancerInjector) return;
 
     // 偵錯模式開關和計時器
-    const DEBUG_MODE = true;
+    const DEBUG_MODE = false;
     const scriptStartTime = performance.now();
 
     // 建立一個詳細的日誌記錄器
