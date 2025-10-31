@@ -1096,7 +1096,7 @@ class YouTubeSubtitleEnhancer {
         // input: 無 (從 this.state.translatedTrack 讀取)
         // output: (遞迴呼叫) 或 (觸發錯誤 UI)
         // 其他補充: 在 3 個流程終點新增 this.state.isProcessing = false;
-        const BATCH_SIZE = 30;
+        const BATCH_SIZE = 25;
         const segmentsToTranslate = [];
         const indicesToUpdate = [];
         for (let i = 0; i < this.state.translatedTrack.length; i++) {

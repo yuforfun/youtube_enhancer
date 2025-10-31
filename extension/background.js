@@ -92,8 +92,6 @@ const defaultSettings = {
     fontSize: 22,
     fontFamily: 'Microsoft JhengHei, sans-serif',
     models_preference: [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
         "gemini-2.5-pro"
     ],
     showOriginal: true,
@@ -193,7 +191,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 const cooldowns = cooldownResult.apiKeyCooldowns;
                 let cooldownsUpdated = false; 
 
-                // 【關鍵修正點】: v4.1.1 - 接收 overridePrompt 參數
                 const { texts, source_lang, models_preference, overridePrompt } = request; 
                 if (!texts || texts.length === 0) {
                     sendResponse({ data: [] });
@@ -211,13 +208,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 }
 
                 // 2. 組合 Prompt
-                // 開始: Prompt 選擇邏輯 (完整覆蓋)
                 let fullPrompt;
                 if (overridePrompt) {
                     // 情境 1: 請求來自 lab.js (開發者測試)
                     // overridePrompt 已是 "完整" Prompt，我們只需替換 JSON
                     const jsonInputText = JSON.stringify(texts);
-                    // 確保替換 {json_input_text}
                     fullPrompt = overridePrompt.replace('{json_input_text}', jsonInputText);
                 } else {
                     // 情境 2: 請求來自 content.js (正式翻譯)
@@ -238,7 +233,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 
                 const requestBody = {
                 "contents": [
-                    { "parts": [ { "text": fullPrompt } ] } // 使用新的 fullPrompt 變數
+                    { "parts": [ { "text": fullPrompt } ] }
                 ],
                 "generationConfig": {
                     "responseMimeType": "application/json"
@@ -287,36 +282,132 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
                             const responseData = await response.json();
                             
-                            const translatedList = JSON.parse(responseData.candidates[0].content.parts[0].text);
+                            const rawText = responseData.candidates[0].content.parts[0].text;
+                            
+                            // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 1
+                            console.log(`[v4.1.3 Debug] 來自 ${modelName} 的原始 rawText:`, rawText);
+
+                            const startIndex = rawText.indexOf('[');
+                            const endIndex = rawText.lastIndexOf(']');
+                            
+                            let jsonText = null;
+                            if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+                                jsonText = rawText.substring(startIndex, endIndex + 1);
+                            }
+
+                            // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 2
+                            console.log(`[v4.1.3 Debug] 提取的 jsonText:`, jsonText);
+
+                            if (!jsonText) {
+                                throw new Error('模型回傳內容中未找到有效的 JSON 陣列');
+                            }
+                            
+                            const translatedList = JSON.parse(jsonText);
+                            
+                            // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 3
+                            console.log(`[v4.1.3 Debug] 解析的 List Length: ${translatedList.length}, 請求的 Length: ${texts.length}`);
                             
                             if (Array.isArray(translatedList) && translatedList.length === texts.length && translatedList.every(item => typeof item === 'string')) {
                                 sendResponse({ data: translatedList });
                                 return; 
                             } else {
+                                // 【關鍵修正點】: v4.1.3 (Iteration 4) - 增加偵錯日誌 4 (在拋出錯誤前)
+                                console.error(`[v4.1.3 Debug] 陣列長度不符！`, { model: modelName, expected: texts.length, got: translatedList.length, list: translatedList });
                                 throw new Error('模型回傳格式錯誤 (陣列長度或型別不符)');
                             }
 
                         } catch (e) {
-
+                            // v4.1.3 錯誤處理邏輯 (此邏輯是正確的)
                             const errorStr = String(e.message).toLowerCase();
-                            errorStats.totalAttempts++; 
+                            errorStats.totalAttempts++;
+                            let httpCode = errorStr.match(/http (\d{3})/); 
+                            let reason = '';
+                            let userSolution = ''; 
+                            let logLevel = 'INFO'; 
 
-                            if (errorStr.includes('quota') || errorStr.includes('429') || errorStr.includes('503') || errorStr.includes('overloaded')) {
-                                errorStats.temporary++;
-                                await writeToLog('WARN', `金鑰 '${keyName}' 遭遇暫時性錯誤 (Quota/Overload)，將冷卻 ${API_KEY_COOLDOWN_SECONDS} 秒。`, e.message, '系統將自動嘗試下一個金鑰。');
+                            // 判斷 1: 【優先】暫時性模型/配額/伺服器錯誤 (Quota / 429 / 500 / 503 / 504)
+                            if (
+                                errorStr.includes('quota') || 
+                                (httpCode && ['429', '500', '503', '504'].includes(httpCode[1])) ||
+                                errorStr.includes('overloaded')
+                            ) {
+                                errorStats.temporary++; 
+                                
+                                if (errorStr.includes('quota') || (httpCode && httpCode[1] === '429')) {
+                                    reason = (httpCode && httpCode[1] === '429') ? '429 RESOURCE_EXHAUSTED' : 'quota';
+                                    userSolution = '已達速率限制 (RPM/RPS)。系統將自動嘗試備用模型/金鑰。若此問題頻繁發生，請考慮增加金鑰數量或升級帳戶。'; 
+                                    logLevel = 'WARN'; 
+                                
+                                } else if (httpCode && httpCode[1] === '500') {
+                                    reason = '500 INTERNAL';
+                                    userSolution = 'Google 伺服器內部錯誤 (可能因為 Prompt 內容過長，或包含了伺服器無法處理的特殊內容組合)。系統將自動嘗試備用模型。'; 
+                                    logLevel = 'WARN';
+                                
+                                } else if (httpCode && httpCode[1] === '503') {
+                                    reason = '503 UNAVAILABLE';
+                                    userSolution = 'Google 伺服器暫時過載或關閉。系統將自動嘗試備用模型，請耐心等候。'; 
+                                    logLevel = 'INFO';
+                                
+                                } else if (httpCode && httpCode[1] === '504') {
+                                    reason = '504 DEADLINE_EXCEEDED';
+                                    userSolution = 'Google 伺服器處理逾時 (可能 Prompt 過於複雜或過長)。系統將自動嘗試備用模型。'; 
+                                    logLevel = 'WARN';
+                                
+                                } else {
+                                    reason = 'overloaded';
+                                    userSolution = 'Google 伺服器過載。系統將自動嘗試備用模型，請耐心等候。';
+                                    logLevel = 'INFO';
+                                }
+
+                                await writeToLog(logLevel, `金鑰 '${keyName}' - 模型 '${modelName}' 遭遇暫時性錯誤 (${reason})。`, e.message, userSolution);
+                                
+                                continue; // 【關鍵行為】不冷卻金鑰，用同一個金鑰嘗試下一個模型
+
+                            // 判斷 2: 【其次】永久性金鑰錯誤 (Billing / Invalid Key / 403)
+                            } else if (errorStr.includes('billing') || errorStr.includes('api key not valid') || (httpCode && httpCode[1] === '403')) {
+                                errorStats.permanent++;
+                                logLevel = 'ERROR';
+                                
+                                if (errorStr.includes('billing')) {
+                                    reason = 'billing';
+                                    userSolution = '請檢查 Google AI Studio 的帳單設定，確認帳戶有效。'; 
+                                } else if (httpCode && httpCode[1] === '403') {
+                                    reason = '403 PERMISSION_DENIED';
+                                    userSolution = '金鑰權限不足。請確認金鑰已啟用，或未受 IP/HTTP 限制。'; 
+                                } else {
+                                    reason = 'api key not valid';
+                                    userSolution = '金鑰無效。請檢查金鑰是否複製正確或已遭停用。';
+                                }
+
+                                await writeToLog(logLevel, `金鑰 '${keyName}' 遭遇永久性錯誤 (${reason})，將冷卻 ${API_KEY_COOLDOWN_SECONDS} 秒。`, e.message, userSolution);
                                 
                                 cooldowns[keyId] = Date.now(); 
                                 await chrome.storage.session.set({ apiKeyCooldowns: cooldowns }); 
-                                
-                                break; 
-                            } else if (errorStr.includes('billing') || errorStr.includes('api key not valid')) {
-                                errorStats.permanent++;
-                                await writeToLog('ERROR', `金鑰 '${keyName}' 驗證失敗 (Billing/Invalid)，將永久跳過此金鑰。`, e.message, '請更換金鑰。');
-                                break; 
+
+                                break; // 【關鍵行為】放棄此金鑰
+
+                            // 判斷 3: 【最後】批次內容/格式錯誤 (400 / 404 / 其他)
                             } else {
                                 errorStats.batch++;
-                                await writeToLog('WARN', `金鑰 '${keyName}' 呼叫模型 '${modelName}' 失敗 (可能為格式/內容錯誤)。`, e.message, '系統將自動嘗試下一個模型。'); 
-                                continue; 
+                                logLevel = 'WARN';
+
+                                if (httpCode && httpCode[1] === '400') {
+                                    reason = '400 INVALID_ARGUMENT';
+                                    userSolution = '請求格式錯誤 (可能 Prompt 觸發了安全機制或內容限制)。系統將嘗試備用模型。';
+                                } else if (errorStr.includes('未找到有效的 json 陣列')) { 
+                                    reason = 'Invalid JSON Response';
+                                    userSolution = '模型回傳的內容非標準 JSON 格式。系統將自動嘗試備用模型。';
+                                } else if (httpCode && httpCode[1] === '404') {
+                                    reason = '404 NOT_FOUND';
+                                    userSolution = `金鑰 '${keyName}' - 模型名稱 '${modelName}' 不存在或已棄用。系統將嘗試備用模型。`;
+                                } else {
+                                    reason = 'content/format error';
+                                    userSolution = '發生未知的內容或格式錯誤。系統將嘗試備用模型。'; 
+                                }
+
+                                await writeToLog(logLevel, `金鑰 '${keyName}' - 模型 '${modelName}' 呼叫失敗 (${reason})。`, e.message, userSolution); 
+                                
+                                continue; // 放棄此模型，嘗試下一個
                             }
                         }
                     } 
@@ -330,7 +421,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 if (keysInCooldown > 0 && keysInCooldown === apiKeys.length) {
                     const retryDelay = shortestRetryDelay < 1 ? 1 : shortestRetryDelay; 
                     await writeToLog('WARN', `所有金鑰均在冷卻中，將於 ${retryDelay} 秒後重試。`);
-                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
+                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay }); 
                     return; 
                 }
 
@@ -346,15 +437,15 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                         }
                     }
                     await writeToLog('WARN', `所有金鑰/模型均暫時不可用，將於 ${retryDelay} 秒後重試。`);
-                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay });
+                    sendResponse({ error: 'TEMPORARY_FAILURE', retryDelay: retryDelay }); 
 
                 } else if (errorStats.permanent > 0 && errorStats.permanent === errorStats.totalAttempts) {
                     await writeToLog('ERROR', '所有 API Key 均失效 (Billing/Invalid)。', '翻譯流程已停止。', '請檢查並更換您的 API Key。');
-                    sendResponse({ error: 'PERMANENT_FAILURE', message: '所有 API Key 均失效 (Billing/Invalid)。' });
+                    sendResponse({ error: 'PERMANENT_FAILURE', message: '所有 API Key 均失效 (Billing/Invalid)。' }); 
 
                 } else if (errorStats.batch > 0) {
                     await writeToLog('WARN', '模型無法處理此批次內容。', '可能為格式或內容錯誤。', '前端將標記此批次為可點擊重試。');
-                    sendResponse({ error: 'BATCH_FAILURE', message: '模型無法處理此批次內容。' });
+                    sendResponse({ error: 'BATCH_FAILURE', message: '模型無法處理此批次內容。' }); 
                     
                 } else {
                     await writeToLog('ERROR', '所有 API Key 與模型均嘗試失敗 (未知原因)。', '請檢查日誌。', '請確認金鑰有效性、用量配額與網路連線。');
@@ -403,9 +494,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     }
                 });
                 const sessionClearPromise = chrome.storage.session.remove('errorLogs');
-                // 【關鍵修正點】: 移除 sessionData.availableLangs = {};
-                // 【關鍵修正點】: 移除 sessionData.lastPlayerData = {};
-                // 【關鍵修正點】: 移除 sessionData.sessionCache = {};
+
                 Promise.all([localClearPromise, sessionClearPromise])
                     .then(() => {
                         console.log(`[Background] 成功清除了 ${clearedCount} 個影片的暫存與所有日誌。`);
@@ -485,10 +574,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
             break;
 
-            // 【關鍵修正點】: 'STORE_AVAILABLE_LANGS' case 已被移除
-                        
-            // 【關鍵修正點】: 'getAvailableLangs' case 已被移除
-
         case 'updateSettings':
             // 功能: 更新使用者設定，將其儲存到 chrome.storage，並廣播通知所有開啟的 YouTube 分頁。
             // input from: popup.js -> saveSettings 函式
@@ -525,7 +610,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             });
             break;
         
-        // 新增 getDebugPrompts 動作
         case 'getDebugPrompts':
             // 功能: 獲取實驗室所需的預設 Prompt 內容
             // input from: lab.js
@@ -534,24 +618,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             isAsync = true;
             (async () => {
                 try {
-                    // 使用 defaultSettings 作為 B 計畫
                     const result = await chrome.storage.local.get({ 'ytEnhancerSettings': defaultSettings });
                     const settings = result.ytEnhancerSettings;
                     
-                    // 1. 獲取 "真實儲存的自訂 Prompt"
                     const tier2List = settings.auto_translate_priority_list || [];
-                    const langConfig = tier2List.find(item => item.langCode === 'ja'); // 預設 'ja'
+                    const langConfig = tier2List.find(item => item.langCode === 'ja'); 
                     
                     let savedCustomPrompt;
                     if (langConfig && langConfig.customPrompt) {
-                        // 情況 A: 找到使用者儲存的 'ja' Prompt
                         savedCustomPrompt = langConfig.customPrompt;
                     } else {
-                        // 情況 B: Fallback (B 計畫)，使用硬編碼的預設 'ja' Prompt
                         savedCustomPrompt = DEFAULT_CUSTOM_PROMPTS['ja'];
                     }
                     
-                    // 2. 獲取 "通用 Prompt"
                     const universalPrompt = DEFAULT_CORE_PROMPT_TEMPLATE;
                     
                     sendResponse({ success: true, universalPrompt, savedCustomPrompt });
@@ -589,7 +668,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                 for (const keyInfo of apiKeys) { 
                     const keyName = keyInfo.name || '未命名金鑰';
                     try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -618,7 +697,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             break;
             
         default:
-            // 忽略其他未知的同步訊息
             break;
     }
     return isAsync;
