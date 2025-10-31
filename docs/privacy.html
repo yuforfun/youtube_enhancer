@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0 auto;
+            max-width: 800px;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        h3 { color: #555; }
+        code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: 0.9em;
+        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+        strong { color: #111; }
+    </style>
+</head>
+<body>
+    <h1>隱私權政策 (Privacy Policy)</h1>
+    <p><strong>最後更新日期：</strong> 2025 年 11 月 1 日</p>
+    <p>歡迎使用「YouTube 字幕增強器」（以下簡稱「本擴充功能」）。我們高度重視您的隱私權。本政策旨在說明本擴充功能如何處理您的資料。</p>
+    <p>本擴充功能採用 100% Serverless 架構設計。<strong>開發者（我）沒有建置任何伺服器，因此我們絕不會（也無法）收集、儲存、追蹤或傳輸您的任何個人資訊或敏感資料。</strong></p>
+    <p>所有的資料處理均在您的瀏覽器本機完成，或在您（使用者）的瀏覽器與您指定的第三方服務（Google Gemini API）之間直接進行。</p>
+    
+    <h2>1. 我們處理的資料類型</h2>
+    <p>為了讓擴充功能正常運作，我們會接觸或儲存以下資料類型。所有資料均儲存於您的本機瀏覽器，開發者無法存取。</p>
+    
+    <h3>A. 驗證資訊 (Authentication Information)</h3>
+    <ul>
+        <li><strong>[敏感] 使用者 API 金鑰 (<code>userApiKeys</code>)</strong>：
+            您自行提供並儲存的 Google Gemini API 金鑰。這將被儲存在您本機的 <code>chrome.storage.local</code> 中，以便向 Google API 發送請求。</li>
+    </ul>
+
+    <h3>B. 網站內容 (Website Content)</h3>
+    <ul>
+        <li><strong>字幕原文</strong>：
+            本擴充功能會讀取（攔截）您當前觀看 YouTube 影片的字幕文字 (<code>timedtext</code>)，以便將其發送給 API 進行翻譯。</li>
+        <li><strong>翻譯快取</strong>：
+            為節省您的 API 用量，已翻譯完成的字幕稿會以影片 ID 為索引，儲存在您本機的 <code>chrome.storage.local</code> 中。</li>
+    </ul>
+
+    <h3>C. 使用者活動 (User Activity)</h3>
+    <ul>
+        <li><strong>影片播放時間</strong>：
+            本擴充功能需要讀取影片的 <code>currentTime</code>（當前播放時間），這是為了將翻譯後的字幕與影片畫面精確同步。</li>
+        <li><strong>介面點擊</strong>：
+            本擴充功能會監聽字幕 UI 上的特定點擊事件，例如「點擊重試」連結 (<code>handleRetryBatchClick</code>)，以便您在翻譯批次失敗時手動觸發重試。</li>
+    </ul>
+
+    <h3>D. 其他本機設定</h3>
+    <ul>
+        <li><strong>擴充功能設定 (<code>ytEnhancerSettings</code>)</strong>：您在設定頁面所做的自訂（如字體大小、偏好語言列表）。</li>
+        <li><strong>暫時性偵錯日誌 (<code>errorLogs</code>)</strong>：用於「診斷與日誌」頁面，會在瀏覽器關閉時自動清除。</li>
+    </ul>
+
+    <h2>2. 我們如何使用您的資料</h2>
+    <p>本擴充功能對資料的使用嚴格遵守「最小必要原則」：</p>
+    <ul>
+        <li><strong>API 金鑰</strong>：
+            <ul>
+                <li><strong>唯一用途</strong>：您的 API 金鑰<strong>僅會</strong>被您的瀏覽器用於向 <code>https://generativelanguage.googleapis.com</code> 發送翻譯請求。</li>
+                <li><strong>安全性</strong>：金鑰儲存於您本機的 <code>chrome.storage.local</code>。<strong>開發者無法存取、讀取或備份您的金鑰。</strong></li>
+            </ul>
+        </li>
+        <li><strong>字幕內容</strong>：
+            <ul>
+                <li>字幕原文會連同您的 API 金鑰，由您的瀏覽器直接發送給 Google Gemini API 進行翻譯。</li>
+                <li><strong>翻譯過程的隱私權由 Google AI 服務的隱私權政策管轄。</strong></li>
+            </ul>
+        </li>
+        <li><strong>使用者活動</strong>：
+            <ul>
+                <li>讀取影片時間<strong>僅為</strong>同步字幕；監聽點擊<strong>僅為</strong>提供重試功能。</li>
+                <li><strong>本擴G充功能絕不會記錄或傳輸您的滑鼠位置、捲動或非必要的按鍵動作。</strong></li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>3. 第三方服務</h2>
+    <p>本擴充功能的核心運作依賴以下第三方服務，您對這些服務的使用受其各自隱私權政策的約束：</p>
+    <ul>
+        <li><strong>Google Gemini API (<code>https://generativelanguage.googleapis.com</code>)</strong>：
+            <ul>
+                <li>這是翻譯功能的核心。所有翻譯請求（包含字幕原文和您的 API 金鑰）均由您的瀏覽器直接發送至此服務。我們建議您查閱 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google API 的隱私權政策</a> 以了解他們如何處理您的資料。</li>
+            </ul>
+        </li>
+        <li><strong>YouTube (<code>youtube.com</code>)</strong>：
+            <ul>
+                <li>本擴充功能在此網站上運行，以讀取字幕資料、監聽播放時間 並渲染翻譯後的 UI。</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>4. 您的權利與資料控制</h2>
+    <p>由於我們不持有您的任何資料，您對您的資料擁有 100% 的控制權：</p>
+    <ul>
+        <li>您可以隨時在本擴充功能的「設定」頁面中新增或刪除您的 API 金鑰。</li>
+        <li>您可以隨時在本擴充功能的「診斷與日誌」頁面中「清除所有快取與日誌」，以刪除所有儲存的快取和錯誤記錄。</li>
+        <li>您可以隨時透過 Chrome 瀏覽器的擴充功能管理頁面解除安裝本擴充功能，這將會清除所有儲存的資料。</li>
+    </ul>
+
+    <h2>5. 政策變更</h2>
+    <p>我們可能會不時更新本隱私權政策。任何變更都將發布在此頁面上。我們鼓勵您定期查看本隱私權政策，以了解任何更新。</p>
+
+    <h2>6. 聯絡我們</h2>
+    <p>如果您對本隱私權政策有任何疑問，歡迎透過本專案的 <a href="https://github.com/[請填入您的GitHub帳號]/[您的專案名稱]/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a> 頁面與我們聯繫。</p>
+</body>
+</html>
